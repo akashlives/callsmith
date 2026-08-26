@@ -10,7 +10,7 @@
 
 ## Verified vertical slice
 
-- `npm run verify` passes: strict lint, TypeScript, 26 unit/integration tests, production build, and six desktop/mobile browser tests.
+- `npm run verify` passes: strict lint, TypeScript, 27 unit/integration tests, production build, and six desktop/mobile browser tests.
 - The signature workbench renders six synthetic scenarios, deterministic preview provenance, state diffs, fault/recovery traces, score anatomy, and Luna/Terra comparison evidence.
 - The API creates comparisons, streams state with SSE, isolates provider failures, produces unlisted report tokens, and preserves completed reports in Postgres when configured.
 - The real runner uses the OpenAI Responses API with strict function tools when `OPENAI_API_KEY` or request-scoped BYOK is supplied. No credential was available for a live Luna/Terra smoke test, so that verification gate remains open.
@@ -27,5 +27,6 @@
 
 - Public workbench: `https://web-production-6cecc.up.railway.app/`
 - Public repository: `https://github.com/akashlives/callsmith`
+- A fresh public clone passed `npm ci && npm run verify`, and GitHub Actions run `33017357359` passed the same CI sequence on commit `9ccb068`.
 - The production health endpoint reports `memory+postgres`; a completed comparison and unlisted report were re-opened after replacing the web container.
 - Railway deployment/runtime/HTTP logs were checked after the restart with no error-level runtime entries or HTTP responses at or above 400.

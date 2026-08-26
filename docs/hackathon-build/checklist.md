@@ -66,7 +66,7 @@ Wow moment: identical agents face stale context, prompt injection, and a duplica
   Acceptance: A new tester can start the demo within 30 seconds and every failure explains the next action.
   Verify: Playwright desktop/mobile, keyboard navigation, axe-style static checks, and screenshot review.
 
-- [ ] **11. Publish the repository and evidence**
+- [x] **11. Publish the repository and evidence**
   Spec ref: `prd.md > Submission acceptance`
   What to build: MIT license, architecture and WebMCP docs, setup/testing instructions, limitations, screenshots, and public GitHub repository.
   Acceptance: Clean clone builds and the repository makes the judging case without the live demo.
