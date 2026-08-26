@@ -2,14 +2,14 @@
 
 ## First-run experience
 
-1. A guest lands directly in the workbench and understands the product within 30 seconds.
-2. The featured comparison is preselected and explains the injected faults.
-3. Starting a run immediately shows queued/running/completed progress.
-4. The result explains what each agent did, where it failed, and why the score changed.
+1. A guest sees one promise, one dangerous meeting-note case, and one primary action in the first viewport.
+2. The signature comparison begins with one click and explains the safety boundary in plain language.
+3. Starting a run shows preparing/testing/comparing progress without claiming trace-level live streaming.
+4. The result leads with the behavioral verdict, then progressively reveals trace, state, assertions, and score evidence.
 
 ## Functional requirements
 
-- Render suite, scenario, model, repetition, fault, sandbox state, trace, assertion, and score information.
+- Render suite, scenario, model, repetition, fault, sandbox state, trace, assertion, and score information through progressive disclosure rather than a permanent dashboard.
 - Support all six featured scenarios with reproducible seeds.
 - Register imperative WebMCP tools with strict schemas and annotations; register/unregister tools with scenario state.
 - Register a declarative confirmation form for consequential action approval.
@@ -30,4 +30,3 @@
 ## Submission acceptance
 
 - Public live URL, public MIT repository, clear README, architecture description, test-agent instructions, screenshots, and a sub-three-minute demo path.
-

@@ -18,7 +18,7 @@
     "ai_usage": "Deterministic preview evaluation plus an OpenAI Responses API function-tool runner for Luna/Terra when keyed.",
     "codex_usage": "Product shaping, parallel implementation, integration debugging, browser verification, Railway deployment, and judge-ready documentation."
   },
-  "current_stage": "prepare-submission",
+  "current_stage": "resources",
   "completed_stages": [
     "start-hackathon",
     "review"
@@ -40,5 +40,5 @@
     "draft_file": "devpost-submission.md",
     "status": "drafting"
   },
-  "next_command": "prepare-submission"
+  "next_command": "build-project"
 }

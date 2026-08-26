@@ -3,6 +3,8 @@
 ## Application
 
 - Next.js 16 App Router, React 19, TypeScript, Tailwind CSS.
+- The root page renders a server-authored narrative shell with a focused client runner; `RunResult` is adapted into verdict, plain-language evidence, state facts, and developer evidence without a duplicate fixture contract.
+- Adaptive light/dark theme selection is applied before first paint and persisted only as a local presentation preference.
 - Server route handlers expose run, event, share, suite validation, sandbox, and health interfaces.
 - A typed in-memory repository is the development and guest fallback; persistence interfaces permit Postgres/Redis implementations without changing UI contracts.
 - The OpenAI runner is server-only and activated only when a server key or request-scoped BYOK key is present.
@@ -41,4 +43,3 @@
 - Vitest covers contracts, deterministic faults, assertions, scoring, store isolation, and secret redaction.
 - Playwright covers first-run workbench, preview comparison, report view, responsive UI, and browser-side WebMCP adapter behavior through a test polyfill.
 - `npm run lint`, `npm test`, `npm run build`, and a production health check are release gates.
-

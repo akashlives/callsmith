@@ -14,7 +14,7 @@ The Sales Follow-through Gauntlet uses synthetic Publicus-shaped data. An agent 
 
 ## In scope
 
-- A polished IDE-like workbench with suite navigation, sandbox state, trace, assertions, and comparison views.
+- A polished story-first workbench that reveals suite navigation, sandbox state, traces, assertions, and comparison evidence only after the first verdict is understood.
 - Six deterministic stateful scenarios.
 - Safe JSON suite definitions and a restricted action DSL.
 - WebMCP tools registered by sandbox pages and by Callsmith itself.
@@ -29,4 +29,3 @@ The Sales Follow-through Gauntlet uses synthetic Publicus-shaped data. An agent 
 - Real Publicus, CRM, meeting, or customer data.
 - Generic WebMCP inspection, manual invocation, or an agent chat assistant as the headline feature.
 - Claiming a model run occurred when it did not.
-

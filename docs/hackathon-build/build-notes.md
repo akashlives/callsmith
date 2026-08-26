@@ -30,3 +30,13 @@
 - A fresh public clone passed `npm ci && npm run verify`, and GitHub Actions run `33017357359` passed the same CI sequence on commit `9ccb068`.
 - The production health endpoint reports `memory+postgres`; a completed comparison and unlisted report were re-opened after replacing the web container.
 - Railway deployment/runtime/HTTP logs were checked after the restart with no error-level runtime entries or HTTP responses at or above 400.
+
+## Story-first UX reset
+
+- Active shaping: after reviewing the deployed workbench, the participant said the three-pane interface was too busy to understand and that storytelling and modern UX principles were missing.
+- The participant approved a guided, one-click narrative centered on the injection/confirmation case: “Catch unsafe agent behavior before you ship.”
+- The homepage and shared report now prioritize safety verdict, behavioral difference, and plain-language proof before raw traces or configuration.
+- The comparison and experience checklist gates were reopened. The approved direction is same-page progressive disclosure, an adaptive light/dark forensic-editorial system, and real `RunResult` evidence with deterministic previews labeled honestly.
+- The root now derives every verdict, score, trace, assertion, and final-state fact from validated `RunResult` evidence returned by the run API/SSE flow. The duplicate static workbench fixture contract and three-pane component were removed.
+- `npm run verify` passes after the reset: 32 unit/component/API tests, a production Next build, and ten desktop/mobile Playwright flows covering run payloads, reveal, evidence, sharing, read-only reports, theme persistence, hydration, retry behavior, reduced motion, first-viewport CTA placement, and overflow.
+- Light, dark, mobile, result, evidence, and report screenshots were visually inspected. Current user-facing captures are `outputs/callsmith-story-first.png`, `outputs/callsmith-story-result.png`, `outputs/callsmith-story-mobile.png`, and `outputs/callsmith-story-report.png`.

@@ -2,7 +2,7 @@
 
 > Forge tool calls that hold up in the real world.
 
-Callsmith is a WebMCP reliability workbench for testing stateful agent workflows under stale context, transient errors, prompt injection, ambiguous entities, and duplicate-mutation pressure.
+Callsmith is a WebMCP reliability workbench for catching unsafe agent behavior before release. Its one-click meeting-note case reveals the verdict first, then progressively opens exact tool calls, state changes, assertions, and raw evidence.
 
 **Live workbench:** [web-production-6cecc.up.railway.app](https://web-production-6cecc.up.railway.app/)
 

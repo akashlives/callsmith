@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import type { RunResult } from "@/lib/contracts";
+import { buildCaseComparisonViewModel } from "@/components/case-comparison";
+import { ComparisonEvidence, OutcomeCards } from "@/components/comparison-evidence";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { RunResultSchema, type RunResult } from "@/lib/contracts";
 
 function decodeRunId(token: string): string | undefined {
   const encoded = token.split(".", 1)[0];
@@ -14,12 +17,6 @@ function decodeRunId(token: string): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-function formatModel(model: string) {
-  if (model === "gpt-5.6-luna") return "Luna";
-  if (model === "gpt-5.6-terra") return "Terra";
-  return "Preview fixture";
 }
 
 export default function SharedReportClient({ token }: { token: string }) {
@@ -36,7 +33,7 @@ export default function SharedReportClient({ token }: { token: string }) {
     )
       .then(async (response) => {
         if (!response.ok) throw new Error("This report is unavailable or has expired.");
-        setRun((await response.json()) as RunResult);
+        setRun(RunResultSchema.parse(await response.json()));
       })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) {
@@ -52,10 +49,10 @@ export default function SharedReportClient({ token }: { token: string }) {
     return (
       <main className="report-shell report-shell--centered">
         <section className="report-message" role="alert">
-          <span>CALLSMITH / REPORT</span>
+          <span>Callsmith / report</span>
           <h1>Report unavailable</h1>
           <p>{visibleError}</p>
-          <Link href="/">Return to the workbench</Link>
+          <Link href="/">Return to Callsmith</Link>
         </section>
       </main>
     );
@@ -65,7 +62,7 @@ export default function SharedReportClient({ token }: { token: string }) {
     return (
       <main className="report-shell report-shell--centered">
         <section className="report-message" role="status">
-          <span>CALLSMITH / REPORT</span>
+          <span>Callsmith / report</span>
           <h1>Recovering evidence</h1>
           <p>Loading the immutable comparison from Callsmith.</p>
         </section>
@@ -73,102 +70,60 @@ export default function SharedReportClient({ token }: { token: string }) {
     );
   }
 
-  const scores = run.attempts.map((attempt) => attempt.score.total);
-  const average = scores.length
-    ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
-    : 0;
-  const passed = run.attempts.filter((attempt) => attempt.score.passed).length;
+  const comparison = buildCaseComparisonViewModel(run);
 
   return (
     <main className="report-shell">
       <div className="report-wrap">
-        <header className="report-header">
-          <div>
-            <Link href="/">Callsmith / reliability report</Link>
-            <h1>{run.scenarioId.replaceAll("-", " ")}</h1>
-            <p>
-              Synthetic sandbox evidence for {run.suiteId} {run.suiteVersion}. This
-              unlisted report is read-only and contains no customer data or provider key.
-            </p>
-          </div>
-          <div className="report-badges">
-            <span>Read only</span>
-            <span>{run.provenance}</span>
-          </div>
+        <header className="report-nav">
+          <Link href="/" className="site-brand" aria-label="Return to Callsmith">
+            <span aria-hidden="true">C</span>
+            <strong>Callsmith</strong>
+          </Link>
+          <ThemeToggle />
         </header>
 
-        <section className="report-summary" aria-label="Run summary">
-          {[
-            ["Status", run.status.replaceAll("_", " ")],
-            ["Average score", `${average}/100`],
-            ["Passed", `${passed}/${run.attempts.length}`],
-            ["Seed", String(run.seed)],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <p>{label}</p>
-              <strong>{value}</strong>
-            </div>
-          ))}
-        </section>
-
-        <section className="report-attempts" aria-labelledby="attempts-heading">
-          <div className="report-section-heading">
-            <h2 id="attempts-heading">Attempt evidence</h2>
-            <span>{run.attempts.length} captured</span>
+        <section className="report-hero" aria-labelledby="report-heading">
+          <div className="report-badges">
+            <span>Read only</span>
+            <span>{comparison.provenanceLabel}</span>
           </div>
-
-          {run.attempts.length === 0 ? (
-            <div className="report-empty">
-              No completed attempt evidence is available. The run ended before a model
-              or preview trace could be evaluated.
-            </div>
-          ) : (
-            <div className="report-attempt-grid">
-              {run.attempts.map((attempt) => (
-                <article className="report-attempt" key={attempt.id}>
-                  <div className="report-attempt-topline">
-                    <div>
-                      <p>{formatModel(attempt.model)} · {attempt.provenance}</p>
-                      <h3>
-                        {attempt.score.passed ? "Workflow held" : "Reliability gap found"}
-                      </h3>
-                    </div>
-                    <strong>{attempt.score.total}<small>/100</small></strong>
-                  </div>
-
-                  <div className="report-score-grid">
-                    {[
-                      ["Task outcome", attempt.score.taskOutcome],
-                      ["Trajectory", attempt.score.trajectory],
-                      ["Safety", attempt.score.safety],
-                      ["Recovery", attempt.score.recovery],
-                    ].map(([category, component]) => {
-                      const score = component as { earned: number; possible: number };
-                      return (
-                        <div key={String(category)}>
-                          <p>{String(category)}</p>
-                          <strong>{score.earned}/{score.possible}</strong>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <ol className="report-trace">
-                    {attempt.trace.map((trace) => (
-                      <li key={trace.id}>
-                        <span>{String(trace.sequence).padStart(2, "0")}</span>
-                        <p>
-                          <strong>{trace.toolName ?? trace.type}</strong>{" "}
-                          {trace.message ?? trace.faultType ?? "state captured"}
-                        </p>
-                      </li>
-                    ))}
-                  </ol>
-                </article>
-              ))}
-            </div>
-          )}
+          <p className="story-eyebrow">Reliability report · {run.scenarioId.replaceAll("-", " ")}</p>
+          <h1 id="report-heading">{comparison.headline}</h1>
+          <p>{comparison.summary}</p>
+          <small>
+            Synthetic sandbox evidence. This unlisted report contains no customer data,
+            provider key, or mutable controls.
+          </small>
         </section>
+
+        {comparison.attempts.length ? (
+          <>
+            <OutcomeCards attempts={comparison.attempts} />
+
+            <section className="report-run-facts" aria-label="Run facts">
+              <div><span>Status</span><strong>{run.status.replaceAll("_", " ")}</strong></div>
+              <div><span>Assertions passed</span><strong>{comparison.passed}/{comparison.total}</strong></div>
+              <div><span>Seed</span><strong>{comparison.seed}</strong></div>
+              <div><span>Suite</span><strong>{run.suiteVersion}</strong></div>
+            </section>
+
+            <ComparisonEvidence
+              attempts={comparison.attempts}
+              summary="Inspect the immutable evidence"
+            />
+          </>
+        ) : (
+          <div className="report-empty">
+            No completed attempt evidence is available. The run ended before a model or
+            preview trace could be evaluated.
+          </div>
+        )}
+
+        <footer className="report-footer">
+          <Link href="/">Run the signature safety test</Link>
+          <span>Callsmith · WebMCP reliability workbench</span>
+        </footer>
       </div>
     </main>
   );

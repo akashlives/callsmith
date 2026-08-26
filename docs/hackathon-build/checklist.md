@@ -42,11 +42,11 @@ Wow moment: identical agents face stale context, prompt injection, and a duplica
   Acceptance: A configured key produces real labeled attempts; no key produces an actionable unavailable state, never a fake run.
   Verify: Mock provider tests; live smoke test when a key is available.
 
-- [ ] **7. Build comparison and report UX** *(read-only report verified; live trace-diff wiring remains)*
+- [x] **7. Build story-first comparison and report UX**
   Spec ref: `prd.md > Functional requirements`
-  What to build: Trace diff, model summaries, score explanations, report tokens, read-only report route, responsive states.
-  Acceptance: A comparison is understandable without reading raw JSON and shared reports cannot mutate state.
-  Verify: Playwright happy/failure/share flows and accessibility assertions.
+  What to build: A one-click injection/confirmation story driven by the run API, verdict-first model summaries, progressive trace/state/assertion evidence, functional report sharing, and a matching read-only report route.
+  Acceptance: A judge understands the unsafe behavior before seeing technical controls; every visible verdict comes from `RunResult`; shared reports cannot mutate state.
+  Verify: Component and adapter tests plus Playwright run/reveal/evidence/share/report flows.
 
 - [ ] **8. Add persistence and production boundaries**
   Spec ref: `spec.md > Railway`
@@ -60,11 +60,11 @@ Wow moment: identical agents face stale context, prompt injection, and a duplica
   Acceptance: Public health and workbench URLs load; private services are not exposed publicly.
   Verify: Railway deployment status, logs, variables, health endpoint, and production browser smoke.
 
-- [x] **10. Harden the product experience**
+- [x] **10. Harden the story-first product experience**
   Spec ref: `prd.md > First-run experience`
-  What to build: Onboarding, empty/loading/error/recovery states, keyboard support, responsive layout, and one-click signature demo.
-  Acceptance: A new tester can start the demo within 30 seconds and every failure explains the next action.
-  Verify: Playwright desktop/mobile, keyboard navigation, axe-style static checks, and screenshot review.
+  What to build: A spacious forensic-editorial shell, adaptive persisted theme without flash, plain-language progress and recovery, keyboard/reduced-motion support, responsive progressive disclosure, and no inactive controls.
+  Acceptance: A new tester can identify the product, danger, and one primary action from the first viewport; the complete guest reveal finishes within 30 seconds.
+  Verify: Playwright desktop/mobile/theme/keyboard/reduced-motion checks and light/dark screenshot review.
 
 - [x] **11. Publish the repository and evidence**
   Spec ref: `prd.md > Submission acceptance`

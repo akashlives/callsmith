@@ -20,21 +20,27 @@ export const metadata: Metadata = {
     template: "%s · Callsmith",
   },
   description:
-    "Forge WebMCP tool calls that hold up under stale state, transient failures, prompt injection, and real agent behavior.",
+    "Catch unsafe agent behavior before you ship with reproducible WebMCP reliability tests.",
   applicationName: "Callsmith",
   openGraph: {
     title: "Callsmith — WebMCP Reliability Workbench",
-    description: "Behavioral regression testing and fault injection for agent-facing websites.",
+    description: "Catch unsafe agent behavior before you ship with reproducible WebMCP reliability tests.",
     type: "website",
   },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const themeScript = `(()=>{try{const k="callsmith-theme",s=localStorage.getItem(k),t=s==="light"||s==="dark"?s:matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t}catch{}})()`;
+
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

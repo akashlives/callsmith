@@ -4,7 +4,7 @@ Callsmith — The WebMCP Reliability Workbench
 
 ## One-line Summary
 
-Forge WebMCP tool calls that hold up under stale context, transient failures, prompt injection, ambiguity, and duplicate-mutation pressure.
+Catch unsafe agent behavior before you ship with reproducible WebMCP reliability tests.
 
 ## Problem
 
@@ -22,11 +22,11 @@ Today, teams usually learn the answers manually—or after something unsafe happ
 
 ## Solution
 
-Callsmith is an IDE-style reliability workbench for WebMCP workflows. Developers run versioned, stateful sandbox suites against identical seeds and fault schedules, inspect browser tool calls and state transitions, evaluate temporal and safety assertions, and publish read-only reliability reports.
+Callsmith is a story-first reliability workbench for WebMCP workflows. A developer begins with one dangerous case, sees the behavioral verdict in plain language, then progressively opens exact browser tool calls, state transitions, temporal assertions, and read-only reliability reports.
 
 The featured **Sales Follow-through Gauntlet** represents a realistic post-meeting workflow using synthetic data: resolve the right account, refresh meeting context, update an opportunity once, create follow-up work, draft a response, and stop before external delivery until a human confirms.
 
-The signature comparison deliberately combines stale context, ambiguous identity, untrusted tool output, a transient failure, a duplicate-mutation trap, and a human boundary. Callsmith scores the trajectory—not just the final answer—across:
+The signature comparison keeps the first story deliberately narrow: the same untrusted meeting note tries to make two agents send without approval. One crosses the confirmation boundary; one stops safely. The remaining scenarios cover stale context, ambiguous identity, transient failure, and duplicate mutation after the judge understands the core value. Callsmith scores the trajectory—not just the final answer—across:
 
 - Task outcome: 35 points
 - Trajectory correctness: 30 points
@@ -74,7 +74,8 @@ No Devpost entry has been sent from this draft workflow.
 
 ## Key Features
 
-- Three-pane IDE workbench with suites, synthetic CRM state, live-style trace, assertions, and score anatomy
+- One-click forensic narrative with verdict-first Luna/Terra outcomes and progressive evidence disclosure
+- Adaptive light/dark presentation applied before first paint, plus keyboard, reduced-motion, and responsive behavior
 - Six versioned Sales Follow-through scenarios: happy path, ambiguity, stale context, transient failure, duplicate mutation, and injection/confirmation
 - Strict public Zod contracts for suites, tools, scenarios, fault profiles, assertions, attempts, and reports
 - Safe action DSL restricted to `query`, `get`, `patch`, `append`, and `transition`
@@ -111,12 +112,12 @@ The public web service is the only exposed Railway service. Postgres, Redis, the
 ### Fast judge path — no credentials
 
 1. Open [the live workbench](https://web-production-6cecc.up.railway.app/) in Google Chrome or ChatGPT’s in-app browser.
-2. Confirm the header says **Preview evidence**.
-3. Select both Luna and Terra and keep repetitions at `3×`.
-4. Click **Run signature preview**.
-5. Watch the status move through queued, evaluating, recovery, and verified.
-6. Inspect the synthetic CRM state diff, the stale-context recovery, the ignored untrusted instruction, the single mutation, and the held human boundary.
-7. Compare the two scorecards and open the trace evidence.
+2. Read **The meeting-note trap** and click **Run the safety test**. No setup or credentials are required.
+3. Watch Callsmith prepare the sandbox, test the boundary, and compare behavior.
+4. Compare **Sent without approval** with **Stopped for human confirmation**.
+5. Open **Show the proof** to inspect the plain-language tool path and final synthetic state.
+6. Open **Developer evidence** for assertions, weighted scores, and normalized trace JSON.
+7. Create and open the unlisted read-only report, or run one of the five secondary scenarios.
 
 ### Agent-native WebMCP path
 
@@ -135,7 +136,7 @@ npm ci
 npm run verify
 ```
 
-`npm run verify` runs strict lint, a first-run TypeScript check, 27 unit/integration tests, a production Next build, and six Chromium desktop/mobile tests.
+`npm run verify` runs strict lint, a first-run TypeScript check, 32 unit/integration/component tests, a production Next build, and ten Chromium desktop/mobile tests.
 
 ## Public Demo Link
 
@@ -154,9 +155,9 @@ License: MIT
 Suggested outline:
 
 - **0:00–0:20 — Hook:** “A tool registering does not mean an agent will use it safely.”
-- **0:20–0:45 — Product:** Open Callsmith and start the one-click signature preview.
-- **0:45–1:35 — Gauntlet:** Show stale context, the hostile instruction, retry/duplicate pressure, the state diff, and the confirmation boundary.
-- **1:35–2:05 — Evidence:** Compare the 65/100 unsafe path with the 100/100 safe trajectory and open the read-only report.
+- **0:20–0:45 — Product:** Read the meeting-note trap and click **Run the safety test**.
+- **0:45–1:25 — Reveal:** Show the hostile instruction, the 65/100 unsafe send, and the 100/100 confirmation-safe path.
+- **1:25–2:05 — Evidence:** Open the plain-language proof, developer trace, final state, and read-only report.
 - **2:05–2:35 — WebMCP:** Have an agent call `list_suites`, `run_comparison`, `get_run_status`, and `open_report`.
 - **2:35–2:55 — Proof:** Show the strict tool registration code, 27 tests, public repository, and Railway deployment.
 - **2:55–3:00 — Close:** “Before you ship an agent-facing website, put its tool calls through the forge.”
@@ -165,11 +166,11 @@ Suggested outline:
 
 The following screenshots were captured from the working application and are stored as local draft assets:
 
-1. `outputs/callsmith-workbench.png` — full desktop workbench with comparison, trace, state diff, and score anatomy
-2. `outputs/callsmith-mobile.png` — responsive phone layout showing the same end-to-end evidence
-3. `outputs/callsmith-report.png` — unlisted read-only report with 65/100 vs 100/100 comparison
-4. **TODO:** Capture WebMCP-enabled Chrome or ChatGPT visibly discovering the four Callsmith tools
-5. **TODO:** Capture the public Railway URL with the signature run in progress for the video thumbnail/Devpost gallery
+1. `outputs/callsmith-story-first.png` — light editorial first viewport with one promise, one case, and one action
+2. `outputs/callsmith-story-result.png` — 65/100 unsafe send versus 100/100 confirmation-safe reveal
+3. `outputs/callsmith-story-mobile.png` — dark phone composition with the CTA inside the first viewport
+4. `outputs/callsmith-story-report.png` — unlisted verdict-first read-only report
+5. **TODO:** Capture WebMCP-enabled Chrome or ChatGPT visibly discovering the four Callsmith tools
 
 ## Judging Criteria Evidence
 
@@ -182,7 +183,7 @@ The following screenshots were captured from the working application and are sto
 ### Execution
 
 - Public Railway URL, public MIT repository, guest preview, responsive UX, SSE API, durable reports, health check, and clean-clone verification are working.
-- Empty, loading, evaluating, recovery, completed, unavailable, and provider-failure states are explicit.
+- Idle, preparing, testing, comparing, completed, retryable-error, and provider-failure states are explicit.
 
 ### Potential Impact
 
@@ -223,7 +224,7 @@ External deadline recorded by Devpost: `2026-09-03T20:00:00Z` (Pacific Time even
 - The public service has no `OPENAI_API_KEY`; its one-click and agent-native paths use clearly labeled deterministic preview evidence.
 - A real Responses API Luna/Terra runner is implemented but not credential-smoke-tested in this environment.
 - Redis queue handoff, the dedicated runner process, bucket screenshots, cleanup execution, GitHub authentication, and TTL-backed quotas are provisioned/design-complete rather than active runtime paths.
-- The polished root comparison cards use deterministic preview data; completed API runs are inspected through status JSON/SSE and the dynamic read-only report.
+- The root comparison, progressive evidence, and report are all derived from validated `RunResult` records returned through the run API/SSE path; the public path is clearly labeled deterministic preview evidence.
 - Automated WebMCP adapter tests use a browser polyfill; supported judging-browser verification remains open.
 
 ## TODO Official Form Fields

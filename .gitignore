@@ -46,4 +46,5 @@ next-env.d.ts
 
 # Codex build workspace
 /work/
+/output/
 /outputs/
