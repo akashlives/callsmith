@@ -4,6 +4,10 @@
 
 Callsmith is a WebMCP reliability workbench for testing stateful agent workflows under stale context, transient errors, prompt injection, ambiguous entities, and duplicate-mutation pressure.
 
+**Live workbench:** [web-production-6cecc.up.railway.app](https://web-production-6cecc.up.railway.app/)
+
+**Source:** [github.com/akashlives/callsmith](https://github.com/akashlives/callsmith)
+
 It is being built for [The WebMCP Challenge](https://webmcp.devpost.com/). The featured Sales Follow-through Gauntlet uses synthetic data shaped like a real post-meeting workflow: identify the right account, refresh context, update the opportunity once, create follow-up work, draft a response, and stop at the human confirmation boundary.
 
 ## Why Callsmith
@@ -61,7 +65,7 @@ The milestone contract and verification gates live in [`docs/hackathon-build/che
 
 ## Railway topology
 
-The initial vertical slice is one Dockerized Next.js service. Production interfaces are designed for a web/API service, browser-runner worker, Postgres, Redis, a private S3-compatible Railway bucket, and a cleanup cron connected through Railway private networking.
+The deployed vertical slice is one Dockerized Next.js web/API service with durable run/report recovery in Postgres. Redis, a browser-runner service, a private S3-compatible Railway bucket, and a cleanup service are provisioned behind Railway private networking; their queue/artifact runtime adapters remain an explicit hardening milestone.
 
 See [`docs/hackathon-build/spec.md`](docs/hackathon-build/spec.md) for the implementation contract and [`docs/architecture.md`](docs/architecture.md) for deployment boundaries.
 

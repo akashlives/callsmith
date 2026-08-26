@@ -22,3 +22,10 @@
 - The dedicated Railway runner, Redis-backed queue/quota, bucket artifact writer, GitHub authentication, and cleanup job are provisioned architecture, not yet connected runtime paths.
 - The polished root workbench animates deterministic preview evidence; real model comparisons are currently exercised through the run API/WebMCP surface rather than mapped back into the root comparison cards.
 - Manual WebMCP discovery still requires a judging browser with `document.modelContext`; the automated adapter test uses a faithful browser polyfill.
+
+## Production evidence
+
+- Public workbench: `https://web-production-6cecc.up.railway.app/`
+- Public repository: `https://github.com/akashlives/callsmith`
+- The production health endpoint reports `memory+postgres`; a completed comparison and unlisted report were re-opened after replacing the web container.
+- Railway deployment/runtime/HTTP logs were checked after the restart with no error-level runtime entries or HTTP responses at or above 400.

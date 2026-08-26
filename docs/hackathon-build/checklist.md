@@ -54,7 +54,7 @@ Wow moment: identical agents face stale context, prompt injection, and a duplica
   Acceptance: In-memory local mode and Railway production mode share contracts; secrets never appear in serialized output.
   Verify: Isolation, restart-contract, quota, redaction, and health tests.
 
-- [ ] **9. Provision and deploy Railway vertical slice**
+- [x] **9. Provision and deploy Railway vertical slice**
   Spec ref: `spec.md > Railway`
   What to build: New personal project, web service/domain, then Postgres, Redis, bucket, worker, and cleanup service where supported.
   Acceptance: Public health and workbench URLs load; private services are not exposed publicly.
