@@ -15,10 +15,10 @@
   "project": {
     "name": "Callsmith",
     "summary": "The WebMCP reliability workbench for stateful regression testing, fault injection, and cross-model trace comparison.",
-    "ai_usage": "",
-    "codex_usage": ""
+    "ai_usage": "Deterministic preview evaluation plus an OpenAI Responses API function-tool runner for Luna/Terra when keyed.",
+    "codex_usage": "Product shaping, parallel implementation, integration debugging, browser verification, Railway deployment, and judge-ready documentation."
   },
-  "current_stage": "resources",
+  "current_stage": "prepare-submission",
   "completed_stages": [
     "start-hackathon",
     "review"
@@ -38,7 +38,7 @@
   },
   "submission": {
     "draft_file": "devpost-submission.md",
-    "status": "not-started"
+    "status": "drafting"
   },
-  "next_command": "build-project"
+  "next_command": "prepare-submission"
 }

@@ -316,7 +316,7 @@ export function CallsmithWorkbench({
               <strong>{repetitions}×</strong>
               <button
                 type="button"
-                onClick={() => setRepetitions((value) => Math.min(5, value + 1))}
+                onClick={() => setRepetitions((value) => Math.min(3, value + 1))}
                 aria-label="Increase repetitions"
               >
                 +

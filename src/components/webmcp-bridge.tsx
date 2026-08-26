@@ -22,7 +22,7 @@ async function readJson(response: Response) {
   return data;
 }
 
-function workbenchTools(openReport: (path: string) => void): readonly WebMcpTool[] {
+export function workbenchTools(openReport: (path: string) => void): readonly WebMcpTool[] {
   return [
   {
     name: "list_suites",
@@ -69,6 +69,12 @@ function workbenchTools(openReport: (path: string) => void): readonly WebMcpTool
           minimum: 0,
           description: "Deterministic scenario seed.",
         },
+        provenance: {
+          type: "string",
+          enum: ["preview", "model"],
+          description:
+            "Use preview for deterministic public evidence, or model when the deployment has a provider key.",
+        },
       },
       ["suiteId", "scenarioId"],
     ),
@@ -77,10 +83,21 @@ function workbenchTools(openReport: (path: string) => void): readonly WebMcpTool
       const response = await fetch("/api/runs", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify({
+          ...input,
+          provenance: input.provenance === "model" ? "model" : "preview",
+        }),
         signal,
       });
-      return asToolResult(await readJson(response));
+      const run = (await readJson(response)) as { id?: unknown };
+      if (typeof run.id !== "string") return asToolResult({ run });
+
+      const shareResponse = await fetch(`/api/runs/${encodeURIComponent(run.id)}/share`, {
+        method: "POST",
+        signal,
+      });
+      const report = await readJson(shareResponse);
+      return asToolResult({ run, report });
     },
   },
   {
