@@ -8,9 +8,10 @@
 
 export type JsonSchema = {
   type: "object";
-  properties?: Record<string, Record<string, unknown>>;
+  properties?: Record<string, unknown>;
   required?: string[];
   additionalProperties?: boolean;
+  [keyword: string]: unknown;
 };
 
 export type WebMcpToolAnnotations = {

@@ -43,6 +43,7 @@ export async function POST(request: Request) {
         links: {
           self: `/api/suite-drafts/${created.draft.id}`,
           approveAndRun: `/api/suite-drafts/${created.draft.id}/approve-and-run`,
+          reject: `/api/suite-drafts/${created.draft.id}/reject`,
         },
       },
       {

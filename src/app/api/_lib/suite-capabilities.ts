@@ -44,3 +44,15 @@ export function suiteRepositoryError(error: unknown): Response {
       return jsonError(409, "Suite draft cannot be approved");
   }
 }
+
+/** Rejection keeps the same capability non-enumeration as owner reads. */
+export function suiteRejectionError(error: unknown): Response {
+  if (!(error instanceof SuiteRepositoryError)) {
+    return jsonError(500, "Unable to process the suite request");
+  }
+
+  if (error.code === "DRAFT_NOT_FOUND") {
+    return jsonError(404, "Suite draft not found");
+  }
+  return jsonError(409, "Suite draft cannot be rejected");
+}

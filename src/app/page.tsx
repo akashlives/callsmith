@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 
 import { SignatureStory, type ScenarioOption } from "@/components/signature-story";
+import SuiteAuthoringBridge from "@/components/suite-authoring-bridge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import WebMcpBridge from "@/components/webmcp-bridge";
 import { browserQueueConfigured } from "@/lib/run-queue";
@@ -29,6 +30,7 @@ export default async function Home() {
   return (
     <>
       <WebMcpBridge />
+      <SuiteAuthoringBridge />
       <main className="story-app">
         <header className="site-header">
           <a className="site-brand" href="#top" aria-label="Callsmith home">
