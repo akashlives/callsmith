@@ -113,3 +113,28 @@ may item 5 be checked and this release promoted to production.
 - The Chrome judge tab was refreshed to the new release and shows the updated
   canonical prompt. The remaining gate is one Inspector retry through authoring,
   human approval, polling, and report opening. Production remains unchanged.
+
+## Chrome tool-result remediation
+
+- The next exported Inspector trace proved the compact declaration fix: Gemini
+  3.6 Flash accepted all six tools and made real function calls. It successfully
+  executed `get_authoring_guide`, eliminating the previous HTTP 400 blocker.
+- `list_suites` still failed inside Chrome. Its HTTP endpoint was healthy, but
+  the tool was returning roughly 50 KB of complete suite definitions—including
+  state fixtures, assertions, and tool implementations—when the agent only
+  needed suite and scenario identifiers. Gemini consequently guessed
+  `default/default`; `run_comparison` and `get_run_status` then failed on those
+  fabricated identifiers. No run was created and no false status was shown.
+- Release `aa541d1` makes `list_suites` return only suite metadata and runnable
+  scenario metadata. API-backed tools now convert HTTP/network failures into a
+  structured `request_failed` result instead of rejecting through WebMCP.
+- Local lint, TypeScript, production build, 159 Vitest tests, and 14
+  desktop/mobile Playwright cases passed; two deployment-only cases remained
+  intentionally skipped locally.
+- Railway staging deployment `9415a9e5-a001-4089-9f30-38f30b44728d` is healthy
+  with image digest
+  `sha256:2556e75898ce5b6baa1bb334fca92e4065c396bd72dd986af292feb85d64dd0c`
+  and retains the required WebMCP headers.
+- A fresh Chrome staging tab is open at the exact deployed release and the
+  canonical 676-character judge prompt is on the browser clipboard. The
+  remaining release gate is the Inspector retry and human review decision.

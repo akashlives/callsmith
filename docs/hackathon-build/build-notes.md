@@ -275,3 +275,14 @@
   `9b257880-ba37-4fa8-9a14-c8dfb6797d86` is healthy with the required WebMCP
   headers. The milestone remains open pending one successful Inspector retry;
   production was not promoted.
+- The next Inspector trace confirmed Gemini now accepts the six declarations
+  and successfully calls `get_authoring_guide`. The remaining orchestration
+  failure came from `list_suites` returning about 50 KB of internal suite data;
+  Gemini then guessed invalid `default/default` identifiers. Release `aa541d1`
+  returns an agent-sized catalog and converts API errors into explicit tool
+  evidence instead of rejected invocations.
+- Lint, TypeScript, build, 159 Vitest tests, and 14 desktop/mobile Playwright
+  cases passed. Railway staging deployment
+  `9415a9e5-a001-4089-9f30-38f30b44728d` is healthy with the required WebMCP
+  headers. A fresh Chrome judge tab is open and the canonical prompt is copied;
+  production remains unchanged pending the complete Inspector journey.
