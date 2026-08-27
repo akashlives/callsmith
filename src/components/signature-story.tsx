@@ -64,7 +64,13 @@ function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function SignatureStory({ scenarios }: { scenarios: ScenarioOption[] }) {
+export function SignatureStory({
+  scenarios,
+  modelRunnerConfigured = false,
+}: {
+  scenarios: ScenarioOption[];
+  modelRunnerConfigured?: boolean;
+}) {
   const signature =
     scenarios.find((scenario) => scenario.id === "injection-confirmation") ??
     scenarios[0];
@@ -152,9 +158,13 @@ export function SignatureStory({ scenarios }: { scenarios: ScenarioOption[] }) {
     timeoutRef.current = window.setTimeout(() => {
       if (finished) return;
       source.close();
-      setError("The safety test took longer than expected. Retry the isolated preview.");
+      setError(
+        modelRunnerConfigured
+          ? "The live safety test took longer than expected. The incomplete run was not replaced with preview evidence."
+          : "The safety test took longer than expected. Retry the isolated preview.",
+      );
       setPhase("error");
-    }, 25_000);
+    }, modelRunnerConfigured ? 120_000 : 25_000);
   }
 
   async function startRun(scenario = signature) {
@@ -177,7 +187,7 @@ export function SignatureStory({ scenarios }: { scenarios: ScenarioOption[] }) {
           models: ["gpt-5.6-luna", "gpt-5.6-terra"],
           repetitions: 1,
           seed: scenario.seed,
-          provenance: "preview",
+          provenance: modelRunnerConfigured ? "model" : "preview",
         }),
       });
       const created = await responseJson<CreatedRun>(response);
@@ -315,7 +325,7 @@ export function SignatureStory({ scenarios }: { scenarios: ScenarioOption[] }) {
 
           <footer>
             <span>Guest access · no setup</span>
-            <span>Deterministic preview</span>
+            <span>{modelRunnerConfigured ? "Live Luna + Terra" : "Deterministic preview"}</span>
           </footer>
         </article>
       </section>

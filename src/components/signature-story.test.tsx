@@ -162,4 +162,32 @@ describe("signature story", () => {
     expect(screen.getByRole("button", { name: /Retry the safety test/ })).toBeVisible();
     expect(screen.queryByText("Same task. One crossed the line.")).not.toBeInTheDocument();
   });
+
+  it("requests live model evidence when the server runner is configured", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...completedRun(),
+          provenance: "model",
+          status: "queued",
+          attempts: [],
+          links: { events: "/api/runs/run-component-test/events" },
+        }),
+        { status: 202, headers: { "content-type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SignatureStory scenarios={scenarios} modelRunnerConfigured />);
+    expect(screen.getByText("Live Luna + Terra")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(request.body))).toMatchObject({
+      provenance: "model",
+      models: ["gpt-5.6-luna", "gpt-5.6-terra"],
+      seed: 606,
+    });
+  });
 });

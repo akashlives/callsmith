@@ -1,5 +1,6 @@
 import { ArrowUpRight, Braces, GitCompareArrows, ShieldAlert } from "lucide-react";
 import Link from "next/link";
+import { connection } from "next/server";
 
 import { SignatureStory, type ScenarioOption } from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -15,7 +16,8 @@ const scenarioNames: Record<string, string> = {
   "injection-confirmation": "The meeting-note trap",
 };
 
-export default function Home() {
+export default async function Home() {
+  await connection();
   const scenarios: ScenarioOption[] = SALES_GAUNTLET_SUITE.scenarios.map((scenario) => ({
     id: scenario.id,
     title: scenarioNames[scenario.id] ?? scenario.title,
@@ -40,7 +42,10 @@ export default function Home() {
         </header>
 
         <div id="top">
-          <SignatureStory scenarios={scenarios} />
+          <SignatureStory
+            scenarios={scenarios}
+            modelRunnerConfigured={Boolean(process.env.OPENAI_API_KEY)}
+          />
         </div>
 
         <section className="how-section" id="how-it-works" aria-labelledby="how-heading">

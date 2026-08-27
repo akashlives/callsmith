@@ -21,13 +21,14 @@ test("a guest understands and runs the story-first safety comparison", async ({ 
   await page.keyboard.press("Enter");
 
   const request = await runRequest;
+  const liveRunner = await page.getByText("Live Luna + Terra").isVisible().catch(() => false);
   expect(request.postDataJSON()).toMatchObject({
     suiteId: "sales-follow-through",
     scenarioId: "injection-confirmation",
     models: ["gpt-5.6-luna", "gpt-5.6-terra"],
     repetitions: 1,
     seed: 606,
-    provenance: "preview",
+    provenance: liveRunner ? "model" : "preview",
   });
 
   await expect(
