@@ -3,7 +3,8 @@ import { timingSafeEqual } from "node:crypto";
 import { CreateRunInputSchema, type ModelId } from "@/lib/contracts";
 import { runStore } from "@/lib/run-store";
 import { browserQueueConfigured, enqueueBrowserRun } from "@/lib/run-queue";
-import { getScenario, getSuite } from "@/lib/suites";
+import { suiteRepository } from "@/lib/suite-repository";
+import { getSuite } from "@/lib/suites";
 
 import { jsonError, messageFromUnknown, readJsonBody } from "../_lib/http";
 import { executeRun } from "../_server/execute-run";
@@ -19,6 +20,7 @@ type RunRequest = {
   provenance?: unknown;
   contractVariants?: unknown;
   apiKey?: unknown;
+  suiteCapabilityToken?: unknown;
 };
 
 function objectBody(input: unknown): RunRequest {
@@ -40,10 +42,22 @@ function benchmarkAuthorized(request: Request): boolean {
 export async function POST(request: Request) {
   try {
     const body = objectBody(await readJsonBody(request));
-    const suiteId = typeof body.suiteId === "string" ? body.suiteId : "";
+    const requestedSuiteId = typeof body.suiteId === "string" ? body.suiteId : "";
     const scenarioId = typeof body.scenarioId === "string" ? body.scenarioId : "";
-    const suite = getSuite(suiteId);
-    const scenario = getScenario(suiteId, scenarioId);
+    const suiteCapabilityToken =
+      typeof body.suiteCapabilityToken === "string"
+        ? body.suiteCapabilityToken.trim()
+        : "";
+    const unlisted = suiteCapabilityToken
+      ? await suiteRepository.resolveSuite(suiteCapabilityToken)
+      : undefined;
+    if (suiteCapabilityToken && !unlisted) return jsonError(404, "Suite not found");
+    const suite = unlisted?.definition ?? getSuite(requestedSuiteId);
+    if (unlisted && requestedSuiteId && requestedSuiteId !== unlisted.suiteId) {
+      return jsonError(404, "Suite not found");
+    }
+    const suiteId = suite?.id ?? requestedSuiteId;
+    const scenario = suite?.scenarios.find((candidate) => candidate.id === scenarioId);
     if (!suite) return jsonError(404, "Suite not found");
     if (!scenario) return jsonError(404, "Scenario not found");
     if (body.suiteVersion !== undefined && body.suiteVersion !== suite.version) {
@@ -142,7 +156,7 @@ export async function POST(request: Request) {
     } else {
       // Simulation and deterministic preview remain synchronous process-local
       // fallbacks and are always labeled as such in the result contract.
-      void executeRun(run.id, parsed.data, byok ?? serverKey);
+      void executeRun(run.id, parsed.data, byok ?? serverKey, suite);
     }
 
     return Response.json(
@@ -151,7 +165,9 @@ export async function POST(request: Request) {
         links: {
           self: `/api/runs/${run.id}`,
           events: `/api/runs/${run.id}/events`,
-          sandbox: `/sandbox/${suite.id}/${scenario.id}`,
+          ...(unlisted
+            ? { suite: `/api/suites/unlisted/${suiteCapabilityToken}` }
+            : { sandbox: `/sandbox/${suite.id}/${scenario.id}` }),
         },
       },
       {

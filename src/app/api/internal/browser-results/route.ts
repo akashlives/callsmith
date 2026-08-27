@@ -6,7 +6,8 @@ import { attemptFromBrowserReport } from "@/lib/browser-evidence";
 import { ContractVariantSchema, ModelIdSchema } from "@/lib/contracts";
 import { createProviderFailureAttempt } from "@/lib/evaluation";
 import { runStore } from "@/lib/run-store";
-import { getScenario, getSuite, suiteForContract } from "@/lib/suites";
+import { suiteRepository } from "@/lib/suite-repository";
+import { getSuite, suiteForContract } from "@/lib/suites";
 
 import { jsonError, messageFromUnknown, readJsonBody } from "../../_lib/http";
 
@@ -92,8 +93,14 @@ export async function POST(request: Request) {
       });
     }
 
-    const suite = getSuite(run.suiteId);
-    const scenario = getScenario(run.suiteId, run.scenarioId);
+    const registered = getSuite(run.suiteId);
+    const suite =
+      (registered?.version === run.suiteVersion ? registered : undefined) ??
+      (await suiteRepository.getSuiteInternal(run.suiteId, run.suiteVersion))
+        ?.definition;
+    const scenario = suite?.scenarios.find(
+      (candidate) => candidate.id === run.scenarioId,
+    );
     if (!suite || !scenario) return jsonError(409, "Hosted suite is no longer available");
     const contractedSuite = suiteForContract(suite, event.contractVariant);
     const contractedScenario = contractedSuite.scenarios.find(

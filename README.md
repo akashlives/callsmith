@@ -77,7 +77,11 @@ The milestone contract and verification gates live in [`docs/hackathon-build/che
 - `POST /api/runs/:id/share` — create a read-only report token
 - `GET /r/:token` — open an unlisted report
 - `GET /api/health` — deployment health
-- `POST /api/suites` — import a validated JSON-only suite
+- `POST /api/suite-drafts` — create a private draft and approval challenge
+- `GET /api/suite-drafts/:id` — read a draft with its owner capability
+- `POST /api/suite-drafts/:id/approve-and-run` — publish once and start a run
+- `GET /api/suites/unlisted/:token` — read an immutable unlisted suite
+- `POST /api/suites` — retired public import (`410`)
 - `POST /api/suites/validate` — validate without importing
 
 ## Security boundaries
@@ -85,6 +89,8 @@ The milestone contract and verification gates live in [`docs/hackathon-build/che
 - Synthetic data only; no Publicus or customer records
 - Hosted sandbox suites only; no arbitrary URL execution
 - Safe declarative action DSL; no uploaded JavaScript
+- Immutable guest suites stay unlisted and require opaque capabilities
+- Raw owner, confirmation, and suite capabilities are never persisted
 - Hardened mutations are idempotent and consequential actions require confirmation
 - BYOK secrets are ephemeral and excluded from persistent output and logs
 

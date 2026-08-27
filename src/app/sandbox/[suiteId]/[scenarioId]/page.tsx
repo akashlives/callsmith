@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 
 import { getScenario, getSuite } from "@/lib/suites";
 import type { ContractVariant } from "@/lib/contracts";
+import { runStore } from "@/lib/run-store";
+import { suiteRepository } from "@/lib/suite-repository";
+import { verifyWorkerSandboxAccess } from "@/lib/worker-sandbox-access";
 
 import { SandboxClient } from "./sandbox-client";
 
@@ -14,12 +17,43 @@ export default async function SandboxPage({
     contract?: string;
     seed?: string;
     attempt?: string;
+    run?: string;
+    expires?: string;
+    access?: string;
   }>;
 }) {
   const { suiteId, scenarioId } = await params;
   const query = await searchParams;
-  const suite = getSuite(suiteId);
-  const scenario = getScenario(suiteId, scenarioId);
+  let suite = getSuite(suiteId);
+  if (!suite) {
+    const expiresAtMs = Number(query.expires);
+    const runnerSecret = process.env.CALLSMITH_RUNNER_TOKEN?.trim() ?? "";
+    const authorized = verifyWorkerSandboxAccess(
+      {
+        runId: query.run ?? "",
+        attemptId: query.attempt ?? "",
+        expiresAtMs,
+        signature: query.access ?? "",
+      },
+      runnerSecret,
+    );
+    if (!authorized) notFound();
+
+    const run = await runStore.getPersistent(query.run ?? "");
+    if (
+      !run ||
+      run.suiteId !== suiteId ||
+      run.scenarioId !== scenarioId
+    ) {
+      notFound();
+    }
+    suite = (
+      await suiteRepository.getSuiteInternal(run.suiteId, run.suiteVersion)
+    )?.definition;
+  }
+  const scenario =
+    suite?.scenarios.find((candidate) => candidate.id === scenarioId) ??
+    getScenario(suiteId, scenarioId);
   if (!suite || !scenario) notFound();
 
   const contractVariant: ContractVariant =

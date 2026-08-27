@@ -22,7 +22,8 @@ import {
   IdempotencyGuard,
 } from "@/lib/evaluation";
 import { runStore } from "@/lib/run-store";
-import { getScenario, getSuite, suiteForContract } from "@/lib/suites";
+import { suiteRepository } from "@/lib/suite-repository";
+import { getSuite, suiteForContract } from "@/lib/suites";
 
 const MAX_TOOL_ROUNDS = 12;
 
@@ -337,9 +338,20 @@ export async function executeRun(
   runId: string,
   input: CreateRunInput,
   apiKey?: string,
+  suiteOverride?: SuiteDefinition,
 ) {
-  const suite = getSuite(input.suiteId);
-  const scenario = getScenario(input.suiteId, input.scenarioId);
+  const registered = getSuite(input.suiteId);
+  const suite =
+    (suiteOverride?.id === input.suiteId &&
+    suiteOverride.version === input.suiteVersion
+      ? suiteOverride
+      : undefined) ??
+    (registered?.version === input.suiteVersion ? registered : undefined) ??
+    (await suiteRepository.getSuiteInternal(input.suiteId, input.suiteVersion))
+      ?.definition;
+  const scenario = suite?.scenarios.find(
+    (candidate) => candidate.id === input.scenarioId,
+  );
   if (!suite || !scenario) {
     runStore.update(runId, { status: "failed" });
     return;

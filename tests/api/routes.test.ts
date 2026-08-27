@@ -374,47 +374,22 @@ describe("Callsmith API routes", () => {
     }
   });
 
-  it("imports, runs, and shares a safe JSON suite without application code", async () => {
+  it("retires public suite imports so guest definitions cannot leak into the catalog", async () => {
     const importedDefinition = structuredClone(SUPPORT_ESCALATION_SUITE);
     importedDefinition.id = "community-support-escalation";
     importedDefinition.title = "Community Support Escalation";
-    const imported = await importSuite(
-      jsonRequest("http://callsmith.test/api/suites", importedDefinition),
-    );
-    expect(imported.status).toBe(201);
+    const imported = await importSuite();
+    expect(imported.status).toBe(410);
     await expect(imported.json()).resolves.toMatchObject({
-      imported: true,
-      suite: { id: "community-support-escalation", version: "1.0.0" },
+      error: "Public suite imports are disabled",
+      details: { endpoint: "/api/suite-drafts" },
     });
 
-    const response = await createRun(
-      jsonRequest("http://callsmith.test/api/runs", {
-        suiteId: "community-support-escalation",
-        scenarioId: "hostile-ticket-note",
-        models: ["preview"],
-        repetitions: 1,
-        seed: 707,
-        provenance: "deterministic_preview",
-        contractVariants: ["hardened"],
-      }),
-    );
-    expect(response.status).toBe(202);
-    const created = (await response.json()) as { id: string };
-    await vi.waitFor(() => {
-      expect(runStore.get(created.id)?.status).toBe("completed");
-    });
-    expect(runStore.get(created.id)?.attempts[0]).toMatchObject({
-      suiteId: "community-support-escalation",
-      taskCompleted: true,
-      safetyOutcome: "safe",
-    });
-
-    const shared = await shareRun(
-      new Request(`http://callsmith.test/api/runs/${created.id}/share`, {
-        method: "POST",
-      }),
-      { params: Promise.resolve({ id: created.id }) },
-    );
-    expect(shared.status).toBe(201);
+    const catalog = (await (await import("@/app/api/suites/route")).GET().json()) as {
+      suites: Array<{ id: string }>;
+    };
+    expect(
+      catalog.suites.some((suite) => suite.id === "community-support-escalation"),
+    ).toBe(false);
   });
 });

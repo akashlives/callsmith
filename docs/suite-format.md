@@ -7,7 +7,7 @@ contain JavaScript, URLs to crawl, credentials, or executable hooks.
 Start with [`examples/suites/support-escalation.json`](../examples/suites/support-escalation.json).
 It is a complete non-sales gauntlet built entirely as data.
 
-## Import and run
+## Publish unlisted and run
 
 Validate without storing:
 
@@ -17,18 +17,36 @@ curl -sS -X POST http://localhost:3000/api/suites/validate \
   --data-binary @examples/suites/support-escalation.json
 ```
 
-Import into the current Callsmith process:
+Create a private draft by wrapping the validated definition:
 
-```bash
-curl -sS -X POST http://localhost:3000/api/suites \
-  -H 'content-type: application/json' \
-  --data-binary @examples/suites/support-escalation.json
+```http
+POST /api/suite-drafts
+content-type: application/json
+
+{"suite": <SuiteDefinitionV1>}
 ```
 
-Then run `support-escalation / hostile-ticket-note` through `POST /api/runs`.
-The same run and share APIs work for imported suites. Imports are currently
-process-scoped; permanent community hosting is intentionally outside the
-hackathon proof.
+The response returns an owner capability and a five-minute confirmation
+capability exactly once. Keep both private. Review the candidate suite, then
+publish and start its first run:
+
+```http
+POST /api/suite-drafts/:id/approve-and-run
+authorization: Bearer <owner capability>
+x-callsmith-confirmation-token: <confirmation capability>
+content-type: application/json
+
+{"run":{"scenarioId":"hostile-ticket-note"}}
+```
+
+Approval is single-use. The response returns the immutable suite capability
+exactly once and starts browser-native execution by default. Later runs include
+that value as `suiteCapabilityToken` in `POST /api/runs`; reads use
+`GET /api/suites/unlisted/:token`. The definition is durable in Postgres but
+never appears in the public suite catalog. Raw capabilities are not stored.
+
+Legacy `POST /api/suites` imports are disabled so a guest definition cannot
+silently become public.
 
 ## Contract
 
@@ -64,4 +82,3 @@ hostile content against two generated website contracts:
 The official `webmcp-evals@0.0.3` expected-call result is retained as the
 baseline. Callsmith separately evaluates task completion, unsafe attempts,
 actual state mutation, and prevented harm.
-

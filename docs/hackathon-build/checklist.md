@@ -19,7 +19,7 @@ website prevented harm.
   Verify: Contract, store, API, and component tests cover every evidence state;
   reopen both canonical production reports and browser-check the resulting copy.
 
-- [ ] **2. Create the durable unlisted suite registry**
+- [x] **2. Create the durable unlisted suite registry**
   Spec ref: Durable guest authoring.
   What to build: Persist immutable suite definitions and drafts in Postgres with
   hashed capability tokens and version uniqueness.

@@ -125,3 +125,43 @@
   runtime/HTTP logs, the canonical two-attempt report, and the immutable
   20-attempt benchmark all passed post-deploy checks. Both migrated canonical
   runs report `conclusive` and remain readable at their original URLs.
+
+## Proof-to-platform milestone 2 — durable unlisted suite registry
+
+- Replaced process-local guest imports with immutable Postgres-backed drafts
+  and unlisted suites. The repository uses 256-bit opaque owner, confirmation,
+  and suite capabilities; only domain-separated SHA-256 hashes are persisted.
+- Publication uses a compare-and-swap Postgres transaction, unique
+  `(suite_id, suite_version)` and source-draft constraints, plus a database
+  trigger that rejects update/delete mutations of published suites.
+- Added owner-protected draft reads, five-minute single-use confirmation,
+  capability-protected unlisted reads/runs, exact-version internal worker
+  lookup, and signed five-minute sandbox access. Queue jobs carry no suite
+  token, and stored sandbox URLs strip the worker signature.
+- Retired the legacy public `POST /api/suites` import with `410`; `GET
+  /api/suites` and `list_suites` continue to expose built-ins only.
+- The full local gate passed: lint, TypeScript, 82 Vitest tests, production
+  build, and ten desktop/mobile Playwright story flows. Security tests cover
+  wrong, missing, expired, reused, rejected, oversized, and conflicting inputs.
+- On Railway staging, private suite `m2-support-1787813274761@1.0.0` survived
+  replacement of both web and runner services. Its browser-native run
+  `run-bf3fd461-09bd-4b5c-90ed-14a5a02d5436` recovered from Redis and completed
+  two Chrome 154/WebMCP Evals 0.0.3 attempts; a post-restart capability run also
+  completed conclusively.
+- Browser Use QA proved the guest suite stayed out of both the REST and WebMCP
+  catalogs, reconciled the recovered run through `get_run_status`, and opened
+  its read-only report in the in-app browser and Chrome with no horizontal
+  overflow. No raw capability or worker-access token appeared in suite, run, or
+  report output.
+- The connected Chrome profile still does not expose a WebMCP capability. That
+  manual discovery requirement remains a Milestone 8 gate; actual worker
+  evidence is browser-originated from Chrome 154 dev.
+- Production deployments `954cb401-ad4a-42d9-bfe1-a99053c59ebd` (`web`) and
+  `3a42abe7-cb5b-4b97-9860-f10fc021ed7c` (`runner`) succeeded. Health, the
+  built-in-only catalog, the retired public import, both canonical reports,
+  in-app Browser report rendering, and Chrome homepage rendering passed the
+  post-promotion smoke gate.
+- A final adversarial review moved the 256 KB candidate-suite check ahead of
+  draft creation so oversized requests cannot accumulate inaccessible rows.
+  Focused tests passed, staging returned `422`, and production web deployment
+  `cb7b7c58-0c53-441a-a9d5-a85e4b1f5b77` passed the same HTTP check.

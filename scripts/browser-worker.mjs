@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHmac } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -52,16 +53,46 @@ async function browserVersion() {
   return result.stdout.trim() || "Google Chrome unstable (version unavailable)";
 }
 
-async function hostedScenario(suiteId, scenarioId) {
-  const response = await fetch(`${webBase}/api/suites`, {
-    headers: { accept: "application/json" },
-  });
-  if (!response.ok) throw new Error(`Unable to load hosted suites (${response.status}).`);
+async function hostedScenario(runId) {
+  const response = await fetch(
+    `${webBase}/api/internal/runs/${encodeURIComponent(runId)}/suite`,
+    {
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${runnerToken}`,
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Unable to load the queued run suite (${response.status}).`);
+  }
   const body = await response.json();
-  const suite = body.suites?.find((candidate) => candidate.id === suiteId);
-  const scenario = suite?.scenarios?.find((candidate) => candidate.id === scenarioId);
-  if (!suite || !scenario) throw new Error("Queued suite or scenario is no longer hosted.");
-  return { suite, scenario };
+  if (!body.suite || !body.scenario) {
+    throw new Error("Queued suite or scenario is no longer hosted.");
+  }
+  return { suite: body.suite, scenario: body.scenario };
+}
+
+function sandboxAccess(runId, attemptId) {
+  const expiresAtMs = Date.now() + 5 * 60_000;
+  const payload = `${runId}\n${attemptId}\n${expiresAtMs}`;
+  return {
+    expiresAtMs,
+    signature: createHmac("sha256", runnerToken).update(payload).digest("hex"),
+  };
+}
+
+function publicEvidenceUrl(url) {
+  const sanitized = new URL(url);
+  sanitized.searchParams.delete("run");
+  sanitized.searchParams.delete("expires");
+  sanitized.searchParams.delete("access");
+  return sanitized.href;
+}
+
+function redactAccess(value, signature) {
+  if (!signature) return value;
+  return value.replaceAll(signature, "[redacted-worker-access]");
 }
 
 async function completedAttemptKeys(runId) {
@@ -125,6 +156,10 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
   sandboxUrl.searchParams.set("contract", contractVariant);
   sandboxUrl.searchParams.set("seed", String(seed));
   sandboxUrl.searchParams.set("attempt", attemptKey);
+  const access = sandboxAccess(job.runId, attemptKey);
+  sandboxUrl.searchParams.set("run", job.runId);
+  sandboxUrl.searchParams.set("expires", String(access.expiresAtMs));
+  sandboxUrl.searchParams.set("access", access.signature);
   const workDir = await mkdtemp(join(tmpdir(), "callsmith-browser-"));
   const evalsPath = join(workDir, "evals.json");
   const outputDir = join(workDir, "reports");
@@ -196,12 +231,13 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       seed,
       contractVariant,
       browserVersion: await browserVersion(),
-      sandboxUrl: sandboxUrl.href,
+      sandboxUrl: publicEvidenceUrl(sandboxUrl),
       latencyMs: Date.now() - startedAt,
       report,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    const message = redactAccess(rawMessage, access.signature);
     await postEvent({
       type: "failure",
       runId: job.runId,
@@ -209,7 +245,7 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       seed,
       contractVariant,
       browserVersion: await browserVersion().catch(() => undefined),
-      sandboxUrl: sandboxUrl.href,
+      sandboxUrl: publicEvidenceUrl(sandboxUrl),
       latencyMs: Date.now() - startedAt,
       error: message.slice(0, 2_000),
     });
@@ -224,7 +260,7 @@ async function processJob(rawJob) {
     throw new Error("Unsupported browser queue job.");
   }
   await postEvent({ type: "started", runId: job.runId });
-  const { suite, scenario } = await hostedScenario(job.input.suiteId, job.input.scenarioId);
+  const { suite, scenario } = await hostedScenario(job.runId);
   const completed = await completedAttemptKeys(job.runId);
   for (const model of job.input.models) {
     for (let repetition = 0; repetition < job.input.repetitions; repetition += 1) {

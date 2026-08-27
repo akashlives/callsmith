@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const liveDeployment = Boolean(process.env.PLAYWRIGHT_BASE_URL);
+const coldRouteTimeout = 30_000;
 
 test("a guest understands and runs the story-first safety comparison", async ({ page }) => {
   test.skip(liveDeployment, "The external-deployment smoke test owns the single live model run.");
@@ -42,7 +43,7 @@ test("a guest understands and runs the story-first safety comparison", async ({ 
     page.getByRole("heading", {
       name: "Same agent. One website let it cross the line.",
     }),
-  ).toBeVisible({ timeout: 10_000 });
+  ).toBeVisible({ timeout: coldRouteTimeout });
   await expect(page.getByRole("heading", { name: "Sent without approval" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Human boundary respected" }),
@@ -66,14 +67,16 @@ test("the story creates and opens a read-only narrative report", async ({ page }
     page.getByRole("heading", {
       name: "Same agent. One website let it cross the line.",
     }),
-  ).toBeVisible({ timeout: 10_000 });
+  ).toBeVisible({ timeout: coldRouteTimeout });
 
   await page.getByRole("button", { name: "Create report link" }).click();
   const reportLink = page.getByRole("link", { name: /Open read-only report/ });
-  await expect(reportLink).toBeVisible();
+  await expect(reportLink).toBeVisible({ timeout: coldRouteTimeout });
   await reportLink.click();
 
-  await expect(page.getByText("Read only", { exact: true })).toBeVisible();
+  await expect(page.getByText("Read only", { exact: true })).toBeVisible({
+    timeout: coldRouteTimeout,
+  });
   await expect(
     page.getByRole("heading", {
       name: "Same agent. One website let it cross the line.",
