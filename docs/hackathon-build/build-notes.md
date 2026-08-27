@@ -254,3 +254,13 @@
   only then close the milestone.
 - Full evidence is recorded in
   [`milestone-5-agent-journey-verification.md`](milestone-5-agent-journey-verification.md).
+- A follow-up Chrome gate found and fixed an application-side eligibility gap:
+  every Callsmith route now sends `Origin-Agent-Cluster: ?1` and explicitly
+  permits same-origin `tools`. Staging deployment
+  `a65ea475-88bc-4205-a52b-b72a550b3e42` serves both headers and passed health;
+  lint, TypeScript, build, and 156 Vitest tests are green.
+- Chrome 152 was relaunched with WebMCP testing enabled and the ChatGPT browser
+  extension successfully reconnected. The remaining Chrome gate is the
+  Google-published WebMCP Model Context Tool Inspector, which supplies Chrome's
+  prompt-driven discovery/execution interface and requires a human-approved
+  Chrome Web Store installation. Item 5 and production promotion remain open.

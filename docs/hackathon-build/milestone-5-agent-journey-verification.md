@@ -65,3 +65,22 @@ challenge-required WebMCP configuration and repeat the same discovery,
 authoring, approval, status-polling, and report-opening transaction. Only then
 may item 5 be checked and this release promoted to production.
 
+## Chrome remediation attempt
+
+- The participant enabled `chrome://flags/#enable-webmcp-testing` and relaunched
+  Chrome 152. The ChatGPT browser extension, selected profile, and native bridge
+  were verified and reconnected through a fresh window.
+- Official Chrome guidance requires WebMCP documents to be origin isolated and
+  gated by the `tools` permissions policy. Callsmith now sends
+  `Origin-Agent-Cluster: ?1` and `Permissions-Policy: tools=(self)` on every
+  route; regression coverage enforces both headers.
+- Railway staging deployment `a65ea475-88bc-4205-a52b-b72a550b3e42` served the
+  new headers and passed health. Local lint, TypeScript, build, and all 156
+  Vitest tests passed.
+- The connected Chrome controller still exposes only page control. Chrome's
+  official WebMCP Model Context Tool Inspector is the supported interface for
+  discovering and executing the registered tools with a prompt. Installation
+  requires the participant's explicit Chrome Web Store confirmation and could
+  not be automated through the browser security boundary.
+- The remaining gate is to install that Google-published inspector, reopen
+  Callsmith staging, and execute the full prompt-to-report flow through it.
