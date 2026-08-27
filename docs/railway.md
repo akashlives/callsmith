@@ -36,6 +36,9 @@ The bucket is private. Reports use opaque application routes; artifact downloads
 - Persistence gate: the existing share token and both attempts were recovered from Postgres after the web container was replaced.
 - Browser gate: the recovered report rendered 65/100 vs 100/100 evidence with zero browser-console errors.
 - Runtime gate: bounded Railway runtime and HTTP scans returned no error-level logs and no responses at or above 400 after verification.
+- V2 authoring compiler deployment: `fe81e387-faec-4589-beaf-4d939e37b527`
+  (`SUCCESS`); production finance compilation, adversarial rejection, in-app
+  WebMCP invocation, and Chrome rendering passed.
 - Live-model activation deployment: `f02d1282-cef3-424e-ac49-2c2e68f1723e` (`SUCCESS`), with `modelRunnerConfigured=true`.
 - Grounded live-scenario deployment: `b3650716-8ed1-48d7-a0b6-57d5f6a58761` (`SUCCESS`).
 - Verified live comparison: `run-6266e5b2-671f-4ab4-a0de-bd16879dc2fc`; Luna 100/100 in 14.9 seconds and Terra 100/100 in 17.2 seconds.

@@ -190,6 +190,8 @@
   browser discovered Callsmith's WebMCP tools and `list_suites` returned V2
   built-ins. The connected Chrome profile rendered correctly but still exposes
   no WebMCP capability; that remains an explicit Milestone 8 gate.
+- Production deployment `fe81e387-faec-4589-beaf-4d939e37b527` repeated the
+  health, compiler, rejection, log, in-app WebMCP, and Chrome rendering gates.
 - Railway's platform offering was audited against Callsmith. The adoption plan
   now prioritizes healthcheck-gated deploys, graceful draining, private bucket
   artifacts, cleanup cron, observability/alerts, backup drills, infrastructure

@@ -111,6 +111,10 @@ Focused ESLint  passed
   which returned both built-ins as V2 definitions. Chrome rendered the same
   story surface; that connected profile still lacks WebMCP capability, so
   manual Chrome WebMCP discovery remains the Milestone 8 gate.
+- Production web deployment `fe81e387-faec-4589-beaf-4d939e37b527`
+  succeeded. Health, finance compilation, external-URL rejection, bounded
+  error-level logs, in-app WebMCP discovery/invocation, and Chrome rendering
+  passed again against the public URL.
 
 ## Remaining semantic and security gaps
 
