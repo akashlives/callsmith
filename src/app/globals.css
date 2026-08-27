@@ -167,6 +167,22 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .outcome-card.is-safe h3 { color: var(--safe-strong); }
 .outcome-card > p { max-width: 520px; margin: 17px 0 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
 .outcome-card__meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 27px; color: var(--quiet); font-family: var(--font-evidence); font-size: 9px; letter-spacing: .07em; text-transform: uppercase; }
+.outcome-card__safety { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 26px 0 0; background: var(--line); }
+.outcome-card__safety div { min-width: 0; background: var(--surface-strong); padding: 12px; }
+.outcome-card__safety dt { color: var(--quiet); font-family: var(--font-evidence); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }
+.outcome-card__safety dd { margin: 7px 0 0; font-size: 13px; font-weight: 650; }
+.baseline-verdict { border-left: 2px solid var(--line-strong); padding-left: 11px; font-family: var(--font-evidence); font-size: 10px !important; }
+.baseline-verdict.is-pass { border-color: var(--safe); }
+.baseline-verdict.is-error, .baseline-verdict.is-fail { border-color: var(--risk); }
+.benchmark-evidence { margin-top: 42px; border: 1px solid var(--line); background: var(--surface-strong); padding: clamp(22px, 4vw, 42px); }
+.benchmark-evidence h2 { margin: 12px 0 0; font-size: clamp(28px, 4vw, 45px); font-weight: 620; letter-spacing: -.05em; }
+.benchmark-evidence > div > p:last-child { max-width: 760px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.benchmark-table-wrap { overflow-x: auto; margin-top: 28px; }
+.benchmark-evidence table { width: 100%; min-width: 940px; border-collapse: collapse; font-family: var(--font-evidence); font-size: 9px; }
+.benchmark-evidence th, .benchmark-evidence td { border-top: 1px solid var(--line); padding: 13px 11px; text-align: left; vertical-align: top; }
+.benchmark-evidence thead th { color: var(--quiet); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }
+.benchmark-evidence tbody th { font-size: 10px; }
+.benchmark-evidence tbody th small { display: block; margin-top: 4px; color: var(--quiet); font-size: 8px; font-weight: 400; }
 .preview-explainer { max-width: 750px; margin: 20px auto 0; color: var(--quiet); font-size: 11px; line-height: 1.6; text-align: center; }
 .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 28px; }
 .secondary-action, .report-link { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); border-radius: 2px; background: var(--surface); color: var(--ink); padding: 0 15px; cursor: pointer; font-size: 12px; font-weight: 650; text-decoration: none; }
@@ -215,6 +231,10 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .developer-grid header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .developer-grid header h3 { margin: 0; font-size: 14px; }
 .developer-grid header span { color: var(--quiet); font-family: var(--font-evidence); font-size: 8px; text-transform: uppercase; }
+.execution-metadata { display: grid; gap: 8px; margin: 20px 0 0; border-top: 1px solid var(--line); padding-top: 16px; }
+.execution-metadata div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.execution-metadata dt { color: var(--quiet); font-family: var(--font-evidence); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }
+.execution-metadata dd { margin: 0; overflow-wrap: anywhere; text-align: right; font-family: var(--font-evidence); font-size: 9px; }
 .score-breakdown { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 16px; background: var(--line); }
 .score-breakdown > div { background: var(--surface-strong); padding: 11px; }
 .score-breakdown span { display: block; color: var(--quiet); font-family: var(--font-evidence); font-size: 8px; }
@@ -319,6 +339,7 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
   .outcome-grid { margin-top: 38px; }
   .outcome-card { min-height: 0; padding: 27px 22px; }
   .outcome-card h3 { margin-top: 36px; font-size: 31px; }
+  .outcome-card__safety { grid-template-columns: 1fr; }
   .result-actions { align-items: stretch; flex-direction: column; }
   .secondary-action, .report-link { width: 100%; }
   .evidence-disclosure { margin-top: 42px; }

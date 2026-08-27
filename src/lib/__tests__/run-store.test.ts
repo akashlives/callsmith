@@ -22,7 +22,8 @@ describe("InMemoryRunStore", () => {
       models: ["preview"],
       repetitions: 1,
       seed: scenario.seed,
-      provenance: "preview",
+      provenance: "deterministic_preview",
+      contractVariants: ["hardened"],
     });
   }
 

@@ -1,5 +1,8 @@
+import { timingSafeEqual } from "node:crypto";
+
 import { CreateRunInputSchema, type ModelId } from "@/lib/contracts";
 import { runStore } from "@/lib/run-store";
+import { browserQueueConfigured, enqueueBrowserRun } from "@/lib/run-queue";
 import { getScenario, getSuite } from "@/lib/suites";
 
 import { jsonError, messageFromUnknown, readJsonBody } from "../_lib/http";
@@ -14,6 +17,7 @@ type RunRequest = {
   repetitions?: unknown;
   seed?: unknown;
   provenance?: unknown;
+  contractVariants?: unknown;
   apiKey?: unknown;
 };
 
@@ -22,6 +26,15 @@ function objectBody(input: unknown): RunRequest {
     throw new TypeError("Run request must be a JSON object");
   }
   return input as RunRequest;
+}
+
+function benchmarkAuthorized(request: Request): boolean {
+  const configured = process.env.CALLSMITH_RUNNER_TOKEN?.trim();
+  const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+  if (!configured || !provided) return false;
+  const expected = Buffer.from(configured);
+  const actual = Buffer.from(provided);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 export async function POST(request: Request) {
@@ -40,10 +53,15 @@ export async function POST(request: Request) {
       });
     }
 
-    const provenance = body.provenance === "preview" ? "preview" : "model";
+    const provenance =
+      body.provenance === "preview" || body.provenance === "deterministic_preview"
+        ? "deterministic_preview"
+        : body.provenance === "model" || body.provenance === "server_simulation"
+          ? "server_simulation"
+          : "browser_webmcp";
     const defaultModels: ModelId[] =
-      provenance === "preview"
-        ? ["gpt-5.6-luna", "gpt-5.6-terra"]
+      provenance === "browser_webmcp"
+        ? ["gpt-5.6-luna"]
         : ["gpt-5.6-luna", "gpt-5.6-terra"];
     const parsed = CreateRunInputSchema.safeParse({
       suiteId,
@@ -53,6 +71,7 @@ export async function POST(request: Request) {
       repetitions: body.repetitions ?? 1,
       seed: body.seed ?? scenario.seed,
       provenance,
+      contractVariants: body.contractVariants ?? ["weak", "hardened"],
     });
     if (!parsed.success) {
       return jsonError(
@@ -64,29 +83,53 @@ export async function POST(request: Request) {
         })),
       );
     }
-    if (parsed.data.repetitions > 3) {
-      return jsonError(422, "Hosted comparisons allow at most three repetitions");
+    const authorizedBenchmark = benchmarkAuthorized(request);
+    if (parsed.data.repetitions > 3 && !authorizedBenchmark) {
+      return jsonError(
+        422,
+        "Guest comparisons allow at most three repetitions; immutable benchmarks require runner authorization",
+      );
     }
 
     const byok = typeof body.apiKey === "string" && body.apiKey.trim()
       ? body.apiKey.trim()
       : undefined;
     const serverKey = process.env.OPENAI_API_KEY;
-    if (parsed.data.provenance === "model" && !byok && !serverKey) {
+    if (parsed.data.provenance === "browser_webmcp" && byok) {
+      return jsonError(422, "Request-scoped API keys are not accepted by the durable browser queue", {
+        code: "BROWSER_BYOK_UNSUPPORTED",
+        action:
+          "Use the hosted browser runner or choose server_simulation for a request-scoped key.",
+      });
+    }
+    if (parsed.data.provenance === "browser_webmcp" && !browserQueueConfigured()) {
+      return jsonError(503, "Browser-native runner queue is not configured", {
+        code: "BROWSER_QUEUE_REQUIRED",
+        action:
+          "Configure REDIS_URL and the Callsmith browser worker. No simulation result was substituted.",
+      });
+    }
+    if (parsed.data.provenance === "server_simulation" && !byok && !serverKey) {
       return jsonError(503, "Model runner is not configured", {
         code: "MODEL_KEY_REQUIRED",
         action:
-          "Configure OPENAI_API_KEY or send a request-scoped apiKey. To inspect the UI without claiming a model run, set provenance to preview.",
+          "Configure OPENAI_API_KEY or send a request-scoped apiKey. To inspect the UI without claiming a model run, set provenance to deterministic_preview.",
         previewAvailable: true,
       });
     }
 
     // Deterministic preview evidence never calls a hosted model, so it must not
     // consume the limited guest model-attempt allowance.
-    if (parsed.data.provenance === "model" && !byok) {
+    if (
+      parsed.data.provenance !== "deterministic_preview" &&
+      !byok &&
+      !authorizedBenchmark
+    ) {
       const quota = claimGuestAttempts(
         guestIdentity(request),
-        parsed.data.models.length * parsed.data.repetitions,
+        parsed.data.models.length *
+          parsed.data.contractVariants.length *
+          parsed.data.repetitions,
       );
       if (!quota.allowed) {
         return jsonError(429, "Guest model-attempt quota exceeded", quota);
@@ -94,9 +137,13 @@ export async function POST(request: Request) {
     }
 
     const run = runStore.create(parsed.data);
-    // Railway runs a persistent Node process, allowing the request to return a
-    // run id immediately while progress streams through the run store.
-    void executeRun(run.id, parsed.data, byok ?? serverKey);
+    if (parsed.data.provenance === "browser_webmcp") {
+      await enqueueBrowserRun(run.id, parsed.data);
+    } else {
+      // Simulation and deterministic preview remain synchronous process-local
+      // fallbacks and are always labeled as such in the result contract.
+      void executeRun(run.id, parsed.data, byok ?? serverKey);
+    }
 
     return Response.json(
       {

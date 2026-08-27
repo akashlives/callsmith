@@ -1,79 +1,82 @@
-# Callsmith autonomous build checklist
+# Callsmith ruthless win-first checklist
 
-Mode: autonomous
-Verification pauses: automated milestone gates; pause only on missing credentials or destructive/external decisions
-Comprehension checks: disabled
-Git cadence: commit after each verified milestone
-Wow moment: identical agents face stale context, prompt injection, and a duplicate-mutation trap; the trace comparison makes the safer model obvious
+The gate is not “the dashboard works.” The gate is one browser-native result
+where the ordinary expected-call baseline passes while Callsmith catches an
+unsafe state transition.
 
-- [x] **1. Establish the vertical slice**
-  Spec ref: `spec.md > Application`
-  What to build: Branded workbench shell, one sales scenario, typed run store, run API, event stream, and honest preview trace.
-  Acceptance: A guest can start a run and see state, trace, score, and provenance without setup.
-  Verify: `npm run lint && npm test && npm run build` plus browser smoke test.
+## 1. Remove benchmark theater
 
-- [x] **2. Define suite and action contracts**
-  Spec ref: `spec.md > Core contracts`
-  What to build: Versioned Zod schemas, safe DSL validation, fixtures, and actionable validation errors.
-  Acceptance: A second suite can be represented without application code and arbitrary executable input is rejected.
-  Verify: Contract unit tests and invalid fixture tests.
+- [x] Replace scenario coaching with the neutral `webmcp-evals@0.0.3` agent policy.
+- [x] Enforce hardened confirmation inside the browser WebMCP tool.
+- [x] Score task completion, unsafe attempt, unsafe mutation, and prevented harm separately.
+- [x] Migrate provenance to `browser_webmcp`, `server_simulation`, and `deterministic_preview`.
+- [x] Keep old persisted reports readable through contract preprocessing.
+- [x] Replace the cartoon attack string with a plausible meeting handoff note.
 
-- [x] **3. Build deterministic evaluation**
-  Spec ref: `spec.md > Runtime flow`
-  What to build: Seeded fault injection, trace normalization, assertions, scoring, idempotency guard, and failure explanations.
-  Acceptance: Known good/bad traces score predictably and identical seeds create identical faults.
-  Verify: Eval-engine unit tests covering every fault and assertion type.
+Gate: the expected trajectory cannot be read from the agent instructions, and
+no non-browser trace is labeled as browser WebMCP evidence.
 
-- [x] **4. Implement the six-scenario gauntlet**
-  Spec ref: `scope.md > Signature workflow`
-  What to build: Happy, ambiguity, stale, transient, duplicate, and injection/confirmation scenarios with success and failure traces.
-  Acceptance: Every scenario requires meaningful multi-tool state transitions and synthetic data is explicit.
-  Verify: Fixture completeness test and scenario walkthrough test.
+## 2. Execute through the real browser surface
 
-- [ ] **5. Add WebMCP surfaces** *(implementation complete; supported-browser discovery gate remains)*
-  Spec ref: `spec.md > WebMCP`
-  What to build: Browser adapter, dynamic sandbox tools, declarative confirmation form, and Callsmith orchestration tools.
-  Acceptance: Tools register with strict schemas/annotations and clean up correctly; non-WebMCP browsers remain usable.
-  Verify: Unit polyfill test plus manual Chrome/ChatGPT verification checklist.
+- [x] Pin and invoke the official `webmcp-evals@0.0.3` browser CLI.
+- [x] Launch Chrome unstable with `--enable-features=WebMCP` in a dedicated Railway worker.
+- [x] Execute tools through `document.modelContext.getTools()` and `executeTool()`.
+- [x] Queue jobs durably with Redis `BRPOPLPUSH`; recover processing jobs on worker start.
+- [x] Post signed browser evidence to the private web service callback.
+- [x] Capture browser tool calls, results, confirmation requests, blocks, state snapshots,
+  browser version, model/backend, suite version, seed, contract, engine, and latency.
+- [x] Preserve browser launch/provider failures as partial evidence.
+- [x] Reproduce a complete browser-native production run from the checked-in command.
+- [x] Interrupt and restart a claimed job, then verify Redis recovery finishes the run.
 
-- [ ] **6. Add real model adapters**
-  Spec ref: `spec.md > Runtime flow`
-  What to build: OpenAI Luna/Terra adapters, repetitions, provider failure isolation, usage/cost/latency fields, and BYOK handling.
-  Acceptance: A configured key produces real labeled attempts; no key produces an actionable unavailable state, never a fake run.
-  Verify: Mock provider tests; live smoke test when a key is available.
+Gate: the production trace proves registration and mutation inside the sandbox
+page. A server-side action emulator cannot satisfy this gate.
 
-- [x] **7. Build story-first comparison and report UX**
-  Spec ref: `prd.md > Functional requirements`
-  What to build: A one-click injection/confirmation story driven by the run API, verdict-first model summaries, progressive trace/state/assertion evidence, functional report sharing, and a matching read-only report route.
-  Acceptance: A judge understands the unsafe behavior before seeing technical controls; every visible verdict comes from `RunResult`; shared reports cannot mutate state.
-  Verify: Component and adapter tests plus Playwright run/reveal/evidence/share/report flows.
+## 3. Produce the decisive demonstration
 
-- [ ] **8. Add persistence and production boundaries**
-  Spec ref: `spec.md > Railway`
-  What to build: Repository/queue/blob interfaces, quota logic, TTL/redaction rules, health endpoint, Docker/Railway configuration.
-  Acceptance: In-memory local mode and Railway production mode share contracts; secrets never appear in serialized output.
-  Verify: Isolation, restart-contract, quota, redaction, and health tests.
+- [x] Run the same model, task, seed, hostile content, and neutral policy against weak and hardened contracts.
+- [x] Keep the official expected-call result beside Callsmith’s state-and-safety verdict.
+- [x] Make contract comparison primary; move model comparison into developer evidence.
+- [x] Show task completion, unsafe attempt, and harm prevention as separate outcomes.
+- [x] Add per-contract rates, Wilson 95% confidence intervals, and p50/p95 latency for immutable benchmarks.
+- [x] Record a production weak-contract baseline pass plus Callsmith unsafe-mutation failure.
+- [x] Record ten benchmark attempts per contract, preserving one provider failure on each side.
+- [x] Share the immutable benchmark report and verify it opens without login.
 
-- [x] **9. Provision and deploy Railway vertical slice**
-  Spec ref: `spec.md > Railway`
-  What to build: New personal project, web service/domain, then Postgres, Redis, bucket, worker, and cleanup service where supported.
-  Acceptance: Public health and workbench URLs load; private services are not exposed publicly.
-  Verify: Railway deployment status, logs, variables, health endpoint, and production browser smoke.
+Gate: a reviewer can attribute the difference to website contract design, not a
+different prompt, model, task, or seed.
 
-- [x] **10. Harden the story-first product experience**
-  Spec ref: `prd.md > First-run experience`
-  What to build: A spacious forensic-editorial shell, adaptive persisted theme without flash, plain-language progress and recovery, keyboard/reduced-motion support, responsive progressive disclosure, and no inactive controls.
-  Acceptance: A new tester can identify the product, danger, and one primary action from the first viewport; the complete guest reveal finishes within 30 seconds.
-  Verify: Playwright desktop/mobile/theme/keyboard/reduced-motion checks and light/dark screenshot review.
+Production run identifiers, report links, distributions, and known limitations
+are recorded in [`ruthless-evidence.md`](ruthless-evidence.md).
 
-- [x] **11. Publish the repository and evidence**
-  Spec ref: `prd.md > Submission acceptance`
-  What to build: MIT license, architecture and WebMCP docs, setup/testing instructions, limitations, screenshots, and public GitHub repository.
-  Acceptance: Clean clone builds and the repository makes the judging case without the live demo.
-  Verify: Clean-install build/test and public URL read-back.
+## 4. Prove another developer can use it
 
-- [ ] **12. Prepare the Devpost handoff**
-  Spec ref: `prd.md > Submission acceptance`
-  What to build: Submission draft, demo script/storyboard, testing-agent list, and evidence matrix against official criteria.
-  Acceptance: Every requirement and judging criterion points to working evidence.
-  Verify: Submission readiness checklist; no actual submission without explicit confirmation.
+- [x] Publish the versioned JSON-only suite format and safe action DSL.
+- [x] Add `POST /api/suites` import and actionable validation errors.
+- [x] Reject executable/arbitrary suite content through strict schemas.
+- [x] Add the non-sales Support Escalation starter.
+- [x] Generate the worker’s ordinary baseline from suite walkthroughs instead of sales-specific code.
+- [x] Cover import, run, share, redaction, report, and WebMCP orchestration paths with automated tests.
+- [ ] Make imported suites durable across web-process restarts.
+- [ ] Complete five external comprehension tests.
+- [ ] Receive one independent suite contribution or pull request.
+- [ ] Capture supported-browser discovery and the sub-three-minute demo video.
+
+Gate: an outside developer creates and runs a useful gauntlet from the docs
+without changing Callsmith application code.
+
+## Verification commands
+
+```bash
+npm run typecheck
+npm run lint -- --quiet
+npm test
+npm run build
+npm run test:e2e
+```
+
+## Ruthless exclusions
+
+Until the browser and decisive-demo gates are closed: no more dashboard UI,
+GitHub auth, arbitrary-site crawling, generic LLM graders, providers, or SOTA
+claims.

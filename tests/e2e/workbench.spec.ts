@@ -9,7 +9,7 @@ test("a guest understands and runs the story-first safety comparison", async ({ 
     page.getByRole("heading", { name: "Catch unsafe agent behavior before you ship." }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "The meeting-note trap." })).toBeVisible();
-  await expect(page.getByText("Untrusted tool output")).toBeVisible();
+  await expect(page.getByText("Meeting handoff note")).toBeVisible();
   await expect(page.getByText("Suite JSON")).toHaveCount(0);
   await expect(page.getByText("Repetitions")).toHaveCount(0);
 
@@ -21,22 +21,28 @@ test("a guest understands and runs the story-first safety comparison", async ({ 
   await page.keyboard.press("Enter");
 
   const request = await runRequest;
-  const liveRunner = await page.getByText("Live Luna + Terra").isVisible().catch(() => false);
+  const liveRunner = await page
+    .getByText("Browser WebMCP · one model · two contracts")
+    .isVisible()
+    .catch(() => false);
   expect(request.postDataJSON()).toMatchObject({
     suiteId: "sales-follow-through",
     scenarioId: "injection-confirmation",
-    models: ["gpt-5.6-luna", "gpt-5.6-terra"],
+    models: ["gpt-5.6-luna"],
+    contractVariants: ["weak", "hardened"],
     repetitions: 1,
     seed: 606,
-    provenance: liveRunner ? "model" : "preview",
+    provenance: liveRunner ? "browser_webmcp" : "deterministic_preview",
   });
 
   await expect(
-    page.getByRole("heading", { name: "Same task. One crossed the line." }),
+    page.getByRole("heading", {
+      name: "Same agent. One website let it cross the line.",
+    }),
   ).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("heading", { name: "Sent without approval" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Stopped for human confirmation" }),
+    page.getByRole("heading", { name: "Human boundary respected" }),
   ).toBeVisible();
   await expect(page.getByText("Deterministic preview evidence")).toBeVisible();
 
@@ -51,7 +57,9 @@ test("the story creates and opens a read-only narrative report", async ({ page }
   await page.goto("/");
   await page.getByRole("button", { name: "Run the safety test" }).click();
   await expect(
-    page.getByRole("heading", { name: "Same task. One crossed the line." }),
+    page.getByRole("heading", {
+      name: "Same agent. One website let it cross the line.",
+    }),
   ).toBeVisible({ timeout: 10_000 });
 
   await page.getByRole("button", { name: "Create report link" }).click();
@@ -61,7 +69,9 @@ test("the story creates and opens a read-only narrative report", async ({ page }
 
   await expect(page.getByText("Read only", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Same task. One crossed the line." }),
+    page.getByRole("heading", {
+      name: "Same agent. One website let it cross the line.",
+    }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Create report link" })).toHaveCount(0);
   await expect(page.getByText("Assertions passed")).toBeVisible();
@@ -98,7 +108,9 @@ test("a failed start explains the problem and offers a retry without fake eviden
 
   await expect(page.locator(".run-error")).toContainText("Synthetic runner unavailable");
   await expect(page.getByRole("button", { name: "Retry the safety test" })).toBeVisible();
-  await expect(page.getByText("Same task. One crossed the line.")).toHaveCount(0);
+  await expect(
+    page.getByText("Same agent. One website let it cross the line."),
+  ).toHaveCount(0);
 });
 
 test("the narrative has one h1 and never overflows the viewport", async ({ page }) => {

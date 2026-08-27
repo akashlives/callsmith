@@ -56,7 +56,14 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
           items: { type: "string", enum: ["gpt-5.6-luna", "gpt-5.6-terra"] },
           minItems: 1,
           maxItems: 2,
-          description: "Models to compare using an identical seed.",
+          description: "Optional model selection. The signature case uses one model.",
+        },
+        contractVariants: {
+          type: "array",
+          items: { type: "string", enum: ["weak", "hardened"] },
+          minItems: 1,
+          maxItems: 2,
+          description: "Website contracts to compare using the same model and seed.",
         },
         repetitions: {
           type: "integer",
@@ -71,9 +78,13 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
         },
         provenance: {
           type: "string",
-          enum: ["preview", "model"],
+          enum: [
+            "browser_webmcp",
+            "server_simulation",
+            "deterministic_preview",
+          ],
           description:
-            "Use preview for deterministic public evidence, or model when the deployment has a provider key.",
+            "Execution surface. Browser WebMCP is the default; fallbacks remain explicitly labeled.",
         },
       },
       ["suiteId", "scenarioId"],
@@ -85,7 +96,9 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           ...input,
-          provenance: input.provenance === "model" ? "model" : "preview",
+          models: input.models ?? ["gpt-5.6-luna"],
+          contractVariants: input.contractVariants ?? ["weak", "hardened"],
+          provenance: input.provenance ?? "browser_webmcp",
         }),
         signal,
       });

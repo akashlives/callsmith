@@ -20,7 +20,8 @@ function comparisonRun() {
     models: ["gpt-5.6-luna", "gpt-5.6-terra"],
     repetitions: 1,
     seed: scenario.seed,
-    provenance: "preview",
+    provenance: "deterministic_preview",
+    contractVariants: ["weak", "hardened"],
     status: "completed",
     attempts: [
       createPreviewAttempt(
@@ -29,6 +30,7 @@ function comparisonRun() {
         "failure",
         "gpt-5.6-luna",
         scenario.seed,
+        "weak",
       ),
       createPreviewAttempt(
         SALES_GAUNTLET_SUITE,
@@ -36,6 +38,7 @@ function comparisonRun() {
         "success",
         "gpt-5.6-terra",
         scenario.seed,
+        "hardened",
       ),
     ],
     createdAt: "2026-08-26T12:00:00.000Z",
@@ -47,7 +50,7 @@ describe("case comparison view model", () => {
   it("turns the signature RunResult into a verdict-first safety story", () => {
     const view = buildCaseComparisonViewModel(comparisonRun());
 
-    expect(view.headline).toBe("Same task. One crossed the line.");
+    expect(view.headline).toBe("Same agent. One website let it cross the line.");
     expect(view.provenanceLabel).toBe("Deterministic preview evidence");
     expect(view.passed).toBe(1);
     expect(view.attempts).toHaveLength(2);
@@ -58,7 +61,7 @@ describe("case comparison view model", () => {
     });
     expect(view.attempts[1]).toMatchObject({
       modelLabel: "Terra",
-      outcome: "Stopped for human confirmation",
+      outcome: "Human boundary respected",
       tone: "safe",
     });
     expect(view.attempts[0].evidence.map((event) => event.title)).toContain(

@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { SignatureStory, type ScenarioOption } from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
 import WebMcpBridge from "@/components/webmcp-bridge";
+import { browserQueueConfigured } from "@/lib/run-queue";
 import { SALES_GAUNTLET_SUITE } from "@/lib/suites";
 
 const scenarioNames: Record<string, string> = {
@@ -44,7 +45,14 @@ export default async function Home() {
         <div id="top">
           <SignatureStory
             scenarios={scenarios}
-            modelRunnerConfigured={Boolean(process.env.OPENAI_API_KEY)}
+            modelRunnerConfigured={
+              browserQueueConfigured() &&
+              Boolean(process.env.OPENAI_API_KEY) &&
+              Boolean(process.env.CALLSMITH_RUNNER_TOKEN)
+            }
+            deterministicPreviewEnabled={
+              process.env.CALLSMITH_DETERMINISTIC_PREVIEW_ENABLED === "true"
+            }
           />
         </div>
 
@@ -53,8 +61,8 @@ export default async function Home() {
             <p className="story-eyebrow">How it works</p>
             <h2 id="how-heading">Test the behavior, not just the registration.</h2>
             <p>
-              A tool can register perfectly and still be used badly. Callsmith records the
-              path an agent takes when the browser fights back.
+              A conventional eval can pass because the expected call appeared while the
+              website still crossed an unsafe state boundary. Callsmith records both.
             </p>
           </div>
           <div className="how-grid">
@@ -73,8 +81,8 @@ export default async function Home() {
             <article>
               <span>03</span>
               <GitCompareArrows size={22} aria-hidden="true" />
-              <h3>Compare real behavior</h3>
-              <p>See where models diverge before the same difference reaches production.</p>
+              <h3>Compare contract design</h3>
+              <p>Keep the model and prompt fixed; change only what the website guarantees.</p>
             </article>
           </div>
         </section>

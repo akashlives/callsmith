@@ -1,4 +1,7 @@
-import type { AttemptComparisonView } from "./case-comparison";
+import type {
+  AttemptComparisonView,
+  ContractBenchmarkStats,
+} from "./case-comparison";
 
 const scoreLabels = {
   taskOutcome: "Task outcome",
@@ -8,16 +11,28 @@ const scoreLabels = {
 } as const;
 
 export function OutcomeCards({ attempts }: { attempts: AttemptComparisonView[] }) {
+  const visibleAttempts =
+    attempts.length > 4
+      ? (["weak", "hardened"] as const).flatMap((contractVariant) => {
+          const attempt = attempts.find(
+            (candidate) => candidate.contractVariant === contractVariant,
+          );
+          return attempt ? [attempt] : [];
+        })
+      : attempts;
   return (
     <div className="outcome-grid" aria-label="Agent behavior comparison">
-      {attempts.map((attempt) => (
+      {visibleAttempts.map((attempt) => (
         <article className={`outcome-card is-${attempt.tone}`} key={attempt.id}>
           <div className="outcome-card__topline">
             <div>
               <span className="outcome-card__model">
-                <i aria-hidden="true" /> {attempt.modelLabel}
+                <i aria-hidden="true" /> {attempt.contractLabel}
               </span>
-              {attempt.attemptLabel ? <small>{attempt.attemptLabel}</small> : null}
+              <small>
+                {attempt.modelLabel}
+                {attempt.attemptLabel ? ` · ${attempt.attemptLabel}` : ""}
+              </small>
             </div>
             <span className="outcome-card__score" aria-label={`${attempt.score} out of 100`}>
               {attempt.score}<small>/100</small>
@@ -25,14 +40,98 @@ export function OutcomeCards({ attempts }: { attempts: AttemptComparisonView[] }
           </div>
           <h3>{attempt.outcome}</h3>
           <p>{attempt.summary}</p>
+          <dl className="outcome-card__safety">
+            <div>
+              <dt>Task complete</dt>
+              <dd>{attempt.taskCompleted ? "Yes" : "No"}</dd>
+            </div>
+            <div>
+              <dt>Unsafe attempt</dt>
+              <dd>{attempt.unsafeAttempted ? "Yes" : "No"}</dd>
+            </div>
+            <div>
+              <dt>Harm prevented</dt>
+              <dd>{attempt.harmPrevented ? "Yes" : "No"}</dd>
+            </div>
+          </dl>
+          {attempt.baselineEvaluation ? (
+            <p className={`baseline-verdict is-${attempt.baselineEvaluation.outcome}`}>
+              Official expected-call baseline: {attempt.baselineEvaluation.outcome}
+              {attempt.baselineEvaluation.outcome === "pass" &&
+              attempt.safetyOutcome === "unsafe_mutation"
+                ? " — Callsmith disagrees"
+                : ""}
+            </p>
+          ) : null}
           <div className="outcome-card__meta">
-            <span>{attempt.provenance === "preview" ? "Preview" : "Live"}</span>
+            <span>
+              {attempt.provenance === "browser_webmcp"
+                ? "Browser WebMCP"
+                : attempt.provenance === "server_simulation"
+                  ? "Server simulation"
+                  : "Preview"}
+            </span>
             <span>{attempt.latencyLabel}</span>
             {attempt.costLabel ? <span>{attempt.costLabel}</span> : null}
           </div>
         </article>
       ))}
     </div>
+  );
+}
+
+function percentage(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function rateLabel(rate: ContractBenchmarkStats["taskCompletion"]): string {
+  return `${percentage(rate.rate)} (${percentage(rate.lower95)}–${percentage(rate.upper95)} 95% CI)`;
+}
+
+export function BenchmarkEvidence({
+  stats,
+}: {
+  stats: ContractBenchmarkStats[];
+}) {
+  return (
+    <section className="benchmark-evidence" aria-labelledby="benchmark-heading">
+      <div>
+        <p className="story-eyebrow">Immutable benchmark</p>
+        <h2 id="benchmark-heading">Ten browser attempts per contract.</h2>
+        <p>
+          Same model, task, seed schedule, and hostile content. Wilson confidence
+          intervals show uncertainty instead of turning one attempt into a reliability claim.
+        </p>
+      </div>
+      <div className="benchmark-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Contract</th>
+              <th>Task complete</th>
+              <th>Unsafe attempt</th>
+              <th>Harm prevented</th>
+              <th>Callsmith pass</th>
+              <th>Baseline pass</th>
+              <th>Latency p50 / p95</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.map((item) => (
+              <tr key={item.contractVariant}>
+                <th>{item.contractLabel}<small>{item.attempts} attempts</small></th>
+                <td>{rateLabel(item.taskCompletion)}</td>
+                <td>{rateLabel(item.unsafeAttempt)}</td>
+                <td>{rateLabel(item.preventedHarm)}</td>
+                <td>{rateLabel(item.callsmithPass)}</td>
+                <td>{rateLabel(item.baselinePass)}</td>
+                <td>{(item.latencyP50Ms / 1_000).toFixed(1)}s / {(item.latencyP95Ms / 1_000).toFixed(1)}s</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -45,6 +144,15 @@ export function ComparisonEvidence({
   summary?: string;
   id?: string;
 }) {
+  const visibleAttempts =
+    attempts.length > 4
+      ? (["weak", "hardened"] as const).flatMap((contractVariant) => {
+          const attempt = attempts.find(
+            (candidate) => candidate.contractVariant === contractVariant,
+          );
+          return attempt ? [attempt] : [];
+        })
+      : attempts;
   return (
     <details className="evidence-disclosure" id={id}>
       <summary>
@@ -57,12 +165,12 @@ export function ComparisonEvidence({
 
       <div className="evidence-body">
         <div className="evidence-comparison">
-          {attempts.map((attempt) => (
+          {visibleAttempts.map((attempt) => (
             <section className="evidence-lane" key={attempt.id}>
               <header>
                 <span className={`evidence-lane__marker is-${attempt.tone}`} />
                 <div>
-                  <p>{attempt.modelLabel}</p>
+                  <p>{attempt.contractLabel} · {attempt.modelLabel}</p>
                   <h3>{attempt.outcome}</h3>
                 </div>
               </header>
@@ -82,9 +190,9 @@ export function ComparisonEvidence({
         </div>
 
         <div className="state-evidence">
-          {attempts.map((attempt) => (
+          {visibleAttempts.map((attempt) => (
             <section key={attempt.id}>
-              <p className="section-kicker">{attempt.modelLabel} · final synthetic state</p>
+              <p className="section-kicker">{attempt.contractLabel} · final browser state</p>
               <div className="state-facts">
                 {attempt.stateFacts.map((fact) => (
                   <div className={`is-${fact.tone}`} key={fact.label}>
@@ -105,10 +213,10 @@ export function ComparisonEvidence({
         <details className="developer-disclosure">
           <summary>Developer evidence</summary>
           <div className="developer-grid">
-            {attempts.map((attempt) => (
+            {visibleAttempts.map((attempt) => (
               <section key={attempt.id}>
                 <header>
-                  <h3>{attempt.modelLabel}</h3>
+                  <h3>{attempt.contractLabel}</h3>
                   <span>{attempt.status.replaceAll("_", " ")}</span>
                 </header>
                 <div className="score-breakdown">
@@ -132,6 +240,12 @@ export function ComparisonEvidence({
                     </li>
                   ))}
                 </ul>
+                <dl className="execution-metadata">
+                  <div><dt>Provenance</dt><dd>{attempt.provenance}</dd></div>
+                  <div><dt>Engine</dt><dd>{attempt.executionMetadata.webMcpEngine}@{attempt.executionMetadata.webMcpEngineVersion}</dd></div>
+                  <div><dt>Browser</dt><dd>{attempt.executionMetadata.browserVersion ?? "not applicable"}</dd></div>
+                  <div><dt>Seed</dt><dd>{attempt.executionMetadata.seed}</dd></div>
+                </dl>
                 <details className="raw-disclosure">
                   <summary>Normalized trace JSON</summary>
                   <pre>{JSON.stringify(attempt.trace, null, 2)}</pre>

@@ -28,11 +28,26 @@ function completedRun() {
     models: ["gpt-5.6-luna", "gpt-5.6-terra"],
     repetitions: 1,
     seed: scenario.seed,
-    provenance: "preview",
+    provenance: "deterministic_preview",
+    contractVariants: ["weak", "hardened"],
     status: "completed",
     attempts: [
-      createPreviewAttempt(SALES_GAUNTLET_SUITE, scenario, "failure", "gpt-5.6-luna"),
-      createPreviewAttempt(SALES_GAUNTLET_SUITE, scenario, "success", "gpt-5.6-terra"),
+      createPreviewAttempt(
+        SALES_GAUNTLET_SUITE,
+        scenario,
+        "failure",
+        "gpt-5.6-luna",
+        scenario.seed,
+        "weak",
+      ),
+      createPreviewAttempt(
+        SALES_GAUNTLET_SUITE,
+        scenario,
+        "success",
+        "gpt-5.6-luna",
+        scenario.seed,
+        "hardened",
+      ),
     ],
     createdAt: "2026-08-26T12:00:00.000Z",
     updatedAt: "2026-08-26T12:00:01.000Z",
@@ -114,18 +129,20 @@ describe("signature story", () => {
     expect(screen.queryByText("Same task. One crossed the line.")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Preparing sandbox");
+    expect(screen.getByRole("status")).toHaveTextContent("Launching browser");
 
     await waitFor(() => expect(MockEventSource.latest).toBeDefined());
-    expect(screen.getByRole("status")).toHaveTextContent("Testing the boundary");
+    expect(screen.getByRole("status")).toHaveTextContent("Running the same agent");
 
     act(() => MockEventSource.latest?.emitRun(completedRun()));
     await waitFor(() =>
-      expect(screen.getByText("Same task. One crossed the line.")).toBeVisible(),
+      expect(
+        screen.getByText("Same agent. One website let it cross the line."),
+      ).toBeVisible(),
     );
     expect(screen.getAllByRole("heading", { name: "Sent without approval" })[0]).toBeVisible();
     expect(
-      screen.getAllByRole("heading", { name: "Stopped for human confirmation" })[0],
+      screen.getAllByRole("heading", { name: "Human boundary respected" })[0],
     ).toBeVisible();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/runs",
@@ -168,7 +185,7 @@ describe("signature story", () => {
       new Response(
         JSON.stringify({
           ...completedRun(),
-          provenance: "model",
+          provenance: "browser_webmcp",
           status: "queued",
           attempts: [],
           links: { events: "/api/runs/run-component-test/events" },
@@ -179,14 +196,17 @@ describe("signature story", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<SignatureStory scenarios={scenarios} modelRunnerConfigured />);
-    expect(screen.getByText("Live Luna + Terra")).toBeVisible();
+    expect(
+      screen.getByText("Browser WebMCP · one model · two contracts"),
+    ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(JSON.parse(String(request.body))).toMatchObject({
-      provenance: "model",
-      models: ["gpt-5.6-luna", "gpt-5.6-terra"],
+      provenance: "browser_webmcp",
+      models: ["gpt-5.6-luna"],
+      contractVariants: ["weak", "hardened"],
       seed: 606,
     });
   });

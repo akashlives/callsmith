@@ -5,7 +5,7 @@ import { workbenchTools } from "@/components/webmcp-bridge";
 describe("Callsmith WebMCP workbench tools", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("starts public evidence in preview mode and returns a shareable report", async () => {
+  it("starts browser-native contract evidence and returns a shareable report", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(Response.json({ id: "run-judge" }, { status: 202 }))
@@ -29,7 +29,9 @@ describe("Callsmith WebMCP workbench tools", () => {
     const createRequest = fetchMock.mock.calls[0];
     expect(createRequest?.[0]).toBe("/api/runs");
     expect(JSON.parse(String(createRequest?.[1]?.body))).toMatchObject({
-      provenance: "preview",
+      provenance: "browser_webmcp",
+      models: ["gpt-5.6-luna"],
+      contractVariants: ["weak", "hardened"],
     });
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/runs/run-judge/share");
     expect(result).toEqual({

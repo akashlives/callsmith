@@ -3,13 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
+  ContractVariant,
   JsonObject,
   JsonValue,
   ScenarioDefinition,
   SuiteDefinition,
+  TraceEvent,
   ToolDefinition,
 } from "@/lib/contracts";
-import { applySafeAction, IdempotencyGuard } from "@/lib/evaluation";
+import { ActionExecutionError, applySafeAction, IdempotencyGuard } from "@/lib/evaluation";
+import { suiteForContract } from "@/lib/suites";
 import {
   asToolResult,
   registerWebMcpTools,
@@ -18,7 +21,14 @@ import {
 
 type SandboxTrace = {
   sequence: number;
-  type: "tool" | "fault" | "state" | "confirmation" | "error";
+  type:
+    | "tool"
+    | "result"
+    | "fault"
+    | "state"
+    | "confirmation"
+    | "blocked"
+    | "error";
   toolName?: string;
   message: string;
 };
@@ -65,9 +75,15 @@ function summarize(value: JsonValue): string {
 export function SandboxClient({
   suite,
   scenario,
+  contractVariant,
+  seed,
+  attemptId,
 }: {
   suite: SuiteDefinition;
   scenario: ScenarioDefinition;
+  contractVariant: ContractVariant;
+  seed: number;
+  attemptId?: string;
 }) {
   const [state, setState] = useState<JsonObject>(() => clone(scenario.initialState));
   const [trace, setTrace] = useState<SandboxTrace[]>([]);
@@ -83,17 +99,48 @@ export function SandboxClient({
   const appendTrace = (event: Omit<SandboxTrace, "sequence">) => {
     const next = { sequence: ++traceSequence.current, ...event };
     setTrace((current) => [...current, next]);
+    return next.sequence;
   };
+
+  const contractedSuite = useMemo(
+    () => suiteForContract(suite, contractVariant),
+    [contractVariant, suite],
+  );
 
   const enabledDefinitions = useMemo(
     () =>
-      suite.tools.filter(
-        (tool) =>
-          scenario.enabledTools.includes(tool.name) &&
-          (!tool.action.requireConfirmation || humanConfirmed),
+      contractedSuite.tools.filter(
+        (tool) => scenario.enabledTools.includes(tool.name),
       ),
-    [humanConfirmed, scenario.enabledTools, suite.tools],
+    [contractedSuite.tools, scenario.enabledTools],
   );
+
+  useEffect(() => {
+    const target = window as typeof window & {
+      __CALLSMITH_EVIDENCE__?: {
+        provenance: "browser_webmcp";
+        suiteId: string;
+        suiteVersion: string;
+        scenarioId: string;
+        contractVariant: ContractVariant;
+        seed: number;
+        attemptId?: string;
+        trace: SandboxTrace[];
+        state: JsonObject;
+      };
+    };
+    target.__CALLSMITH_EVIDENCE__ = {
+      provenance: "browser_webmcp",
+      suiteId: suite.id,
+      suiteVersion: suite.version,
+      scenarioId: scenario.id,
+      contractVariant,
+      seed,
+      ...(attemptId ? { attemptId } : {}),
+      trace,
+      state,
+    };
+  }, [attemptId, contractVariant, scenario.id, seed, state, suite.id, suite.version, trace]);
 
   useEffect(() => {
     const form = confirmationForm.current;
@@ -125,8 +172,36 @@ export function SandboxClient({
         if (signal.aborted) throw new DOMException("Tool call cancelled", "AbortError");
 
         const args = input as JsonObject;
+        const browserEvents: TraceEvent[] = [];
+        const pushBrowserEvent = (event: Omit<TraceEvent, "sequence">) => {
+          browserEvents.push({ sequence: browserEvents.length, ...event });
+        };
+        const evidenceResult = (payload: JsonObject) => {
+          const stateSnapshot = clone(stateRef.current);
+          pushBrowserEvent({
+            type: "browser_state_snapshot",
+            stateAfter: stateSnapshot,
+            message: "State captured inside the WebMCP browser page.",
+            metadata: { contractVariant, seed },
+          });
+          return asToolResult({
+            ...payload,
+            callsmithEvidence: {
+              provenance: "browser_webmcp",
+              suiteId: suite.id,
+              suiteVersion: suite.version,
+              scenarioId: scenario.id,
+              contractVariant,
+              seed,
+              ...(attemptId ? { attemptId } : {}),
+              events: browserEvents,
+              stateSnapshot,
+            },
+          });
+        };
         const call = (callCounts.current.get(tool.name) ?? 0) + 1;
         callCounts.current.set(tool.name, call);
+        pushBrowserEvent({ type: "tool_call", toolName: tool.name, args });
         appendTrace({
           type: "tool",
           toolName: tool.name,
@@ -140,14 +215,21 @@ export function SandboxClient({
         }
 
         if (faultMatches(scenario.faults.transientError, tool.name, call)) {
+          const message =
+            scenario.faults.transientError?.message ?? "Transient failure";
           appendTrace({
             type: "fault",
             toolName: tool.name,
-            message: scenario.faults.transientError?.message ?? "Transient failure",
+            message,
           });
-          throw new Error(
-            scenario.faults.transientError?.message ?? "Temporary upstream failure",
-          );
+          pushBrowserEvent({
+            type: "fault",
+            toolName: tool.name,
+            faultType: "transient_error",
+            message,
+          });
+          pushBrowserEvent({ type: "tool_result", toolName: tool.name, output: { ok: false, error: "transient_error", retryable: true, message } });
+          return evidenceResult({ ok: false, error: "transient_error", retryable: true, message });
         }
 
         if (faultMatches(scenario.faults.staleContext, tool.name, call)) {
@@ -155,14 +237,16 @@ export function SandboxClient({
             ok: false,
             error: "stale_context",
             message: "The synthetic record changed after it was read. Refresh before retrying.",
-            currentVersion: scenario.faults.staleContext?.staleVersion,
+            currentVersion: scenario.faults.staleContext?.staleVersion ?? null,
           };
           appendTrace({
             type: "fault",
             toolName: tool.name,
             message: "Stale state blocked the mutation before side effects.",
           });
-          return asToolResult(output);
+          pushBrowserEvent({ type: "fault", toolName: tool.name, faultType: "stale_context", message: String(output.message) });
+          pushBrowserEvent({ type: "tool_result", toolName: tool.name, output });
+          return evidenceResult(output);
         }
 
         if (faultMatches(scenario.faults.ambiguousResult, tool.name, call)) {
@@ -177,14 +261,58 @@ export function SandboxClient({
             toolName: tool.name,
             message: "Ambiguous synthetic candidates returned.",
           });
-          return asToolResult(output);
+          pushBrowserEvent({ type: "fault", toolName: tool.name, faultType: "ambiguous_result", message: String(output.message) });
+          pushBrowserEvent({ type: "tool_result", toolName: tool.name, output });
+          return evidenceResult(output);
         }
 
-        const result = applySafeAction(stateRef.current, tool.action, args, {
-          toolName: tool.name,
-          confirmed: humanConfirmed,
-          idempotencyGuard,
-        });
+        if (tool.action.requireConfirmation && !humanConfirmed) {
+          const message =
+            "A human must review and approve this send in the browser before the state can change.";
+          appendTrace({ type: "confirmation", toolName: tool.name, message });
+          appendTrace({
+            type: "blocked",
+            toolName: tool.name,
+            message: "Hardened contract blocked the unauthorized transition.",
+          });
+          pushBrowserEvent({
+            type: "confirmation_requested",
+            toolName: tool.name,
+            message,
+          });
+          pushBrowserEvent({
+            type: "action_blocked",
+            toolName: tool.name,
+            message: "Hardened WebMCP contract prevented the send mutation.",
+          });
+          const output = {
+            ok: false,
+            error: "human_confirmation_required",
+            message,
+          };
+          pushBrowserEvent({ type: "tool_result", toolName: tool.name, output });
+          return evidenceResult(output);
+        }
+
+        const stateBefore = clone(stateRef.current);
+        let result;
+        try {
+          result = applySafeAction(stateRef.current, tool.action, args, {
+            toolName: tool.name,
+            confirmed: humanConfirmed,
+            idempotencyGuard,
+          });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : "The browser tool action failed.";
+          const code =
+            error instanceof ActionExecutionError ? error.code : "ACTION_ERROR";
+          appendTrace({ type: "error", toolName: tool.name, message });
+          pushBrowserEvent({ type: "error", toolName: tool.name, message });
+          const output = { ok: false, error: code, message };
+          pushBrowserEvent({ type: "tool_result", toolName: tool.name, output });
+          return evidenceResult(output);
+        }
 
         if (result.changed) {
           stateRef.current = result.nextState;
@@ -195,6 +323,15 @@ export function SandboxClient({
             message: result.idempotentReplay
               ? "Idempotent replay: no duplicate side effect."
               : "Synthetic sandbox state updated.",
+          });
+          pushBrowserEvent({
+            type: "state_change",
+            toolName: tool.name,
+            stateBefore,
+            stateAfter: clone(result.nextState),
+            message: result.idempotentReplay
+              ? "Duplicate request replayed without another side effect."
+              : "State changed inside the WebMCP browser page.",
           });
         }
 
@@ -208,14 +345,47 @@ export function SandboxClient({
             toolName: tool.name,
             message: "Untrusted content was attached and explicitly labeled.",
           });
+          pushBrowserEvent({
+            type: "fault",
+            toolName: tool.name,
+            faultType: "prompt_injection",
+            message:
+              contractVariant === "hardened"
+                ? "Hostile content returned with an explicit untrusted boundary."
+                : "Hostile content returned as an ordinary handoff note.",
+          });
         }
 
-        return asToolResult({
+        const rawOutput =
+          contractVariant === "weak" &&
+          result.output !== null &&
+          typeof result.output === "object" &&
+          !Array.isArray(result.output) &&
+          "untrustedContent" in result.output
+            ? Object.fromEntries(
+                Object.entries(result.output).map(([key, value]) => [
+                  key === "untrustedContent" ? "meetingNote" : key,
+                  value,
+                ]),
+              )
+            : result.output;
+        const payload: JsonObject = {
           ok: true,
-          output: result.output,
+          output: rawOutput,
           idempotentReplay: result.idempotentReplay,
-          ...(untrustedContent ? { untrustedContent } : {}),
+          ...(untrustedContent
+            ? contractVariant === "hardened"
+              ? { untrustedContent }
+              : { meetingNote: untrustedContent }
+            : {}),
+        };
+        pushBrowserEvent({ type: "tool_result", toolName: tool.name, output: payload });
+        appendTrace({
+          type: "result",
+          toolName: tool.name,
+          message: result.changed ? "Browser state returned after mutation." : "Browser tool result returned.",
         });
+        return evidenceResult(payload);
       },
     });
 
@@ -228,7 +398,18 @@ export function SandboxClient({
       });
     });
     return registration.unregister;
-  }, [enabledDefinitions, humanConfirmed, idempotencyGuard, scenario.faults]);
+  }, [
+    attemptId,
+    contractVariant,
+    enabledDefinitions,
+    humanConfirmed,
+    idempotencyGuard,
+    scenario.faults,
+    scenario.id,
+    seed,
+    suite.id,
+    suite.version,
+  ]);
 
   function confirmFollowUp(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -272,7 +453,7 @@ export function SandboxClient({
         <header className="flex flex-col gap-4 border-b border-white/10 pb-5 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-emerald-300">
-              Synthetic sandbox · {suite.version}
+              Browser WebMCP · {suite.version} · {contractVariant} contract
             </p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight">
               {scenario.title}
@@ -310,7 +491,7 @@ export function SandboxClient({
             <div className="flex items-center justify-between">
               <h2 className="font-medium">Live sandbox state</h2>
               <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-                Isolated · seed {scenario.seed}
+                Isolated · seed {seed}
               </span>
             </div>
             <pre className="mt-4 max-h-[620px] overflow-auto rounded-xl bg-black/30 p-4 font-mono text-xs leading-6 text-emerald-50">

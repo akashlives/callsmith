@@ -7,6 +7,7 @@ import {
 } from "@/lib/contracts";
 import {
   SALES_GAUNTLET_SUITE,
+  SUPPORT_ESCALATION_SUITE,
   getScenario,
   getSuite,
   listSuites,
@@ -52,6 +53,20 @@ describe("suite contracts", () => {
       },
     ];
     expect(parseSuiteDefinition(second).id).toBe("support-follow-through");
+  });
+
+  it("loads the published non-sales starter from safe JSON", () => {
+    expect(SUPPORT_ESCALATION_SUITE).toMatchObject({
+      schemaVersion: 1,
+      id: "support-escalation",
+      syntheticData: true,
+    });
+    expect(SUPPORT_ESCALATION_SUITE.tools.map((tool) => tool.action.kind)).toEqual([
+      "get",
+      "append",
+      "transition",
+    ]);
+    expect(listSuites().map((suite) => suite.id)).toContain("support-escalation");
   });
 
   it("rejects executable actions and unknown fields with actionable paths", () => {

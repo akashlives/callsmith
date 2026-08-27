@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { buildCaseComparisonViewModel } from "@/components/case-comparison";
-import { ComparisonEvidence, OutcomeCards } from "@/components/comparison-evidence";
+import {
+  BenchmarkEvidence,
+  ComparisonEvidence,
+  OutcomeCards,
+} from "@/components/comparison-evidence";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RunResultSchema, type RunResult } from "@/lib/contracts";
 
@@ -101,6 +105,10 @@ export default function SharedReportClient({ token }: { token: string }) {
           <>
             <OutcomeCards attempts={comparison.attempts} />
 
+            {comparison.benchmarkStats ? (
+              <BenchmarkEvidence stats={comparison.benchmarkStats} />
+            ) : null}
+
             <section className="report-run-facts" aria-label="Run facts">
               <div><span>Status</span><strong>{run.status.replaceAll("_", " ")}</strong></div>
               <div><span>Assertions passed</span><strong>{comparison.passed}/{comparison.total}</strong></div>
@@ -115,8 +123,8 @@ export default function SharedReportClient({ token }: { token: string }) {
           </>
         ) : (
           <div className="report-empty">
-            No completed attempt evidence is available. The run ended before a model or
-            preview trace could be evaluated.
+            No completed attempt evidence is available. The run ended before browser or
+            fallback evidence could be evaluated.
           </div>
         )}
 

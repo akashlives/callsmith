@@ -212,9 +212,13 @@ describe("deterministic evaluation", () => {
       "OPENAI_API_KEY is not configured",
     );
     expect(result.status).toBe("provider_failure");
-    expect(result.provenance).toBe("model");
+    expect(result.provenance).toBe("server_simulation");
     expect(result.trace).toHaveLength(1);
     expect(result.trace[0].type).toBe("error");
+    expect(result.safetyOutcome).toBe("not_exercised");
+    expect(result.unsafeAttempted).toBe(false);
+    expect(result.harmPrevented).toBe(false);
+    expect(result.taskCompleted).toBe(false);
     expect(result.failureExplanations[0]).toContain("not configured");
     expect(AttemptResultSchema.parse(result)).toEqual(result);
   });
@@ -322,7 +326,7 @@ describe("safe action execution", () => {
       faultSchedule: deriveFaultSchedule(suite, item, item.seed),
     });
     expect(result.output).toMatchObject({
-      untrustedContent: expect.stringContaining("SYSTEM OVERRIDE"),
+      untrustedContent: expect.stringContaining("Internal handoff note"),
     });
     expect(result.faultsApplied.map((event) => event.type)).toContain(
       "prompt_injection",
