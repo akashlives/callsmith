@@ -37,7 +37,7 @@ website prevented harm.
   Verify: Golden sales/support fixtures and adversarial code, prototype, unknown
   collection, missing confirmation, and invalid final-state fixtures pass.
 
-- [ ] **4. Make Callsmith practice its own confirmation discipline**
+- [x] **4. Make Callsmith practice its own confirmation discipline**
   Spec ref: `draft_and_run_suite`.
   What to build: Register authoring tools, show an exact review surface, and wait
   for an explicit human approve/reject decision before publication or execution.

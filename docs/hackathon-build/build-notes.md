@@ -196,3 +196,34 @@
   now prioritizes healthcheck-gated deploys, graceful draining, private bucket
   artifacts, cleanup cron, observability/alerts, backup drills, infrastructure
   as code, and—after the core judge path passes—a one-click community template.
+
+## Proof-to-platform milestone 4 — human-confirmed suite authoring
+
+- Added `get_authoring_guide` and `draft_and_run_suite` as real page-registered
+  WebMCP tools. The draft tool accepts only the strict generated
+  `GuidedSuiteDraft` schema and exposes no approval argument or capability.
+- A single-use coordinator now binds the active compiled suite to a private
+  human decision authority. Owner and confirmation tokens remain inside a
+  private transport handle and never enter tool output, React state, the DOM,
+  storage, reports, or logs.
+- The exact accessible review shows the declared tools and mutations, hostile
+  content, protected state, confirmation/idempotency boundaries, and derived
+  assertions. Approve/reject are locked during processing; rejection, abort,
+  navigation, stale reviews, and duplicate decisions cannot create a run.
+- Local verification passed lint, TypeScript, 152 Vitest tests across 24 files,
+  the Next.js 16 production build, and 12 Playwright tests across desktop and
+  mobile; two deployment-only tests were intentionally skipped locally.
+- Railway staging deployment `0e6a7860-d904-4bb4-8225-a7753498b60c` passed
+  health, logs, in-app WebMCP discovery, exact-review inspection, and both
+  decision paths. Rejection persisted no run. Approval published the immutable
+  Support Escalation suite and completed conclusive browser-native run
+  `run-0e262567-7bfe-49d6-a717-88904f4b4806` with weak and hardened attempts.
+- Production deployment `b9b2e756-085a-4203-8430-fe48f46f995e` passed health,
+  six-tool discovery, authoring-guide inspection, exact-review rendering, and a
+  rejection smoke. Post-smoke Postgres evidence showed the draft rejected and
+  the production run list unchanged.
+- The connected Chrome profile rendered staging cleanly with no overflow but
+  still advertised no WebMCP capability. Manual Chrome discovery with the
+  challenge-required configuration remains the explicit Milestone 8 gate.
+- Full invariants and reproducible evidence are recorded in
+  [`milestone-4-confirmation-verification.md`](milestone-4-confirmation-verification.md).
