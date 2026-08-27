@@ -8,25 +8,21 @@ function parsedTextResult(result: unknown): Record<string, unknown> {
 }
 
 describe("Callsmith WebMCP suite authoring tools", () => {
-  it("publishes the exact guided schema without an agent approval field", () => {
+  it("publishes a compact cross-agent schema without an approval field", () => {
     const tools = suiteAuthoringTools(vi.fn());
     const author = tools.find((tool) => tool.name === "draft_and_run_suite");
 
     expect(author).toBeDefined();
     expect(author?.inputSchema.type).toBe("object");
     expect(author?.inputSchema.additionalProperties).toBe(false);
-    expect(author?.inputSchema.required).toEqual(
-      expect.arrayContaining([
-        "draftVersion",
-        "id",
-        "version",
-        "tools",
-        "contractDesign",
-        "expected",
-      ]),
-    );
+    expect(author?.inputSchema.required).toEqual(["draftJson"]);
+    expect(author?.inputSchema.properties).toHaveProperty("draftJson");
     expect(author?.inputSchema.properties).not.toHaveProperty("approved");
     expect(author?.inputSchema.properties).not.toHaveProperty("confirmationToken");
+    expect(JSON.stringify(author?.inputSchema).length).toBeLessThan(1_000);
+    expect(JSON.stringify(author?.inputSchema)).not.toMatch(
+      /\"(?:\$ref|definitions|oneOf|anyOf|allOf|const)\"/,
+    );
   });
 
   it("returns authoring guidance without creating a draft", async () => {
@@ -61,7 +57,10 @@ describe("Callsmith WebMCP suite authoring tools", () => {
       (candidate) => candidate.name === "draft_and_run_suite",
     );
     const signal = new AbortController().signal;
-    const result = await tool?.execute(draft, { signal });
+    const result = await tool?.execute(
+      { draftJson: JSON.stringify(draft) },
+      { signal },
+    );
 
     expect(requestReview).toHaveBeenCalledWith(draft, signal);
     expect(parsedTextResult(result)).toMatchObject({
@@ -69,5 +68,23 @@ describe("Callsmith WebMCP suite authoring tools", () => {
       status: "rejected",
       code: "human_rejected",
     });
+  });
+
+  it("returns an actionable error for malformed draft JSON", async () => {
+    const requestReview = vi.fn();
+    const tool = suiteAuthoringTools(requestReview).find(
+      (candidate) => candidate.name === "draft_and_run_suite",
+    );
+    const result = await tool?.execute(
+      { draftJson: "{not-json" },
+      { signal: new AbortController().signal },
+    );
+
+    expect(parsedTextResult(result)).toMatchObject({
+      ok: false,
+      status: "invalid_request",
+      code: "invalid_draft_json",
+    });
+    expect(requestReview).not.toHaveBeenCalled();
   });
 });

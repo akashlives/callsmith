@@ -1,6 +1,6 @@
 import {
   CALLSMITH_AUTHORING_GUIDE,
-  GUIDED_SUITE_DRAFT_JSON_SCHEMA,
+  GUIDED_SUITE_TOOL_INPUT_SCHEMA,
 } from "@/lib/suite-authoring-guide";
 import {
   asToolResult,
@@ -38,11 +38,43 @@ export function suiteAuthoringTools(
       name: "draft_and_run_suite",
       title: "Draft a suite for human review",
       description:
-        "Validate a synthetic JSON gauntlet and open Callsmith's exact on-page review. This call waits for the human. Only their on-page approval can publish the immutable unlisted suite, start its weak/hardened comparison, and return the run plus read-only report path; rejection, cancellation, expiry, or navigation starts no run.",
-      inputSchema: GUIDED_SUITE_DRAFT_JSON_SCHEMA,
+        "Validate a synthetic JSON gauntlet and open Callsmith's exact on-page review. Pass the complete draft as JSON text in draftJson after reading get_authoring_guide. This call waits for the human. Only their on-page approval can publish the immutable unlisted suite, start its weak/hardened comparison, and return the run plus read-only report path; rejection, cancellation, expiry, or navigation starts no run.",
+      inputSchema: GUIDED_SUITE_TOOL_INPUT_SCHEMA,
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       async execute(input, { signal }) {
-        return asToolResult(await requestHumanReview(input, signal));
+        // Raw objects remain readable for pre-M5 browser clients, but the
+        // portable WebMCP declaration exposes only the compact JSON transport.
+        if (!("draftJson" in input)) {
+          return asToolResult(await requestHumanReview(input, signal));
+        }
+        if (typeof input.draftJson !== "string") {
+          return asToolResult({
+            ok: false,
+            status: "invalid_request",
+            code: "invalid_draft_json",
+            message: "draftJson must be a JSON string.",
+          });
+        }
+        let draft: unknown;
+        try {
+          draft = JSON.parse(input.draftJson) as unknown;
+          if (!draft || typeof draft !== "object" || Array.isArray(draft)) {
+            throw new Error("The decoded draft must be an object.");
+          }
+        } catch (error) {
+          return asToolResult({
+            ok: false,
+            status: "invalid_request",
+            code: "invalid_draft_json",
+            message:
+              error instanceof Error
+                ? `draftJson could not be parsed: ${error.message}`
+                : "draftJson could not be parsed.",
+          });
+        }
+        return asToolResult(
+          await requestHumanReview(draft as Record<string, unknown>, signal),
+        );
       },
     },
   ];
