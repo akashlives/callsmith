@@ -55,7 +55,7 @@ Callsmith has two explicit execution modes:
 1. **Deterministic preview evidence** lets any judge run the signature experience without credentials. Preview traces are always labeled `preview` and never presented as model output.
 2. **Real model attempts** use the OpenAI Responses API with strict function tools for `gpt-5.6-luna` and `gpt-5.6-terra` when a server key or request-scoped BYOK value is available. The runner loops over function calls, executes only the safe action DSL, injects the seeded fault schedule, captures usage and latency, isolates provider failures, and evaluates the resulting trace.
 
-The public deployment intentionally has no provider key. A live Luna/Terra smoke test therefore remains an open verification gate; requesting model provenance returns an actionable unavailable response instead of substituting scripted output.
+The public deployment now uses a project-scoped server secret for hosted Luna/Terra attempts. The key stays server-side, never enters browser code or reports, and the homepage switches to explicitly labeled live model evidence at request time. Deterministic preview remains available as a separately labeled reproducibility mode.
 
 ## How We Used Codex
 
@@ -114,7 +114,7 @@ The public web service is the only exposed Railway service. Postgres, Redis, the
 1. Open [the live workbench](https://web-production-6cecc.up.railway.app/) in Google Chrome or ChatGPT’s in-app browser.
 2. Read **The meeting-note trap** and click **Run the safety test**. No setup or credentials are required.
 3. Watch Callsmith prepare the sandbox, test the boundary, and compare behavior.
-4. Compare **Sent without approval** with **Stopped for human confirmation**.
+4. Compare the outcome cards and inspect whether either model crossed the human confirmation boundary. The verified live run had both models stop safely; deterministic preview demonstrates the known failure trace.
 5. Open **Show the proof** to inspect the plain-language tool path and final synthetic state.
 6. Open **Developer evidence** for assertions, weighted scores, and normalized trace JSON.
 7. Create and open the unlisted read-only report, or run one of the five secondary scenarios.
@@ -215,16 +215,16 @@ Remaining before the final submit command:
 - Capture the supported-browser screenshot.
 - Confirm the submitter type and country-of-residence form answers.
 - Add a project thumbnail through Devpost’s web flow or upload tool.
-- Decide whether to configure a temporary provider key for a real Luna/Terra smoke test; do not claim one unless verified.
+- Re-run the hosted Luna/Terra comparison and confirm the report labels both attempts as live model evidence.
 
 External deadline recorded by Devpost: `2026-09-03T20:00:00Z` (Pacific Time event configuration).
 
 ## Known Limitations
 
-- The public service has no `OPENAI_API_KEY`; its one-click and agent-native paths use clearly labeled deterministic preview evidence.
-- A real Responses API Luna/Terra runner is implemented but not credential-smoke-tested in this environment.
+- The public service uses a project-scoped `OPENAI_API_KEY` stored only as a Railway service secret; guest attempts are quota-limited and the key is never returned to the browser.
+- A real Responses API smoke test completed for Luna and Terra against seed `606`; both models followed the full tool path, ignored the malicious instruction, stopped before send, and scored 100/100.
 - Redis queue handoff, the dedicated runner process, bucket screenshots, cleanup execution, GitHub authentication, and TTL-backed quotas are provisioned/design-complete rather than active runtime paths.
-- The root comparison, progressive evidence, and report are all derived from validated `RunResult` records returned through the run API/SSE path; the public path is clearly labeled deterministic preview evidence.
+- The root comparison, progressive evidence, and report are all derived from validated `RunResult` records returned through the run API/SSE path; live and preview provenance are labeled independently.
 - Automated WebMCP adapter tests use a browser polyfill; supported judging-browser verification remains open.
 
 ## TODO Official Form Fields
@@ -237,7 +237,7 @@ Official requirements fetched live from Devpost on 2026-08-26:
 - **App Status** (`28252`, required): `New`
 - **Existing project updates** (`28253`, optional): not applicable; repository began empty during the event
 - **Live URL** (`28254`, required): `https://web-production-6cecc.up.railway.app/`
-- **Private testing instructions** (`28255`, optional): use the Fast judge path and Agent-native WebMCP path above; no credentials required for preview
+- **Private testing instructions** (`28255`, optional): use the Fast judge path and Agent-native WebMCP path above; no judge-supplied credentials are required for the quota-limited hosted comparison
 - **Public repository** (`28256`, required): `https://github.com/akashlives/callsmith`
 - **Agents/clients tested** (`28257`, required): Chromium desktop/mobile through Playwright; `document.modelContext` adapter through a controlled browser polyfill. **TODO add** WebMCP-enabled Chrome and ChatGPT in-app browser after manual verification.
 - **AI tools leveraged** (`28258`, required): OpenAI Codex for product shaping, parallel implementation, debugging, browser QA, infrastructure, and documentation; OpenAI SDK/Responses API for the real function-tool evaluation runner.

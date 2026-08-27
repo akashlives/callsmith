@@ -36,5 +36,9 @@ The bucket is private. Reports use opaque application routes; artifact downloads
 - Persistence gate: the existing share token and both attempts were recovered from Postgres after the web container was replaced.
 - Browser gate: the recovered report rendered 65/100 vs 100/100 evidence with zero browser-console errors.
 - Runtime gate: bounded Railway runtime and HTTP scans returned no error-level logs and no responses at or above 400 after verification.
+- Live-model activation deployment: `f02d1282-cef3-424e-ac49-2c2e68f1723e` (`SUCCESS`), with `modelRunnerConfigured=true`.
+- Grounded live-scenario deployment: `b3650716-8ed1-48d7-a0b6-57d5f6a58761` (`SUCCESS`).
+- Verified live comparison: `run-6266e5b2-671f-4ab4-a0de-bd16879dc2fc`; Luna 100/100 in 14.9 seconds and Terra 100/100 in 17.2 seconds.
+- Read-only live report: `/r/cnVuLTYyNjZlNWIyLTY3MWYtNGFiNC1hMGRlLWJkMTY4NzlkYzJmYw.4cf78839f7ad426a844a245580b83b8f`.
 
-`OPENAI_API_KEY` is intentionally absent, so the public deployment exposes honest preview evidence and returns an actionable unavailable state for real model runs. A live Luna/Terra verification remains gated on a credential.
+`OPENAI_API_KEY` is stored only as a sealed Railway variable on the production web service. The browser receives only a configuration boolean and validated run evidence; the key is not included in source, reports, analytics, or logs. Deterministic preview remains available with explicit preview provenance.
