@@ -22,6 +22,49 @@ async function readJson(response: Response) {
   return data;
 }
 
+function messageFromUnknown(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function failedToolResult(error: unknown) {
+  return asToolResult({
+    ok: false,
+    status: "request_failed",
+    code: "callsmith_request_failed",
+    message: messageFromUnknown(error),
+  });
+}
+
+/** Keep discovery useful to an agent without returning every state fixture,
+ * trace assertion, and tool implementation in the hosted definitions. */
+function compactSuiteCatalog(data: unknown): unknown {
+  if (!data || typeof data !== "object" || !("suites" in data)) return data;
+  const suites = (data as { suites?: unknown }).suites;
+  if (!Array.isArray(suites)) return data;
+
+  return {
+    suites: suites.map((suite) => {
+      const record = suite as Record<string, unknown>;
+      const scenarios = Array.isArray(record.scenarios) ? record.scenarios : [];
+      return {
+        id: record.id,
+        version: record.version,
+        title: record.title,
+        description: record.description,
+        scenarios: scenarios.map((scenario) => {
+          const item = scenario as Record<string, unknown>;
+          return {
+            id: item.id,
+            title: item.title,
+            goal: item.goal,
+            seed: item.seed,
+          };
+        }),
+      };
+    }),
+  };
+}
+
 export function workbenchTools(openReport: (path: string) => void): readonly WebMcpTool[] {
   return [
   {
@@ -32,8 +75,12 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
     inputSchema: strictObjectSchema(),
     annotations: { readOnlyHint: true, untrustedContentHint: false },
     async execute(_input, { signal }) {
-      const response = await fetch("/api/suites", { signal });
-      return asToolResult(await readJson(response));
+      try {
+        const response = await fetch("/api/suites", { signal });
+        return asToolResult(compactSuiteCatalog(await readJson(response)));
+      } catch (error) {
+        return failedToolResult(error);
+      }
     },
   },
   {
@@ -91,26 +138,33 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
     ),
     annotations: { readOnlyHint: false, untrustedContentHint: false },
     async execute(input, { signal }) {
-      const response = await fetch("/api/runs", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          ...input,
-          models: input.models ?? ["gpt-5.6-luna"],
-          contractVariants: input.contractVariants ?? ["weak", "hardened"],
-          provenance: input.provenance ?? "browser_webmcp",
-        }),
-        signal,
-      });
-      const run = (await readJson(response)) as { id?: unknown };
-      if (typeof run.id !== "string") return asToolResult({ run });
+      try {
+        const response = await fetch("/api/runs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            ...input,
+            models: input.models ?? ["gpt-5.6-luna"],
+            contractVariants: input.contractVariants ?? ["weak", "hardened"],
+            provenance: input.provenance ?? "browser_webmcp",
+          }),
+          signal,
+        });
+        const run = (await readJson(response)) as { id?: unknown };
+        if (typeof run.id !== "string") return asToolResult({ run });
 
-      const shareResponse = await fetch(`/api/runs/${encodeURIComponent(run.id)}/share`, {
-        method: "POST",
-        signal,
-      });
-      const report = await readJson(shareResponse);
-      return asToolResult({ run, report });
+        const shareResponse = await fetch(
+          `/api/runs/${encodeURIComponent(run.id)}/share`,
+          {
+            method: "POST",
+            signal,
+          },
+        );
+        const report = await readJson(shareResponse);
+        return asToolResult({ run, report });
+      } catch (error) {
+        return failedToolResult(error);
+      }
     },
   },
   {
@@ -126,10 +180,15 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
     ),
     annotations: { readOnlyHint: true, untrustedContentHint: false },
     async execute({ runId }, { signal }) {
-      const response = await fetch(`/api/runs/${encodeURIComponent(String(runId))}`, {
-        signal,
-      });
-      return asToolResult(await readJson(response));
+      try {
+        const response = await fetch(
+          `/api/runs/${encodeURIComponent(String(runId))}`,
+          { signal },
+        );
+        return asToolResult(await readJson(response));
+      } catch (error) {
+        return failedToolResult(error);
+      }
     },
   },
   {

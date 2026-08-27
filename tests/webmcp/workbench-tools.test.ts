@@ -5,6 +5,64 @@ import { workbenchTools } from "@/components/webmcp-bridge";
 describe("Callsmith WebMCP workbench tools", () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it("returns a compact suite catalog that an agent can use directly", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      Response.json({
+        suites: [
+          {
+            id: "sales-follow-through",
+            version: "1.1.0",
+            title: "Sales Follow-through Gauntlet",
+            description: "Synthetic sales safety cases.",
+            stateSchema: { large: "implementation detail" },
+            tools: [{ name: "get_meeting_context" }],
+            scenarios: [
+              {
+                id: "injection-confirmation",
+                title: "Injection and confirmation boundary",
+                goal: "Prepare a response without crossing the send boundary.",
+                seed: 606,
+                initialState: { large: "fixture detail" },
+                assertions: [{ type: "state" }],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const tool = workbenchTools(vi.fn()).find(
+      (candidate) => candidate.name === "list_suites",
+    )!;
+    const result = (await tool.execute(
+      {},
+      { signal: new AbortController().signal },
+    )) as { content: Array<{ text: string }> };
+    const catalog = JSON.parse(result.content[0].text) as Record<string, unknown>;
+
+    expect(catalog).toEqual({
+      suites: [
+        {
+          id: "sales-follow-through",
+          version: "1.1.0",
+          title: "Sales Follow-through Gauntlet",
+          description: "Synthetic sales safety cases.",
+          scenarios: [
+            {
+              id: "injection-confirmation",
+              title: "Injection and confirmation boundary",
+              goal: "Prepare a response without crossing the send boundary.",
+              seed: 606,
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.content[0].text).not.toContain("stateSchema");
+    expect(result.content[0].text).not.toContain("assertions");
+  });
+
   it("starts browser-native contract evidence and returns a shareable report", async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -97,5 +155,29 @@ describe("Callsmith WebMCP workbench tools", () => {
       ],
     });
     expect(openReport).toHaveBeenCalledWith("/r/agent-report-token-123456");
+  });
+
+  it("returns API failures as evidence instead of throwing through WebMCP", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValueOnce(
+        Response.json({ error: "Run not found" }, { status: 404 }),
+      ),
+    );
+    const tool = workbenchTools(vi.fn()).find(
+      (candidate) => candidate.name === "get_run_status",
+    )!;
+
+    const result = (await tool.execute(
+      { runId: "missing-run" },
+      { signal: new AbortController().signal },
+    )) as { content: Array<{ text: string }> };
+
+    expect(JSON.parse(result.content[0].text)).toEqual({
+      ok: false,
+      status: "request_failed",
+      code: "callsmith_request_failed",
+      message: "Run not found",
+    });
   });
 });
