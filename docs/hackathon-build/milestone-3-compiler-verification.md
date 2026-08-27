@@ -90,6 +90,28 @@ Typecheck       passed
 Focused ESLint  passed
 ```
 
+## Staging and browser-use evidence
+
+- Railway staging web deployment
+  `c44e9c2e-9259-4a1d-9d18-916088b5357e` succeeded from commit `ecd7724`.
+- `/api/health` returned `status=ok`, `persistence=memory+postgres`, and all
+  model, browser-queue, and browser-runner configuration flags enabled.
+- The deployed validation API compiled the independent finance fixture to V2,
+  generated all four assertion categories, and produced
+  `confirmation_requested` plus `action_blocked` evidence for
+  `release_payment`.
+- The deployed API migrated the checked-in support V1 fixture to V2 and
+  rejected an external-URL draft with `422`, `executable_content`, and the
+  exact `draft.goal` path.
+- A guided finance draft entered `awaiting_confirmation` with an immutable V2
+  candidate; it was deliberately not approved or run because approval UX is
+  Milestone 4.
+- Browser Use QA rendered staging in ChatGPT's in-app browser and the connected
+  Chrome profile. The in-app browser discovered and invoked `list_suites`,
+  which returned both built-ins as V2 definitions. Chrome rendered the same
+  story surface; that connected profile still lacks WebMCP capability, so
+  manual Chrome WebMCP discovery remains the Milestone 8 gate.
+
 ## Remaining semantic and security gaps
 
 These are not waived by the passing corpus:

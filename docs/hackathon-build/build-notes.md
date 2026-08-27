@@ -165,3 +165,32 @@
   draft creation so oversized requests cannot accumulate inaccessible rows.
   Focused tests passed, staging returned `422`, and production web deployment
   `cb7b7c58-0c53-441a-a9d5-a85e4b1f5b77` passed the same HTTP check.
+
+## Proof-to-platform milestone 3 — V2 safe authoring compiler
+
+- Added a versioned `GuidedSuiteDraft` and `SuiteDefinitionV2` contract. V2
+  explicitly names the untrusted read, consequential mutation, protected state,
+  and every confirmation/idempotency target. Existing sales and support V1
+  definitions migrate to V2 on read.
+- The bounded compiler accepts only JSON and the five existing safe DSL actions.
+  It simulates both expected paths, requires both to exercise the untrusted read
+  and confirmation boundary, derives four scoring categories, and rejects any
+  claimed final state that differs from the simulated state.
+- Generic weak/hardened transformation now follows V2 metadata rather than
+  sales tool names. Independent sales, support, and finance fixtures compile
+  without application-code changes.
+- The adversarial corpus covers code-like strings, executable and credential
+  keys, external URLs, prototype pollution, unknown collections/state paths,
+  unsafe initial state, missing confirmation, mismatched idempotency,
+  inconsistent final state, malformed identifiers, and resource limits.
+- Local verification passed with 120 tests across 19 files, lint, TypeScript,
+  and a Next.js 16 production build. Railway staging deployment
+  `c44e9c2e-9259-4a1d-9d18-916088b5357e` passed health and live API checks.
+- Browser Use QA rendered staging in both available browsers. The in-app
+  browser discovered Callsmith's WebMCP tools and `list_suites` returned V2
+  built-ins. The connected Chrome profile rendered correctly but still exposes
+  no WebMCP capability; that remains an explicit Milestone 8 gate.
+- Railway's platform offering was audited against Callsmith. The adoption plan
+  now prioritizes healthcheck-gated deploys, graceful draining, private bucket
+  artifacts, cleanup cron, observability/alerts, backup drills, infrastructure
+  as code, and—after the core judge path passes—a one-click community template.

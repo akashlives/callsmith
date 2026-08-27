@@ -28,7 +28,7 @@ website prevented harm.
   Verify: Restart both services and exercise valid, invalid, missing, expired,
   and incorrect-token paths.
 
-- [ ] **3. Build the V2 safe authoring compiler**
+- [x] **3. Build the V2 safe authoring compiler**
   Spec ref: `GuidedSuiteDraft` and generic contract design.
   What to build: Compile bounded JSON-only drafts to `SuiteDefinitionV2`, derive
   assertions and walkthroughs, and make weak/hardened transformation generic.
@@ -61,6 +61,9 @@ website prevented harm.
   progress without replacing evidence.
   Acceptance: Contracts remain concurrent; the UI waits up to 60 seconds and
   unfinished work remains explicitly inconclusive under the absolute guard.
+  Use Railway healthcheck-gated deploys, graceful draining, private artifact
+  storage, cleanup cron, environment-scoped observability, and infrastructure
+  as code so the evidence path is operable and reproducible.
   Verify: At least nine of ten judge-mode pairs are conclusive within 60 seconds;
   worker recovery produces no duplicate attempts.
 
