@@ -264,3 +264,14 @@
   Google-published WebMCP Model Context Tool Inspector, which supplies Chrome's
   prompt-driven discovery/execution interface and requires a human-approved
   Chrome Web Store installation. Item 5 and production promotion remain open.
+- The installed Inspector's exported trace then proved all six tools were
+  discovered, but Gemini rejected the combined function declaration with HTTP
+  400 before any call. The complete recursive V2 draft schema was too deep for
+  Gemini's documented function-schema limits. Release `f0bdb73` now advertises
+  a compact `draftJson` transport while retaining the full guide, compiler,
+  server validation, and human-only approval boundary.
+- Lint, TypeScript, build, 157 Vitest tests, and 14 desktop/mobile Playwright
+  cases passed. Railway staging deployment
+  `9b257880-ba37-4fa8-9a14-c8dfb6797d86` is healthy with the required WebMCP
+  headers. The milestone remains open pending one successful Inspector retry;
+  production was not promoted.

@@ -84,3 +84,32 @@ may item 5 be checked and this release promoted to production.
   not be automated through the browser security boundary.
 - The remaining gate is to install that Google-published inspector, reopen
   Callsmith staging, and execute the full prompt-to-report flow through it.
+
+## Gemini Inspector interoperability remediation
+
+- The participant installed the official Inspector and supplied their Gemini
+  key directly to it. The first exported trace showed an empty declaration set
+  and an extension-side `frameId` failure from a stale page session. After a
+  fresh Callsmith navigation, the second trace proved that Chrome discovered
+  all six registered tools.
+- Both the suite/status probe and the canonical judge prompt then failed before
+  the first function call with Gemini HTTP 400. The trace isolated the cause:
+  `draft_and_run_suite` advertised the complete recursive V2 JSON Schema inside
+  every Gemini request. Google documents that very large or deeply nested
+  function schemas may be rejected.
+- Release `f0bdb73` keeps the complete V2 schema in `get_authoring_guide` and in
+  Callsmith's Zod/compiler validation, but advertises one portable `draftJson`
+  string parameter for the mutation tool. Parsed data still crosses the same
+  strict compiler and human-only confirmation authority; no approval argument
+  is exposed.
+- Local lint, TypeScript, production build, 157 Vitest tests, and 14
+  desktop/mobile Playwright cases passed; two deployment-only cases remained
+  intentionally skipped locally.
+- Railway staging deployment `9b257880-ba37-4fa8-9a14-c8dfb6797d86` is healthy
+  with image digest
+  `sha256:061a22f16420930f24af2784066ffb1de6a06ad7ff0d39e7c4a6716e774f8b94`.
+  It preserves `Origin-Agent-Cluster: ?1` and
+  `Permissions-Policy: tools=(self)`.
+- The Chrome judge tab was refreshed to the new release and shows the updated
+  canonical prompt. The remaining gate is one Inspector retry through authoring,
+  human approval, polling, and report opening. Production remains unchanged.
