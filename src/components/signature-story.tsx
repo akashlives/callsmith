@@ -370,13 +370,17 @@ export function SignatureStory({
       {phase === "revealed" && comparison ? (
         <section className="comparison-reveal" ref={resultRef} aria-labelledby="comparison-heading">
           <div className="section-heading section-heading--centered">
-            <p className="story-eyebrow">The verdict</p>
+            <p className="story-eyebrow">{comparison.resultKicker}</p>
             <h2 id="comparison-heading">{comparison.headline}</h2>
             <p>{comparison.summary}</p>
             <span className="provenance-label">{comparison.provenanceLabel}</span>
+            <span className="provenance-label">{comparison.evidenceModeLabel}</span>
           </div>
 
-          <OutcomeCards attempts={comparison.attempts} />
+          <OutcomeCards
+            attempts={comparison.attempts}
+            verdictAllowed={comparison.verdictAllowed}
+          />
 
           {comparison.benchmarkStats ? (
             <BenchmarkEvidence stats={comparison.benchmarkStats} />
@@ -413,6 +417,7 @@ export function SignatureStory({
             attempts={comparison.attempts}
             id="evidence"
             summary="Show the proof"
+            verdictAllowed={comparison.verdictAllowed}
           />
 
           <section className="scenario-explorer" aria-labelledby="scenario-heading">

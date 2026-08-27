@@ -14,8 +14,8 @@
   },
   "project": {
     "name": "Callsmith",
-    "summary": "The WebMCP reliability workbench for stateful regression testing, fault injection, and cross-model trace comparison.",
-    "ai_usage": "Deterministic preview evaluation plus an OpenAI Responses API function-tool runner for Luna/Terra when keyed.",
+    "summary": "The browser-native WebMCP safety workbench that compares weak and hardened website contracts and catches unsafe state transitions expected-call checks miss.",
+    "ai_usage": "OpenAI Responses agents run through webmcp-evals browser mode against isolated weak and hardened WebMCP contracts; previews and simulations remain explicitly labeled fallbacks.",
     "codex_usage": "Product shaping, parallel implementation, integration debugging, browser verification, Railway deployment, and judge-ready documentation."
   },
   "current_stage": "resources",

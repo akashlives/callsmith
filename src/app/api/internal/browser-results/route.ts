@@ -64,7 +64,11 @@ export async function POST(request: Request) {
 
     if (event.type === "started") {
       const updated = runStore.update(run.id, { status: "running" });
-      return Response.json({ accepted: true, status: updated.status });
+      return Response.json({
+        accepted: true,
+        status: updated.status,
+        evidenceStatus: updated.evidenceStatus,
+      });
     }
 
     if (event.type === "completed") {
@@ -80,8 +84,12 @@ export async function POST(request: Request) {
           : failures > 0 || current.attempts.length < expectedAttempts
             ? "partial_failure"
             : "completed";
-      runStore.update(run.id, { status });
-      return Response.json({ accepted: true, status });
+      const updated = runStore.update(run.id, { status });
+      return Response.json({
+        accepted: true,
+        status: updated.status,
+        evidenceStatus: updated.evidenceStatus,
+      });
     }
 
     const suite = getSuite(run.suiteId);
@@ -143,9 +151,10 @@ export async function POST(request: Request) {
       accepted: true,
       attemptId: attempt.id,
       attempts: updated.attempts.length,
+      status: updated.status,
+      evidenceStatus: updated.evidenceStatus,
     });
   } catch (error) {
     return jsonError(400, messageFromUnknown(error));
   }
 }
-

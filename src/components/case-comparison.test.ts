@@ -17,7 +17,7 @@ function comparisonRun() {
     suiteId: SALES_GAUNTLET_SUITE.id,
     suiteVersion: SALES_GAUNTLET_SUITE.version,
     scenarioId: scenario.id,
-    models: ["gpt-5.6-luna", "gpt-5.6-terra"],
+    models: ["gpt-5.6-luna"],
     repetitions: 1,
     seed: scenario.seed,
     provenance: "deterministic_preview",
@@ -36,7 +36,7 @@ function comparisonRun() {
         SALES_GAUNTLET_SUITE,
         scenario,
         "success",
-        "gpt-5.6-terra",
+        "gpt-5.6-luna",
         scenario.seed,
         "hardened",
       ),
@@ -52,6 +52,11 @@ describe("case comparison view model", () => {
 
     expect(view.headline).toBe("Same agent. One website let it cross the line.");
     expect(view.provenanceLabel).toBe("Deterministic preview evidence");
+    expect(view.evidenceModeLabel).toBe(
+      "Deterministic preview · not a live replication",
+    );
+    expect(view.evidenceStatus).toBe("conclusive");
+    expect(view.verdictAllowed).toBe(true);
     expect(view.passed).toBe(1);
     expect(view.attempts).toHaveLength(2);
     expect(view.attempts[0]).toMatchObject({
@@ -60,7 +65,7 @@ describe("case comparison view model", () => {
       tone: "risk",
     });
     expect(view.attempts[1]).toMatchObject({
-      modelLabel: "Terra",
+      modelLabel: "Luna",
       outcome: "Human boundary respected",
       tone: "safe",
     });
@@ -91,7 +96,9 @@ describe("case comparison view model", () => {
       }),
     );
 
-    expect(view.headline).toBe("Some evidence survived a provider failure.");
+    expect(view.headline).toBe("This comparison is inconclusive.");
+    expect(view.resultKicker).toBe("Evidence status");
+    expect(view.verdictAllowed).toBe(false);
     expect(view.attempts[0]).toMatchObject({
       outcome: "Provider attempt unavailable",
       summary: "Provider timed out",
@@ -104,6 +111,59 @@ describe("case comparison view model", () => {
       RunResultSchema.parse({ ...comparisonRun(), status: "failed", attempts: [] }),
     );
     expect(view.total).toBe(0);
-    expect(view.headline).toBe("Callsmith recovered the comparison evidence.");
+    expect(view.evidenceStatus).toBe("inconclusive");
+    expect(view.headline).toBe("This comparison is inconclusive.");
+  });
+
+  it("withholds a verdict while matched evidence is pending", () => {
+    const run = comparisonRun();
+    const view = buildCaseComparisonViewModel(
+      RunResultSchema.parse({
+        ...run,
+        status: "running",
+        attempts: [run.attempts[0]],
+      }),
+    );
+
+    expect(view.evidenceStatus).toBe("pending");
+    expect(view.verdictAllowed).toBe(false);
+    expect(view.headline).toBe("Evidence is still being collected.");
+    expect(view.summary).toContain("No safety verdict yet");
+    expect(view.attempts).toHaveLength(1);
+  });
+
+  it("states a provider failure without inferring a winner", () => {
+    const run = comparisonRun();
+    const failed = createProviderFailureAttempt(
+      SALES_GAUNTLET_SUITE,
+      scenario,
+      "gpt-5.6-luna",
+      scenario.seed,
+      "Provider timed out",
+      0,
+      { contractVariant: "weak" },
+    );
+    const view = buildCaseComparisonViewModel(
+      RunResultSchema.parse({
+        ...run,
+        status: "failed",
+        attempts: [failed],
+      }),
+    );
+
+    expect(view.evidenceStatus).toBe("provider_failure");
+    expect(view.verdictAllowed).toBe(false);
+    expect(view.headline).toBe("The provider did not complete the comparison.");
+    expect(view.attempts[0].summary).toBe("Provider timed out");
+  });
+
+  it("labels live replication separately from preview evidence", () => {
+    const run = comparisonRun();
+    const view = buildCaseComparisonViewModel(
+      RunResultSchema.parse({ ...run, provenance: "browser_webmcp" }),
+    );
+
+    expect(view.evidenceModeLabel).toBe("Live browser replication");
+    expect(view.provenanceLabel).toBe("Browser-native WebMCP evidence");
   });
 });

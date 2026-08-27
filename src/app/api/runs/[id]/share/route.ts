@@ -7,9 +7,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  if (!(await runStore.getPersistent(id))) return jsonError(404, "Run not found");
+  const run = await runStore.getPersistent(id);
+  if (!run) return jsonError(404, "Run not found");
 
   const token = await runStore.sharePersistent(id);
+  const sharedRun = (await runStore.getPersistent(id)) ?? run;
   const path = `/r/${token}`;
   const configuredOrigin =
     process.env.CALLSMITH_PUBLIC_URL?.trim() ||
@@ -24,6 +26,8 @@ export async function POST(
       path,
       url: new URL(path, publicOrigin || request.url).toString(),
       readOnly: true,
+      status: sharedRun.status,
+      evidenceStatus: sharedRun.evidenceStatus,
     },
     {
       status: 201,

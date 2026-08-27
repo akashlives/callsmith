@@ -1,13 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { POST as browserResult } from "@/app/api/internal/browser-results/route";
 import { GET as getEvents } from "@/app/api/runs/[id]/events/route";
 import { GET as getRun } from "@/app/api/runs/[id]/route";
 import { POST as shareRun } from "@/app/api/runs/[id]/share/route";
 import { POST as createRun } from "@/app/api/runs/route";
 import { POST as validateSuite } from "@/app/api/suites/validate/route";
 import { POST as importSuite } from "@/app/api/suites/route";
+import {
+  createPreviewAttempt,
+  createProviderFailureAttempt,
+} from "@/lib/evaluation";
 import { runStore } from "@/lib/run-store";
-import { SALES_GAUNTLET_SUITE, SUPPORT_ESCALATION_SUITE } from "@/lib/suites";
+import {
+  SALES_GAUNTLET_SUITE,
+  SUPPORT_ESCALATION_SUITE,
+  suiteForContract,
+} from "@/lib/suites";
 
 function jsonRequest(url: string, body: unknown) {
   return new Request(url, {
@@ -51,15 +60,23 @@ describe("Callsmith API routes", () => {
         repetitions: 1,
         seed: 606,
         provenance: "preview",
-        contractVariants: ["hardened"],
+        contractVariants: ["weak", "hardened"],
+        // Evidence state is server-derived. A client cannot pre-claim proof.
+        evidenceStatus: "provider_failure",
       }),
     );
     expect(response.status).toBe(202);
-    const created = (await response.json()) as { id: string; provenance: string };
+    const created = (await response.json()) as {
+      id: string;
+      provenance: string;
+      evidenceStatus: string;
+    };
     expect(created.provenance).toBe("deterministic_preview");
+    expect(created.evidenceStatus).toBe("pending");
 
     await vi.waitFor(() => {
       expect(runStore.get(created.id)?.status).toBe("completed");
+      expect(runStore.get(created.id)?.evidenceStatus).toBe("conclusive");
     });
 
     const read = await getRun(new Request("http://callsmith.test"), {
@@ -71,8 +88,9 @@ describe("Callsmith API routes", () => {
       id: created.id,
       status: "completed",
       provenance: "deterministic_preview",
+      evidenceStatus: "conclusive",
     });
-    expect(run.attempts).toHaveLength(1);
+    expect(run.attempts).toHaveLength(2);
     expect(run.attempts[0]).toMatchObject({
       provenance: "deterministic_preview",
     });
@@ -81,7 +99,9 @@ describe("Callsmith API routes", () => {
       params: Promise.resolve({ id: created.id }),
     });
     expect(events.headers.get("content-type")).toContain("text/event-stream");
-    await expect(events.text()).resolves.toContain(`"id":"${created.id}"`);
+    const terminalEvent = await events.text();
+    expect(terminalEvent).toContain(`"id":"${created.id}"`);
+    expect(terminalEvent).toContain('"evidenceStatus":"conclusive"');
 
     const shared = await shareRun(
       new Request(`http://callsmith.test/api/runs/${created.id}/share`, {
@@ -90,10 +110,16 @@ describe("Callsmith API routes", () => {
       { params: Promise.resolve({ id: created.id }) },
     );
     expect(shared.status).toBe(201);
-    const report = (await shared.json()) as { token: string; url: string; readOnly: boolean };
+    const report = (await shared.json()) as {
+      token: string;
+      url: string;
+      readOnly: boolean;
+      evidenceStatus: string;
+    };
     expect(report.token.length).toBeGreaterThan(48);
     expect(report.url).toBe(`http://callsmith.test/r/${report.token}`);
     expect(report.readOnly).toBe(true);
+    expect(report.evidenceStatus).toBe("conclusive");
     expect(runStore.getByShareToken(report.token)?.id).toBe(created.id);
 
     const previousPublicUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -113,6 +139,210 @@ describe("Callsmith API routes", () => {
       if (previousPublicUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
       else process.env.NEXT_PUBLIC_APP_URL = previousPublicUrl;
     }
+  });
+
+  it("propagates pending evidence through read, SSE, runner start, and share responses", async () => {
+    const run = runStore.create({
+      suiteId: SALES_GAUNTLET_SUITE.id,
+      suiteVersion: SALES_GAUNTLET_SUITE.version,
+      scenarioId: "happy-path",
+      models: ["gpt-5.6-luna"],
+      repetitions: 1,
+      seed: 101,
+      provenance: "browser_webmcp",
+      contractVariants: ["weak", "hardened"],
+    });
+    expect(run.evidenceStatus).toBe("pending");
+
+    const read = await getRun(new Request("http://callsmith.test"), {
+      params: Promise.resolve({ id: run.id }),
+    });
+    await expect(read.json()).resolves.toMatchObject({
+      status: "queued",
+      evidenceStatus: "pending",
+    });
+
+    const controller = new AbortController();
+    const events = await getEvents(
+      new Request("http://callsmith.test", { signal: controller.signal }),
+      { params: Promise.resolve({ id: run.id }) },
+    );
+    const reader = events.body?.getReader();
+    expect(reader).toBeDefined();
+    const first = await reader?.read();
+    expect(new TextDecoder().decode(first?.value)).toContain(
+      '"evidenceStatus":"pending"',
+    );
+    controller.abort();
+    await reader?.cancel();
+
+    const previousToken = process.env.CALLSMITH_RUNNER_TOKEN;
+    process.env.CALLSMITH_RUNNER_TOKEN = "runner-test-token";
+    try {
+      const started = await browserResult(
+        new Request("http://callsmith.test/api/internal/browser-results", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: "Bearer runner-test-token",
+          },
+          body: JSON.stringify({ type: "started", runId: run.id }),
+        }),
+      );
+      await expect(started.json()).resolves.toMatchObject({
+        status: "running",
+        evidenceStatus: "pending",
+      });
+    } finally {
+      if (previousToken === undefined) delete process.env.CALLSMITH_RUNNER_TOKEN;
+      else process.env.CALLSMITH_RUNNER_TOKEN = previousToken;
+    }
+
+    const shared = await shareRun(
+      new Request(`http://callsmith.test/api/runs/${run.id}/share`, {
+        method: "POST",
+      }),
+      { params: Promise.resolve({ id: run.id }) },
+    );
+    await expect(shared.json()).resolves.toMatchObject({
+      readOnly: true,
+      status: "running",
+      evidenceStatus: "pending",
+    });
+  });
+
+  it("derives partial terminal evidence as inconclusive in runner callbacks", async () => {
+    const run = runStore.create({
+      suiteId: SALES_GAUNTLET_SUITE.id,
+      suiteVersion: SALES_GAUNTLET_SUITE.version,
+      scenarioId: "happy-path",
+      models: ["gpt-5.6-luna"],
+      repetitions: 1,
+      seed: 101,
+      provenance: "browser_webmcp",
+      contractVariants: ["weak", "hardened"],
+    });
+    const weakSuite = suiteForContract(SALES_GAUNTLET_SUITE, "weak");
+    const hardenedSuite = suiteForContract(SALES_GAUNTLET_SUITE, "hardened");
+    const weakScenario = weakSuite.scenarios.find(
+      (scenario) => scenario.id === "happy-path",
+    );
+    const hardenedScenario = hardenedSuite.scenarios.find(
+      (scenario) => scenario.id === "happy-path",
+    );
+    expect(weakScenario).toBeDefined();
+    expect(hardenedScenario).toBeDefined();
+    if (!weakScenario || !hardenedScenario) throw new Error("Missing test scenario");
+
+    runStore.appendAttempt(
+      run.id,
+      createPreviewAttempt(
+        weakSuite,
+        weakScenario,
+        "success",
+        "gpt-5.6-luna",
+        101,
+        "weak",
+      ),
+    );
+    runStore.appendAttempt(
+      run.id,
+      createProviderFailureAttempt(
+        hardenedSuite,
+        hardenedScenario,
+        "gpt-5.6-luna",
+        101,
+        "Browser process exited before producing evidence.",
+        14,
+        { provenance: "browser_webmcp", contractVariant: "hardened" },
+      ),
+    );
+    expect(runStore.get(run.id)?.evidenceStatus).toBe("pending");
+
+    const previousToken = process.env.CALLSMITH_RUNNER_TOKEN;
+    process.env.CALLSMITH_RUNNER_TOKEN = "runner-test-token";
+    try {
+      const completed = await browserResult(
+        new Request("http://callsmith.test/api/internal/browser-results", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: "Bearer runner-test-token",
+          },
+          body: JSON.stringify({
+            type: "completed",
+            runId: run.id,
+            // Strict callback schemas reject attempts to dictate proof state.
+            evidenceStatus: "conclusive",
+          }),
+        }),
+      );
+      expect(completed.status).toBe(400);
+
+      const accepted = await browserResult(
+        new Request("http://callsmith.test/api/internal/browser-results", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: "Bearer runner-test-token",
+          },
+          body: JSON.stringify({ type: "completed", runId: run.id }),
+        }),
+      );
+      await expect(accepted.json()).resolves.toMatchObject({
+        status: "partial_failure",
+        evidenceStatus: "inconclusive",
+      });
+    } finally {
+      if (previousToken === undefined) delete process.env.CALLSMITH_RUNNER_TOKEN;
+      else process.env.CALLSMITH_RUNNER_TOKEN = previousToken;
+    }
+
+    const read = await getRun(new Request("http://callsmith.test"), {
+      params: Promise.resolve({ id: run.id }),
+    });
+    await expect(read.json()).resolves.toMatchObject({
+      status: "partial_failure",
+      evidenceStatus: "inconclusive",
+    });
+  });
+
+  it("returns provider_failure only when no completed evidence exists", async () => {
+    const response = await createRun(
+      jsonRequest("http://callsmith.test/api/runs", {
+        suiteId: SALES_GAUNTLET_SUITE.id,
+        scenarioId: "happy-path",
+        models: ["preview"],
+        repetitions: 1,
+        seed: 101,
+        provenance: "server_simulation",
+        contractVariants: ["hardened"],
+        apiKey: "request-scoped-test-key",
+        evidenceStatus: "conclusive",
+      }),
+    );
+    expect(response.status).toBe(202);
+    const created = (await response.json()) as {
+      id: string;
+      evidenceStatus: string;
+    };
+    expect(created.evidenceStatus).toBe("pending");
+
+    await vi.waitFor(() => {
+      expect(runStore.get(created.id)).toMatchObject({
+        status: "failed",
+        evidenceStatus: "provider_failure",
+      });
+    });
+
+    const read = await getRun(new Request("http://callsmith.test"), {
+      params: Promise.resolve({ id: created.id }),
+    });
+    await expect(read.json()).resolves.toMatchObject({
+      status: "failed",
+      evidenceStatus: "provider_failure",
+      attempts: [{ status: "provider_failure" }],
+    });
   });
 
   it("returns actionable errors for unknown and unconfigured model runs", async () => {

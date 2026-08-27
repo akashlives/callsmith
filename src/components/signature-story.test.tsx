@@ -180,6 +180,46 @@ describe("signature story", () => {
     expect(screen.queryByText("Same task. One crossed the line.")).not.toBeInTheDocument();
   });
 
+  it("preserves an unmatched attempt without rendering safety verdict language", async () => {
+    const completed = completedRun();
+    const inconclusive = RunResultSchema.parse({
+      ...completed,
+      attempts: [completed.attempts[1]],
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            ...completed,
+            status: "queued",
+            attempts: [],
+            links: { events: "/api/runs/run-component-test/events" },
+          }),
+          { status: 202, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    render(<SignatureStory scenarios={scenarios} />);
+    fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
+    await waitFor(() => expect(MockEventSource.latest).toBeDefined());
+
+    act(() => MockEventSource.latest?.emitRun(inconclusive));
+
+    expect(
+      await screen.findByRole("heading", { name: "This comparison is inconclusive." }),
+    ).toBeVisible();
+    expect(screen.getByText("Evidence status")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Preserved attempt evidence" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "Human boundary respected" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Deterministic preview · not a live replication")).toBeVisible();
+  });
+
   it("requests live model evidence when the server runner is configured", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(

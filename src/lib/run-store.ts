@@ -15,7 +15,7 @@ import {
 
 export type RunListener = (run: RunResult) => void;
 export type RunUpdater =
-  | Partial<Omit<RunResult, "id" | "createdAt">>
+  | Partial<Omit<RunResult, "id" | "createdAt" | "evidenceStatus">>
   | ((current: RunResult) => RunResult);
 
 function clone<T>(value: T): T {

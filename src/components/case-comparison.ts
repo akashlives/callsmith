@@ -61,6 +61,10 @@ export type CaseComparisonViewModel = {
   headline: string;
   summary: string;
   provenanceLabel: string;
+  evidenceModeLabel: string;
+  resultKicker: "The verdict" | "Evidence status";
+  verdictAllowed: boolean;
+  evidenceStatus: RunResult["evidenceStatus"];
   isPreview: boolean;
   attempts: AttemptComparisonView[];
   passed: number;
@@ -480,33 +484,64 @@ export function buildCaseComparisonViewModel(run: RunResult): CaseComparisonView
   const baselineDisagreement =
     weak?.baselineEvaluation?.outcome === "pass" &&
     weak.safetyOutcome === "unsafe_mutation";
-  const benchmark = benchmarkStats(run.attempts);
+  const verdictAllowed = run.evidenceStatus === "conclusive";
+  const benchmark = verdictAllowed ? benchmarkStats(run.attempts) : undefined;
 
-  let headline = "Callsmith recovered the comparison evidence.";
-  if (providerFailures) headline = "Some evidence survived a provider failure.";
-  else if (isSignature && decisiveContractDifference) {
-    headline = "Same agent. One website let it cross the line.";
+  let headline: string;
+  let summary: string;
+  if (run.evidenceStatus === "pending") {
+    headline = "Evidence is still being collected.";
+    summary =
+      "No safety verdict yet. Completed attempts remain visible while the requested weak and hardened pair finishes.";
+  } else if (run.evidenceStatus === "inconclusive") {
+    headline = "This comparison is inconclusive.";
+    summary =
+      "The available attempts do not form a matched weak-and-hardened pair, so Callsmith does not name a safety winner.";
+  } else if (run.evidenceStatus === "provider_failure") {
+    headline = "The provider did not complete the comparison.";
+    summary =
+      "Available attempt evidence is preserved below. Callsmith does not infer a winner from a provider failure.";
+  } else {
+    headline = "Callsmith recovered the comparison evidence.";
+    if (providerFailures) headline = "Some evidence survived a provider failure.";
+    else if (isSignature && decisiveContractDifference) {
+      headline = "Same agent. One website let it cross the line.";
+    } else if (isSignature && mixed) headline = "Same task. One crossed the line.";
+    else if (passed === attempts.length && attempts.length) {
+      headline = "The workflow held under pressure.";
+    } else if (attempts.length) headline = "Callsmith found a reliability gap.";
+
+    summary = baselineDisagreement
+      ? "The official expected-call baseline passed. Callsmith failed the weak contract because the browser state changed unsafely."
+      : mixed
+        ? "The task and seed were identical. Only the website contract changed."
+        : `${passed} of ${attempts.length} attempts passed Callsmith’s state and safety assertions.`;
   }
-  else if (isSignature && mixed) headline = "Same task. One crossed the line.";
-  else if (passed === attempts.length && attempts.length) {
-    headline = "The workflow held under pressure.";
-  } else if (attempts.length) headline = "Callsmith found a reliability gap.";
+
+  const evidenceModeLabel =
+    run.provenance === "deterministic_preview"
+      ? "Deterministic preview · not a live replication"
+      : benchmark
+        ? "Immutable benchmark"
+        : run.provenance === "browser_webmcp"
+          ? "Live browser replication"
+          : "Live server simulation";
 
   return {
     runId: run.id,
     scenarioId: run.scenarioId,
     headline,
-    summary: baselineDisagreement
-      ? "The official expected-call baseline passed. Callsmith failed the weak contract because the browser state changed unsafely."
-      : mixed
-        ? "The task and seed were identical. Only the website contract changed."
-        : `${passed} of ${attempts.length} attempts passed Callsmith’s state and safety assertions.`,
+    summary,
     provenanceLabel:
       run.provenance === "deterministic_preview"
         ? "Deterministic preview evidence"
         : run.provenance === "browser_webmcp"
           ? "Browser-native WebMCP evidence"
           : "Server simulation evidence",
+    evidenceModeLabel,
+    resultKicker: verdictAllowed ? "The verdict" : "Evidence status",
+    verdictAllowed,
+    evidenceStatus: run.evidenceStatus,
     isPreview: run.provenance === "deterministic_preview",
     attempts,
     passed,

@@ -89,3 +89,39 @@
   expected-call baselines, and an independent Support Escalation starter suite.
   Imported-suite durability, external testing/contribution, supported-browser
   capture, and the demo video remain open.
+
+## Proof-to-platform milestone 1 — truthful efficacy semantics
+
+- Added a schema-derived run evidence state: `pending`, `conclusive`,
+  `inconclusive`, or `provider_failure`. A verdict is now possible only when a
+  completed weak/hardened pair shares the exact model and seed. Persisted or
+  client-supplied status text cannot override that derivation.
+- Migrated older runs on read and propagated the status through run creation,
+  callbacks, polling, SSE, sharing, and shared reports. Partial attempts remain
+  visible, but their cards use neutral evidence language instead of declaring a
+  winner.
+- Distinct UI labels now separate live browser replication, immutable benchmark
+  evidence, server simulation, and deterministic preview evidence.
+- `npm run verify` passed with 60 unit/component/API tests, a clean Next.js 16
+  production build, and ten desktop/mobile Playwright flows. The deployed smoke
+  suite now owns one live model run and accepts only API-derived terminal
+  evidence or an explicit, non-fabricated start failure.
+- Railway staging was created and configured with staging-specific public URLs.
+  Three browser-native staging pairs completed conclusively in 6.4–9.1 seconds:
+  `run-7d892d4b-d9a4-488e-967c-73755a074feb`,
+  `run-1fa58ea2-042a-4afe-9f7e-a3716d49395f`, and
+  `run-78aa5543-52af-45a0-b256-a5f5076e829b`. The later smoke check exhausted
+  the six-attempt guest quota and correctly displayed a retryable quota error
+  without substituting preview evidence.
+- Browser-use QA on staging verified Callsmith WebMCP discovery and invocation
+  in ChatGPT's in-app browser, the conclusive read-only report, raw
+  `browser_webmcp` provenance, theme switching, and a 375px mobile layout with
+  no horizontal overflow. The connected Chrome profile rendered the same report
+  correctly but did not expose `document.modelContext`; the captured runner
+  evidence uses Chrome 154 dev with `webmcp-evals@0.0.3`. Manual Chrome WebMCP
+  discovery therefore remains an explicit later browser-gate item.
+- Production deployments `90d46055-858a-43b5-a8cc-4389c0b6ccfa` (web) and
+  `5da7f2be-e88d-4bfb-99f9-31eab5d52f20` (runner) succeeded. Health, bounded
+  runtime/HTTP logs, the canonical two-attempt report, and the immutable
+  20-attempt benchmark all passed post-deploy checks. Both migrated canonical
+  runs report `conclusive` and remain readable at their original URLs.

@@ -68,7 +68,7 @@ export default function SharedReportClient({ token }: { token: string }) {
         <section className="report-message" role="status">
           <span>Callsmith / report</span>
           <h1>Recovering evidence</h1>
-          <p>Loading the immutable comparison from Callsmith.</p>
+          <p>Loading the read-only comparison report from Callsmith.</p>
         </section>
       </main>
     );
@@ -91,6 +91,8 @@ export default function SharedReportClient({ token }: { token: string }) {
           <div className="report-badges">
             <span>Read only</span>
             <span>{comparison.provenanceLabel}</span>
+            <span>{comparison.evidenceModeLabel}</span>
+            <span>Evidence: {comparison.evidenceStatus.replaceAll("_", " ")}</span>
           </div>
           <p className="story-eyebrow">Reliability report · {run.scenarioId.replaceAll("-", " ")}</p>
           <h1 id="report-heading">{comparison.headline}</h1>
@@ -103,7 +105,10 @@ export default function SharedReportClient({ token }: { token: string }) {
 
         {comparison.attempts.length ? (
           <>
-            <OutcomeCards attempts={comparison.attempts} />
+            <OutcomeCards
+              attempts={comparison.attempts}
+              verdictAllowed={comparison.verdictAllowed}
+            />
 
             {comparison.benchmarkStats ? (
               <BenchmarkEvidence stats={comparison.benchmarkStats} />
@@ -111,6 +116,7 @@ export default function SharedReportClient({ token }: { token: string }) {
 
             <section className="report-run-facts" aria-label="Run facts">
               <div><span>Status</span><strong>{run.status.replaceAll("_", " ")}</strong></div>
+              <div><span>Evidence</span><strong>{comparison.evidenceStatus.replaceAll("_", " ")}</strong></div>
               <div><span>Assertions passed</span><strong>{comparison.passed}/{comparison.total}</strong></div>
               <div><span>Seed</span><strong>{comparison.seed}</strong></div>
               <div><span>Suite</span><strong>{run.suiteVersion}</strong></div>
@@ -118,13 +124,16 @@ export default function SharedReportClient({ token }: { token: string }) {
 
             <ComparisonEvidence
               attempts={comparison.attempts}
-              summary="Inspect the immutable evidence"
+              summary={comparison.benchmarkStats
+                ? "Inspect the immutable benchmark evidence"
+                : "Inspect preserved attempt evidence"}
+              verdictAllowed={comparison.verdictAllowed}
             />
           </>
         ) : (
           <div className="report-empty">
-            No completed attempt evidence is available. The run ended before browser or
-            fallback evidence could be evaluated.
+            No attempt evidence is available. Callsmith has not inferred a comparison
+            verdict.
           </div>
         )}
 

@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+import {
+  EvidenceStatusSchema,
+  deriveEvidenceStatus,
+} from "@/lib/evidence-status";
+
+export {
+  EvidenceStatusSchema,
+  deriveEvidenceStatus,
+  type EvidenceStatus,
+} from "@/lib/evidence-status";
+
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
@@ -752,6 +763,7 @@ const RunResultCurrentSchema = z
     provenance: ExecutionProvenanceSchema,
     contractVariants: z.array(ContractVariantSchema).min(1).max(2),
     status: z.enum(["queued", "running", "completed", "partial_failure", "failed"]),
+    evidenceStatus: EvidenceStatusSchema,
     attempts: z.array(AttemptResultSchema),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
@@ -770,6 +782,11 @@ export const RunResultSchema = z.preprocess((input) => {
     provenance: legacyProvenance(value.provenance),
     contractVariants: value.contractVariants ?? ["hardened"],
     attempts,
+    evidenceStatus: deriveEvidenceStatus({
+      status: value.status,
+      contractVariants: value.contractVariants ?? ["hardened"],
+      attempts,
+    }),
   };
 }, RunResultCurrentSchema);
 

@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createPreviewAttempt } from "@/lib/evaluation";
+import {
+  createPreviewAttempt,
+  createProviderFailureAttempt,
+} from "@/lib/evaluation";
 import { InMemoryRunStore } from "@/lib/run-store";
 import { SALES_GAUNTLET_SUITE } from "@/lib/suites";
 
@@ -37,6 +40,86 @@ describe("InMemoryRunStore", () => {
     expect(store.get(first.id)?.attempts).toHaveLength(0);
     expect(store.get(first.id)?.status).toBe("queued");
     expect(store.get(second.id)?.attempts).toHaveLength(0);
+    expect(store.get(second.id)?.evidenceStatus).toBe("pending");
+  });
+
+  it("recomputes evidence after every append and status update", () => {
+    const run = store.create({
+      suiteId: suite.id,
+      suiteVersion: suite.version,
+      scenarioId: scenario.id,
+      models: ["preview"],
+      repetitions: 1,
+      seed: scenario.seed,
+      provenance: "deterministic_preview",
+      contractVariants: ["weak", "hardened"],
+    });
+    const weak = createPreviewAttempt(
+      suite,
+      scenario,
+      "failure",
+      "preview",
+      scenario.seed,
+      "weak",
+    );
+    const hardened = createPreviewAttempt(
+      suite,
+      scenario,
+      "success",
+      "preview",
+      scenario.seed,
+      "hardened",
+    );
+
+    expect(run.evidenceStatus).toBe("pending");
+    expect(store.appendAttempt(run.id, weak).evidenceStatus).toBe("pending");
+    expect(store.appendAttempt(run.id, hardened).evidenceStatus).toBe("pending");
+    expect(store.update(run.id, { status: "completed" }).evidenceStatus).toBe(
+      "conclusive",
+    );
+    expect(
+      store.update(run.id, (current) => ({
+        ...current,
+        evidenceStatus: "provider_failure",
+      })).evidenceStatus,
+    ).toBe("conclusive");
+  });
+
+  it("distinguishes one-contract and provider-failure terminal runs", () => {
+    const oneContract = create();
+    store.appendAttempt(
+      oneContract.id,
+      createPreviewAttempt(suite, scenario, "success"),
+    );
+    expect(
+      store.update(oneContract.id, { status: "completed" }).evidenceStatus,
+    ).toBe("inconclusive");
+
+    const failed = store.create({
+      suiteId: suite.id,
+      suiteVersion: suite.version,
+      scenarioId: scenario.id,
+      models: ["gpt-5.6-luna"],
+      repetitions: 1,
+      seed: scenario.seed,
+      provenance: "server_simulation",
+      contractVariants: ["weak", "hardened"],
+    });
+    store.appendAttempt(
+      failed.id,
+      createProviderFailureAttempt(
+        suite,
+        scenario,
+        "gpt-5.6-luna",
+        scenario.seed,
+        "Provider unavailable",
+        0,
+        { contractVariant: "weak" },
+      ),
+    );
+    expect(store.update(failed.id, { status: "failed" }).evidenceStatus).toBe(
+      "provider_failure",
+    );
   });
 
   it("publishes defensive copies and supports unsubscribe", () => {

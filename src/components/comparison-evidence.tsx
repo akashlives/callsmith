@@ -10,7 +10,13 @@ const scoreLabels = {
   recovery: "Recovery",
 } as const;
 
-export function OutcomeCards({ attempts }: { attempts: AttemptComparisonView[] }) {
+export function OutcomeCards({
+  attempts,
+  verdictAllowed = true,
+}: {
+  attempts: AttemptComparisonView[];
+  verdictAllowed?: boolean;
+}) {
   const visibleAttempts =
     attempts.length > 4
       ? (["weak", "hardened"] as const).flatMap((contractVariant) => {
@@ -22,8 +28,20 @@ export function OutcomeCards({ attempts }: { attempts: AttemptComparisonView[] }
       : attempts;
   return (
     <div className="outcome-grid" aria-label="Agent behavior comparison">
-      {visibleAttempts.map((attempt) => (
-        <article className={`outcome-card is-${attempt.tone}`} key={attempt.id}>
+      {visibleAttempts.map((attempt) => {
+        const unavailable = attempt.status === "provider_failure";
+        const displayTone = verdictAllowed ? attempt.tone : "neutral";
+        const displayOutcome =
+          verdictAllowed || unavailable
+            ? attempt.outcome
+            : "Preserved attempt evidence";
+        const displaySummary =
+          verdictAllowed || unavailable
+            ? attempt.summary
+            : "This attempt completed, but the run does not contain enough matched evidence to support a comparison verdict.";
+
+        return (
+          <article className={`outcome-card is-${displayTone}`} key={attempt.id}>
           <div className="outcome-card__topline">
             <div>
               <span className="outcome-card__model">
@@ -38,8 +56,8 @@ export function OutcomeCards({ attempts }: { attempts: AttemptComparisonView[] }
               {attempt.score}<small>/100</small>
             </span>
           </div>
-          <h3>{attempt.outcome}</h3>
-          <p>{attempt.summary}</p>
+          <h3>{displayOutcome}</h3>
+          <p>{displaySummary}</p>
           <dl className="outcome-card__safety">
             <div>
               <dt>Task complete</dt>
@@ -57,7 +75,8 @@ export function OutcomeCards({ attempts }: { attempts: AttemptComparisonView[] }
           {attempt.baselineEvaluation ? (
             <p className={`baseline-verdict is-${attempt.baselineEvaluation.outcome}`}>
               Official expected-call baseline: {attempt.baselineEvaluation.outcome}
-              {attempt.baselineEvaluation.outcome === "pass" &&
+              {verdictAllowed &&
+              attempt.baselineEvaluation.outcome === "pass" &&
               attempt.safetyOutcome === "unsafe_mutation"
                 ? " — Callsmith disagrees"
                 : ""}
@@ -74,8 +93,9 @@ export function OutcomeCards({ attempts }: { attempts: AttemptComparisonView[] }
             <span>{attempt.latencyLabel}</span>
             {attempt.costLabel ? <span>{attempt.costLabel}</span> : null}
           </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -139,10 +159,12 @@ export function ComparisonEvidence({
   attempts,
   summary = "Show the proof",
   id,
+  verdictAllowed = true,
 }: {
   attempts: AttemptComparisonView[];
   summary?: string;
   id?: string;
+  verdictAllowed?: boolean;
 }) {
   const visibleAttempts =
     attempts.length > 4
@@ -165,28 +187,37 @@ export function ComparisonEvidence({
 
       <div className="evidence-body">
         <div className="evidence-comparison">
-          {visibleAttempts.map((attempt) => (
-            <section className="evidence-lane" key={attempt.id}>
-              <header>
-                <span className={`evidence-lane__marker is-${attempt.tone}`} />
-                <div>
-                  <p>{attempt.contractLabel} · {attempt.modelLabel}</p>
-                  <h3>{attempt.outcome}</h3>
-                </div>
-              </header>
-              <ol className="plain-trace">
-                {attempt.evidence.map((event) => (
-                  <li className={`is-${event.tone}`} key={event.id}>
-                    <span>{String(event.sequence + 1).padStart(2, "0")}</span>
-                    <div>
-                      <strong>{event.title}</strong>
-                      <p>{event.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ))}
+          {visibleAttempts.map((attempt) => {
+            const unavailable = attempt.status === "provider_failure";
+            return (
+              <section className="evidence-lane" key={attempt.id}>
+                <header>
+                  <span
+                    className={`evidence-lane__marker is-${verdictAllowed ? attempt.tone : "neutral"}`}
+                  />
+                  <div>
+                    <p>{attempt.contractLabel} · {attempt.modelLabel}</p>
+                    <h3>
+                      {verdictAllowed || unavailable
+                        ? attempt.outcome
+                        : "Observed attempt evidence"}
+                    </h3>
+                  </div>
+                </header>
+                <ol className="plain-trace">
+                  {attempt.evidence.map((event) => (
+                    <li className={`is-${event.tone}`} key={event.id}>
+                      <span>{String(event.sequence + 1).padStart(2, "0")}</span>
+                      <div>
+                        <strong>{event.title}</strong>
+                        <p>{event.detail}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            );
+          })}
         </div>
 
         <div className="state-evidence">

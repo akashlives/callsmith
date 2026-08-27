@@ -1,69 +1,104 @@
-# Callsmith ruthless win-first checklist
+# Callsmith proof-to-platform winning checklist
 
-The gate is not “the dashboard works.” The gate is one browser-native result
-where the ordinary expected-call baseline passes while Callsmith catches an
-unsafe state transition.
+Build mode: parallel implementation tracks with a participant review pause at
+every capability milestone. Every passing increment deploys to staging;
+production promotion requires automated checks and browser-use verification in
+the two judging browsers.
 
-## 1. Remove benchmark theater
+The winning gate is not that an expected tool call appeared. It is that
+Callsmith proves whether the browser reached an unsafe state and whether the
+website prevented harm.
 
-- [x] Replace scenario coaching with the neutral `webmcp-evals@0.0.3` agent policy.
-- [x] Enforce hardened confirmation inside the browser WebMCP tool.
-- [x] Score task completion, unsafe attempt, unsafe mutation, and prevented harm separately.
-- [x] Migrate provenance to `browser_webmcp`, `server_simulation`, and `deterministic_preview`.
-- [x] Keep old persisted reports readable through contract preprocessing.
-- [x] Replace the cartoon attack string with a plausible meeting handoff note.
+- [x] **1. Establish truthful efficacy semantics**
+  Spec ref: Winning claim and 60-second evidence decision.
+  What to build: Add `pending`, `conclusive`, `inconclusive`, and
+  `provider_failure` paired-evidence states; migrate older reports; gate every
+  safety verdict on a completed weak/hardened browser pair.
+  Acceptance: Partial or one-contract evidence never presents a safety winner.
+  Existing canonical shared reports remain readable.
+  Verify: Contract, store, API, and component tests cover every evidence state;
+  reopen both canonical production reports and browser-check the resulting copy.
 
-Gate: the expected trajectory cannot be read from the agent instructions, and
-no non-browser trace is labeled as browser WebMCP evidence.
+- [ ] **2. Create the durable unlisted suite registry**
+  Spec ref: Durable guest authoring.
+  What to build: Persist immutable suite definitions and drafts in Postgres with
+  hashed capability tokens and version uniqueness.
+  Acceptance: A guest suite survives web and worker restarts, stays out of the
+  public catalog, and cannot be fetched or run without its token.
+  Verify: Restart both services and exercise valid, invalid, missing, expired,
+  and incorrect-token paths.
 
-## 2. Execute through the real browser surface
+- [ ] **3. Build the V2 safe authoring compiler**
+  Spec ref: `GuidedSuiteDraft` and generic contract design.
+  What to build: Compile bounded JSON-only drafts to `SuiteDefinitionV2`, derive
+  assertions and walkthroughs, and make weak/hardened transformation generic.
+  Acceptance: A non-sales gauntlet is created without code changes; executable
+  content and inconsistent state references are rejected clearly.
+  Verify: Golden sales/support fixtures and adversarial code, prototype, unknown
+  collection, missing confirmation, and invalid final-state fixtures pass.
 
-- [x] Pin and invoke the official `webmcp-evals@0.0.3` browser CLI.
-- [x] Launch Chrome unstable with `--enable-features=WebMCP` in a dedicated Railway worker.
-- [x] Execute tools through `document.modelContext.getTools()` and `executeTool()`.
-- [x] Queue jobs durably with Redis `BRPOPLPUSH`; recover processing jobs on worker start.
-- [x] Post signed browser evidence to the private web service callback.
-- [x] Capture browser tool calls, results, confirmation requests, blocks, state snapshots,
-  browser version, model/backend, suite version, seed, contract, engine, and latency.
-- [x] Preserve browser launch/provider failures as partial evidence.
-- [x] Reproduce a complete browser-native production run from the checked-in command.
-- [x] Interrupt and restart a claimed job, then verify Redis recovery finishes the run.
+- [ ] **4. Make Callsmith practice its own confirmation discipline**
+  Spec ref: `draft_and_run_suite`.
+  What to build: Register authoring tools, show an exact review surface, and wait
+  for an explicit human approve/reject decision before publication or execution.
+  Acceptance: An agent cannot fabricate approval; rejection creates no run.
+  Verify: Unit and browser coverage for approve, reject, abort, navigation,
+  duplicate approval, and stale draft.
 
-Gate: the production trace proves registration and mutation inside the sandbox
-page. A server-side action emulator cannot satisfy this gate.
+- [ ] **5. Deliver the agent-to-report judge journey**
+  Spec ref: Canonical wow moment.
+  What to build: Add the concise agent prompt entry point while preserving the
+  manual meeting-note fallback.
+  Acceptance: One prompt and one human approval authors a non-Publicus suite,
+  runs both contracts, polls status, and opens the read-only report.
+  Verify: Capture the flow in ChatGPT's in-app browser and WebMCP-enabled Chrome;
+  reconcile the visible report with API and browser-originated evidence.
 
-## 3. Produce the decisive demonstration
+- [ ] **6. Instrument the browser runner for truthful progress**
+  Spec ref: Production efficacy and latency.
+  What to build: Invoke the official `webmcp-evals@0.0.3` browser backend
+  programmatically and emit launch, discovery, model, tool, state, and failure
+  progress without replacing evidence.
+  Acceptance: Contracts remain concurrent; the UI waits up to 60 seconds and
+  unfinished work remains explicitly inconclusive under the absolute guard.
+  Verify: At least nine of ten judge-mode pairs are conclusive within 60 seconds;
+  worker recovery produces no duplicate attempts.
 
-- [x] Run the same model, task, seed, hostile content, and neutral policy against weak and hardened contracts.
-- [x] Keep the official expected-call result beside Callsmith’s state-and-safety verdict.
-- [x] Make contract comparison primary; move model comparison into developer evidence.
-- [x] Show task completion, unsafe attempt, and harm prevention as separate outcomes.
-- [x] Add per-contract rates, Wilson 95% confidence intervals, and p50/p95 latency for immutable benchmarks.
-- [x] Record a production weak-contract baseline pass plus Callsmith unsafe-mutation failure.
-- [x] Record ten benchmark attempts per contract, preserving one provider failure on each side.
-- [x] Share the immutable benchmark report and verify it opens without login.
+- [ ] **7. Refresh the decisive efficacy benchmark**
+  Spec ref: Baseline-versus-Callsmith disagreement.
+  What to build: Produce a new immutable ten-seed weak/hardened benchmark with
+  separate task, unsafe-attempt, unsafe-mutation, and prevented-harm outcomes.
+  Acceptance: At least one reproducible case passes the official expected-call
+  baseline on both contracts while Callsmith fails weak and passes hardened.
+  Verify: Report rates, confidence bounds, latency, provenance, suite version,
+  seed, browser, model, and engine from the stored artifacts.
 
-Gate: a reviewer can attribute the difference to website contract design, not a
-different prompt, model, task, or seed.
+- [ ] **8. Make browser-use QA a production promotion gate**
+  Spec ref: Participant-required browser verification.
+  What to build: Pair Playwright CI regression coverage with real browser-use
+  acceptance testing against staging.
+  Acceptance: Discovery, authoring, reject, approve, progress, conclusive and
+  inconclusive reports, refresh, keyboard, mobile, themes, and reduced motion pass.
+  Verify: Both supported judging browsers pass with screenshots at discovery,
+  approval, verdict, baseline disagreement, and raw provenance.
 
-Production run identifiers, report links, distributions, and known limitations
-are recorded in [`ruthless-evidence.md`](ruthless-evidence.md).
+- [ ] **9. Record five external adoption sessions**
+  Spec ref: Mixed community evidence.
+  What to build: Run an uncoached script with three warm developers and two
+  WebMCP challenge participants.
+  Acceptance: Four complete the flow without intervention and all five explain
+  why expected-call success is insufficient after one report.
+  Verify: Preserve consented recordings, suites, reports, confusion notes, and
+  one new failure-mode idea per tester.
 
-## 4. Prove another developer can use it
-
-- [x] Publish the versioned JSON-only suite format and safe action DSL.
-- [x] Add `POST /api/suites` import and actionable validation errors.
-- [x] Reject executable/arbitrary suite content through strict schemas.
-- [x] Add the non-sales Support Escalation starter.
-- [x] Generate the worker’s ordinary baseline from suite walkthroughs instead of sales-specific code.
-- [x] Cover import, run, share, redaction, report, and WebMCP orchestration paths with automated tests.
-- [ ] Make imported suites durable across web-process restarts.
-- [ ] Complete five external comprehension tests.
-- [ ] Receive one independent suite contribution or pull request.
-- [ ] Capture supported-browser discovery and the sub-three-minute demo video.
-
-Gate: an outside developer creates and runs a useful gauntlet from the docs
-without changing Callsmith application code.
+- [ ] **10. Produce and freeze the winning submission**
+  Spec ref: Devpost delivery.
+  What to build: Rewrite the stale submission, update documentation, select final
+  evidence, and record a sub-three-minute browser-native demo.
+  Acceptance: The video shows discovery, authoring, approval, real execution,
+  contract evidence, baseline disagreement, benchmark statistics, and adoption.
+  Verify: A clean clone passes all checks; both judging browsers pass production;
+  repository, deployment, reports, video, and Devpost entry share one release.
 
 ## Verification commands
 
@@ -75,8 +110,15 @@ npm run build
 npm run test:e2e
 ```
 
-## Ruthless exclusions
+## Completed foundation
 
-Until the browser and decisive-demo gates are closed: no more dashboard UI,
-GitHub auth, arbitrary-site crawling, generic LLM graders, providers, or SOTA
-claims.
+The browser-native runner, Redis recovery, weak/hardened contract comparison,
+official expected-call baseline, canonical 20-attempt benchmark, strict V1 suite
+format, and Support Escalation starter were completed in the ruthless reset.
+Their production evidence remains in [`ruthless-evidence.md`](ruthless-evidence.md).
+
+## Scope guard
+
+Until items 1–9 pass, do not add GitHub authentication, arbitrary-site crawling,
+generic LLM graders, more providers, or dashboard expansion. SOTA runway work may
+start only after two consecutive production judge journeys pass in both browsers.

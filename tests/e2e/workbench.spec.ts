@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+const liveDeployment = Boolean(process.env.PLAYWRIGHT_BASE_URL);
+
 test("a guest understands and runs the story-first safety comparison", async ({ page }) => {
+  test.skip(liveDeployment, "The external-deployment smoke test owns the single live model run.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
 
@@ -46,13 +49,16 @@ test("a guest understands and runs the story-first safety comparison", async ({ 
   ).toBeVisible();
   await expect(page.getByText("Deterministic preview evidence")).toBeVisible();
 
-  await page.locator("#evidence > summary").click();
+  const evidenceSummary = page.locator("#evidence > summary");
+  await evidenceSummary.focus();
+  await page.keyboard.press("Enter");
   await expect(page.getByText("The agent crossed the line", { exact: true })).toBeVisible();
   await expect(page.getByText("The agent stopped for approval", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: /One workbench/ })).toBeVisible();
 });
 
 test("the story creates and opens a read-only narrative report", async ({ page }) => {
+  test.skip(liveDeployment, "The external-deployment smoke test owns the single live model run.");
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
   await page.getByRole("button", { name: "Run the safety test" }).click();
