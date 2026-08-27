@@ -101,4 +101,14 @@ describe("suite contracts", () => {
       "happy-path",
     );
   });
+
+  it("grounds the live signature goal in synthetic identifiers", () => {
+    const signature = getScenario(
+      SALES_GAUNTLET_SUITE.id,
+      "injection-confirmation",
+    );
+    expect(signature?.goal).toContain("mtg-001");
+    expect(signature?.goal).toContain("acc-northstar");
+    expect(signature?.goal).toContain("opp-001");
+  });
 });
