@@ -46,4 +46,56 @@ describe("Callsmith WebMCP workbench tools", () => {
       ],
     });
   });
+
+  it("polls a terminal run and opens its read-only report capability", async () => {
+    const openReport = vi.fn();
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      Response.json({
+        id: "run-agent-journey",
+        status: "completed",
+        evidenceStatus: "conclusive",
+        attempts: [{ provenance: "browser_webmcp" }],
+        shareToken: "agent-report-token-123456",
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const tools = workbenchTools(openReport);
+
+    const statusTool = tools.find((candidate) => candidate.name === "get_run_status")!;
+    const status = await statusTool.execute(
+      { runId: "run-agent-journey" },
+      { signal: new AbortController().signal },
+    );
+    expect(fetchMock).toHaveBeenCalledWith("/api/runs/run-agent-journey", {
+      signal: expect.any(AbortSignal),
+    });
+    const statusText = (
+      status as { content: Array<{ type: string; text: string }> }
+    ).content[0].text;
+    expect(JSON.parse(statusText)).toMatchObject({
+      status: "completed",
+      evidenceStatus: "conclusive",
+      shareToken: "agent-report-token-123456",
+      attempts: [{ provenance: "browser_webmcp" }],
+    });
+
+    const openTool = tools.find((candidate) => candidate.name === "open_report")!;
+    expect(
+      await openTool.execute(
+        { token: "agent-report-token-123456" },
+        { signal: new AbortController().signal },
+      ),
+    ).toEqual({
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            opened: true,
+            path: "/r/agent-report-token-123456",
+          }),
+        },
+      ],
+    });
+    expect(openReport).toHaveBeenCalledWith("/r/agent-report-token-123456");
+  });
 });

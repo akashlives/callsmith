@@ -117,7 +117,7 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
     name: "get_run_status",
     title: "Get run status",
     description:
-      "Read the current status, completed attempts, scores, and failure details for a Callsmith run.",
+      "Read the current status, completed attempts, scores, failure details, and read-only report share token for a Callsmith run.",
     inputSchema: strictObjectSchema(
       {
         runId: { type: "string", description: "Callsmith run identifier." },

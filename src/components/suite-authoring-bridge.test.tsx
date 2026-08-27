@@ -111,7 +111,17 @@ describe("suite authoring WebMCP bridge", () => {
           "x-callsmith-confirmation-token": "cs_confirm_private",
         });
         return Response.json(
-          { run: { id: "run-human-approved", status: "queued" } },
+          {
+            run: { id: "run-human-approved", status: "queued" },
+            report: {
+              token: "agent-report-token-123456",
+              path: "/r/agent-report-token-123456",
+              url: "http://callsmith.test/r/agent-report-token-123456",
+              readOnly: true,
+              status: "queued",
+              evidenceStatus: "pending",
+            },
+          },
           { status: 202 },
         );
       }
@@ -137,7 +147,11 @@ describe("suite authoring WebMCP bridge", () => {
     expect(resultBody(await pending)).toMatchObject({
       ok: true,
       status: "approved",
-      run: { runId: "run-human-approved", runStatus: "queued" },
+      run: {
+        runId: "run-human-approved",
+        runStatus: "queued",
+        reportPath: "/r/agent-report-token-123456",
+      },
     });
   });
 

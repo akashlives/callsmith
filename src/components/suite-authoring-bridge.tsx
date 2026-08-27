@@ -117,6 +117,7 @@ const browserConfirmationTransport: ConfirmationTransport<BrowserCapabilityHandl
     const body = await responseBody(response);
     if (!response.ok) throw transportFailure(response);
     const runRecord = objectValue(body.run);
+    const reportRecord = objectValue(body.report);
     if (typeof runRecord?.id !== "string" || typeof runRecord.status !== "string") {
       throw new ConfirmationTransportError("invalid_response");
     }
@@ -130,6 +131,9 @@ const browserConfirmationTransport: ConfirmationTransport<BrowserCapabilityHandl
     return {
       runId: runRecord.id,
       runStatus: runRecord.status as ConfirmationRunReceipt["runStatus"],
+      ...(typeof reportRecord?.path === "string"
+        ? { reportPath: reportRecord.path }
+        : {}),
     };
   },
 

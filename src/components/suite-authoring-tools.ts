@@ -38,7 +38,7 @@ export function suiteAuthoringTools(
       name: "draft_and_run_suite",
       title: "Draft a suite for human review",
       description:
-        "Validate a synthetic JSON gauntlet and open Callsmith's exact on-page review. This call waits for the human. Only their on-page approval can publish the immutable unlisted suite and start its weak/hardened comparison; rejection, cancellation, expiry, or navigation starts no run.",
+        "Validate a synthetic JSON gauntlet and open Callsmith's exact on-page review. This call waits for the human. Only their on-page approval can publish the immutable unlisted suite, start its weak/hardened comparison, and return the run plus read-only report path; rejection, cancellation, expiry, or navigation starts no run.",
       inputSchema: GUIDED_SUITE_DRAFT_JSON_SCHEMA,
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       async execute(input, { signal }) {

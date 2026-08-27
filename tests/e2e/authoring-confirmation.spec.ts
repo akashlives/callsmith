@@ -113,12 +113,22 @@ test("browser WebMCP authoring remains behind the human confirmation boundary", 
       expect(request.headers()["x-callsmith-confirmation-token"]).toBe(
         "cs_confirm_browser_private",
       );
-      await new Promise((resolve) => setTimeout(resolve, 120));
+      // Keep the approving state observable in both desktop and mobile while
+      // the double click proves that only one mutation request can escape.
+      await new Promise((resolve) => setTimeout(resolve, 500));
       await route.fulfill({
         status: 202,
         contentType: "application/json",
         body: JSON.stringify({
           run: { id: "run-browser-human-approved", status: "queued" },
+          report: {
+            token: "browser-agent-report-token-123456",
+            path: "/r/browser-agent-report-token-123456",
+            url: "http://callsmith.test/r/browser-agent-report-token-123456",
+            readOnly: true,
+            status: "queued",
+            evidenceStatus: "pending",
+          },
         }),
       });
       return;
@@ -188,7 +198,11 @@ test("browser WebMCP authoring remains behind the human confirmation boundary", 
   expect(await toolResult(page)).toMatchObject({
     ok: true,
     status: "approved",
-    run: { runId: "run-browser-human-approved", runStatus: "queued" },
+    run: {
+      runId: "run-browser-human-approved",
+      runStatus: "queued",
+      reportPath: "/r/browser-agent-report-token-123456",
+    },
   });
   expect(apiCalls.filter((path) => path.endsWith("/approve-and-run"))).toHaveLength(1);
 

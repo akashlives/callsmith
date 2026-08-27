@@ -152,7 +152,15 @@ describe("private suite draft API", () => {
         capabilityToken: string;
         url: string;
       };
-      run: { id: string; evidenceStatus: string };
+      run: { id: string; status: string; evidenceStatus: string };
+      report: {
+        token: string;
+        path: string;
+        url: string;
+        readOnly: true;
+        status: string;
+        evidenceStatus: string;
+      };
     };
     expect(approval).toMatchObject({
       published: true,
@@ -163,6 +171,16 @@ describe("private suite draft API", () => {
       /^cs_suite_[A-Za-z0-9_-]{40,}$/,
     );
     expect(approval.suite.capabilityToken).not.toContain(suite.id);
+    expect(approval.report).toMatchObject({
+      path: `/r/${approval.report.token}`,
+      readOnly: true,
+    });
+    expect(["queued", "running", "completed"]).toContain(approval.report.status);
+    expect(["pending", "conclusive"]).toContain(approval.report.evidenceStatus);
+    expect(approval.report.url).toBe(
+      `http://callsmith.test/r/${approval.report.token}`,
+    );
+    expect(runStore.get(approval.run.id)?.shareToken).toBe(approval.report.token);
 
     await vi.waitFor(() => {
       expect(runStore.get(approval.run.id)).toMatchObject({

@@ -2,6 +2,7 @@ import { ArrowUpRight, Braces, GitCompareArrows, ShieldAlert } from "lucide-reac
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { AgentJourney } from "@/components/agent-journey";
 import { SignatureStory, type ScenarioOption } from "@/components/signature-story";
 import SuiteAuthoringBridge from "@/components/suite-authoring-bridge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -57,6 +58,8 @@ export default async function Home() {
             }
           />
         </div>
+
+        <AgentJourney />
 
         <section className="how-section" id="how-it-works" aria-labelledby="how-heading">
           <div className="section-heading">

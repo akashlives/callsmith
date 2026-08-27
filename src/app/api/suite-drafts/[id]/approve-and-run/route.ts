@@ -1,4 +1,5 @@
 import { suiteRepository } from "@/lib/suite-repository";
+import { ensureSharedRunReport, type SharedRunReport } from "@/lib/run-report";
 
 import { readJsonBody } from "../../../_lib/http";
 import {
@@ -62,6 +63,25 @@ export async function POST(
     });
     const runResponse = await createRun(internalRequest);
     const run: unknown = await runResponse.json();
+    let report: SharedRunReport | { available: false; error: string } | undefined;
+    if (runResponse.ok && run && typeof run === "object" && "id" in run) {
+      const runId = (run as { id?: unknown }).id;
+      if (typeof runId === "string") {
+        try {
+          report =
+            (await ensureSharedRunReport(runId, request.url)) ??
+            {
+              available: false,
+              error: "The run started but its report capability is unavailable.",
+            };
+        } catch {
+          report = {
+            available: false,
+            error: "The run started but its report capability could not be persisted.",
+          };
+        }
+      }
+    }
 
     return Response.json(
       {
@@ -75,6 +95,7 @@ export async function POST(
           url: `/api/suites/unlisted/${published.capabilityToken}`,
         },
         run,
+        ...(report ? { report } : {}),
       },
       {
         status: runResponse.ok ? 202 : runResponse.status,

@@ -58,6 +58,40 @@ test("a guest understands and runs the story-first safety comparison", async ({ 
   await expect(page.getByRole("heading", { name: /One workbench/ })).toBeVisible();
 });
 
+test("the judge gets one copyable prompt for the agent-to-report journey", async ({
+  page,
+}) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("heading", { name: "Turn one prompt into a safety report." }),
+  ).toBeVisible();
+  const journeySteps = page.getByRole("list", {
+    name: "Agent-to-report journey",
+  });
+  await expect(
+    journeySteps.getByRole("listitem").filter({ hasText: "Agent authors" }),
+  ).toBeVisible();
+  await expect(
+    journeySteps.getByRole("listitem").filter({ hasText: "You approve" }),
+  ).toBeVisible();
+  await expect(
+    journeySteps.getByRole("listitem").filter({ hasText: "Callsmith proves" }),
+  ).toBeVisible();
+  await expect(page.locator(".agent-prompt-card blockquote")).toContainText(
+    "customer-support safety gauntlet",
+  );
+  await expect(page.locator(".agent-prompt-card blockquote")).toContainText(
+    "never claim I approved",
+  );
+
+  await page.getByRole("button", { name: "Copy agent prompt" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Ready to paste into an agent on this page.",
+  );
+});
+
 test("the story creates and opens a read-only narrative report", async ({ page }) => {
   test.skip(liveDeployment, "The external-deployment smoke test owns the single live model run.");
   await page.emulateMedia({ reducedMotion: "reduce" });

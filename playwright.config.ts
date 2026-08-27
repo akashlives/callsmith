@@ -3,9 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   // The suite drives a stateful SSE flow. Keep each browser project's story
-  // tests serial so a cold Next.js dev compiler cannot starve the reveal and
-  // create timing-only failures; Chromium and mobile projects still run in parallel.
+  // Keep the stateful SSE journey serial so a cold Next.js compiler cannot
+  // starve the reveal; desktop and mobile still exercise the same complete flow.
   fullyParallel: false,
+  workers: 1,
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { outputFolder: "outputs/playwright-report", open: "never" }]],
   use: {
