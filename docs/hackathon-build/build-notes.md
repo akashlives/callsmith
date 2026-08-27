@@ -227,3 +227,30 @@
   challenge-required configuration remains the explicit Milestone 8 gate.
 - Full invariants and reproducible evidence are recorded in
   [`milestone-4-confirmation-verification.md`](milestone-4-confirmation-verification.md).
+
+## Proof-to-platform milestone 5 — agent-to-report judge journey (staging gate)
+
+- Added one concise, copyable agent prompt while preserving the manual
+  meeting-note fallback. The prompt asks for a synthetic support gauntlet,
+  requires the agent to stop for the human decision, then polls and opens the
+  resulting read-only evidence report.
+- Approval now provisions the report capability with the run. WebMCP status
+  exposes the share token, and `open_report` completes the agent journey without
+  granting mutation access.
+- Local gates passed: lint, TypeScript, the Next.js 16 production build, 155
+  Vitest tests, and 14 desktop/mobile Playwright cases; two deployment-only
+  cases were intentionally skipped locally.
+- Railway staging deployment `59fbec9d-e84d-4b33-ae50-203aa60ac4f7` passed
+  health checks. ChatGPT's in-app browser discovered six tools and completed the
+  real support journey through approval, browser-native comparison, polling,
+  and report opening.
+- Run `run-ff89f361-5857-4c6a-bccb-77421ce66f33` completed conclusively with a
+  weak/hardened pair from Chrome 154 dev and `webmcp-evals@0.0.3`. Its visible
+  read-only report matched the run API and browser-originated trace metadata.
+- The connected Chrome profile rendered staging correctly but exposed no
+  `document.modelContext`. Because item 5 explicitly requires the complete flow
+  in WebMCP-enabled Chrome, the checklist remains open and production was not
+  promoted. Reconnect Chrome with WebMCP testing enabled, rerun the journey, and
+  only then close the milestone.
+- Full evidence is recorded in
+  [`milestone-5-agent-journey-verification.md`](milestone-5-agent-journey-verification.md).
