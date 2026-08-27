@@ -6,6 +6,7 @@ import { attemptFromBrowserReport } from "@/lib/browser-evidence";
 import { ContractVariantSchema, ModelIdSchema } from "@/lib/contracts";
 import { createProviderFailureAttempt } from "@/lib/evaluation";
 import { runStore } from "@/lib/run-store";
+import { migrateSuiteDefinition } from "@/lib/suite-compiler";
 import { suiteRepository } from "@/lib/suite-repository";
 import { getSuite, suiteForContract } from "@/lib/suites";
 
@@ -94,10 +95,11 @@ export async function POST(request: Request) {
     }
 
     const registered = getSuite(run.suiteId);
-    const suite =
+    const resolved =
       (registered?.version === run.suiteVersion ? registered : undefined) ??
       (await suiteRepository.getSuiteInternal(run.suiteId, run.suiteVersion))
         ?.definition;
+    const suite = resolved ? migrateSuiteDefinition(resolved) : undefined;
     const scenario = suite?.scenarios.find(
       (candidate) => candidate.id === run.scenarioId,
     );

@@ -82,7 +82,7 @@ The milestone contract and verification gates live in [`docs/hackathon-build/che
 - `POST /api/suite-drafts/:id/approve-and-run` — publish once and start a run
 - `GET /api/suites/unlisted/:token` — read an immutable unlisted suite
 - `POST /api/suites` — retired public import (`410`)
-- `POST /api/suites/validate` — validate without importing
+- `POST /api/suites/validate` — compile a guided draft or validate a legacy suite without importing
 
 ## Security boundaries
 

@@ -471,7 +471,7 @@ export const ScenarioDefinitionSchema = z
 
 export type ScenarioDefinition = z.infer<typeof ScenarioDefinitionSchema>;
 
-export const SuiteDefinitionSchema = z
+export const SuiteDefinitionV1Schema = z
   .object({
     schemaVersion: z.literal(1),
     id: SlugSchema,
@@ -519,7 +519,375 @@ export const SuiteDefinitionSchema = z
     });
   });
 
+export type SuiteDefinitionV1 = z.infer<typeof SuiteDefinitionV1Schema>;
+
+const ProtectedStatePathSchema = z
+  .string()
+  .min(1)
+  .max(300)
+  .regex(
+    /^[A-Za-z][A-Za-z0-9_]*(?:\.(?:[A-Za-z][A-Za-z0-9_]*|\d+))*$/,
+    "Use a dotted state path with safe field names and numeric array indexes",
+  )
+  .refine(
+    (path) =>
+      !path
+        .split(".")
+        .some((segment) => ["constructor", "prototype", "__proto__"].includes(segment)),
+    "Reserved object field names are not allowed in state paths",
+  );
+
+export const ContractDesignSchema = z
+  .object({
+    untrustedContentTool: IdentifierSchema,
+    consequentialMutationTool: IdentifierSchema,
+    protectedState: z
+      .object({
+        path: ProtectedStatePathSchema,
+        safeValue: JsonValueSchema,
+        unsafeValue: JsonValueSchema,
+      })
+      .strict()
+      .refine(
+        (state) => JSON.stringify(state.safeValue) !== JSON.stringify(state.unsafeValue),
+        {
+          path: ["unsafeValue"],
+          message: "Unsafe value must differ from the safe value",
+        },
+      ),
+    confirmationTools: z.array(IdentifierSchema).min(1).max(24),
+    idempotencyTools: z
+      .array(
+        z
+          .object({
+            toolName: IdentifierSchema,
+            argument: IdentifierSchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(24),
+  })
+  .strict()
+  .superRefine((design, ctx) => {
+    const confirmationNames = new Set<string>();
+    design.confirmationTools.forEach((toolName, index) => {
+      if (confirmationNames.has(toolName)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["confirmationTools", index],
+          message: `Duplicate confirmation target \"${toolName}\"`,
+        });
+      }
+      confirmationNames.add(toolName);
+    });
+    const idempotencyNames = new Set<string>();
+    design.idempotencyTools.forEach((requirement, index) => {
+      if (idempotencyNames.has(requirement.toolName)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["idempotencyTools", index, "toolName"],
+          message: `Duplicate idempotency target \"${requirement.toolName}\"`,
+        });
+      }
+      idempotencyNames.add(requirement.toolName);
+    });
+  });
+
+export type ContractDesign = z.infer<typeof ContractDesignSchema>;
+
+function valueAtContractPath(state: JsonObject, path: string): JsonValue | undefined {
+  let cursor: JsonValue | undefined = state;
+  for (const segment of path.split(".")) {
+    if (Array.isArray(cursor)) {
+      if (!/^\d+$/.test(segment)) return undefined;
+      cursor = cursor[Number(segment)];
+    } else if (cursor && typeof cursor === "object") {
+      cursor = cursor[segment];
+    } else {
+      return undefined;
+    }
+  }
+  return cursor;
+}
+
+export const SuiteDefinitionV2Schema = z
+  .object({
+    schemaVersion: z.literal(2),
+    id: SlugSchema,
+    version: SemverSchema,
+    title: z.string().min(1).max(120),
+    description: z.string().min(1).max(700),
+    syntheticData: z.literal(true),
+    contractDesign: ContractDesignSchema,
+    tools: z.array(ToolDefinitionSchema).min(2),
+    scenarios: z.array(ScenarioDefinitionSchema).min(1),
+  })
+  .strict()
+  .superRefine((suite, ctx) => {
+    const tools = new Map<string, ToolDefinition>();
+    suite.tools.forEach((tool, index) => {
+      if (tools.has(tool.name)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["tools", index, "name"],
+          message: `Duplicate tool name \"${tool.name}\"`,
+        });
+      }
+      tools.set(tool.name, tool);
+    });
+
+    const design = suite.contractDesign;
+    const untrustedTool = tools.get(design.untrustedContentTool);
+    if (!untrustedTool) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["contractDesign", "untrustedContentTool"],
+        message: `Unknown tool \"${design.untrustedContentTool}\"`,
+      });
+    } else if (
+      !untrustedTool.annotations.readOnlyHint ||
+      !untrustedTool.annotations.untrustedContentHint
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["contractDesign", "untrustedContentTool"],
+        message: "The untrusted-content tool must be read-only and annotated as untrusted",
+      });
+    }
+
+    const consequentialTool = tools.get(design.consequentialMutationTool);
+    if (!consequentialTool) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["contractDesign", "consequentialMutationTool"],
+        message: `Unknown tool \"${design.consequentialMutationTool}\"`,
+      });
+    } else if (
+      consequentialTool.annotations.readOnlyHint ||
+      !consequentialTool.annotations.destructiveHint ||
+      !consequentialTool.action.requireConfirmation
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["contractDesign", "consequentialMutationTool"],
+        message:
+          "The consequential tool must be a destructive mutation with confirmation required",
+      });
+    }
+
+    if (!design.confirmationTools.includes(design.consequentialMutationTool)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["contractDesign", "confirmationTools"],
+        message: "Confirmation targets must include the consequential mutation tool",
+      });
+    }
+
+    design.confirmationTools.forEach((toolName, index) => {
+      const tool = tools.get(toolName);
+      if (
+        !tool ||
+        tool.annotations.readOnlyHint ||
+        !tool.action.requireConfirmation
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["contractDesign", "confirmationTools", index],
+          message: `Confirmation target \"${toolName}\" must be a mutation with confirmation required`,
+        });
+      }
+    });
+
+    suite.tools.forEach((tool, index) => {
+      if (
+        tool.action.requireConfirmation &&
+        !design.confirmationTools.includes(tool.name)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["tools", index, "action", "requireConfirmation"],
+          message: `Confirmation-requiring tool \"${tool.name}\" must be declared in contractDesign.confirmationTools`,
+        });
+      }
+    });
+
+    design.idempotencyTools.forEach((requirement, index) => {
+      const tool = tools.get(requirement.toolName);
+      const actionArgument = (() => {
+        if (tool?.action.kind === "append") return tool.action.idempotencyArgument;
+        if (tool?.action.kind === "patch") return tool.action.versionArgument;
+        return undefined;
+      })();
+      if (
+        !tool ||
+        !tool.annotations.idempotentHint ||
+        actionArgument !== requirement.argument
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["contractDesign", "idempotencyTools", index],
+          message:
+            "Idempotency must target an idempotent append key or patch version argument",
+        });
+      }
+    });
+
+    const scenarioIds = new Set<string>();
+    let participatingScenarios = 0;
+    suite.scenarios.forEach((scenario, scenarioIndex) => {
+      if (scenarioIds.has(scenario.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["scenarios", scenarioIndex, "id"],
+          message: `Duplicate scenario id \"${scenario.id}\"`,
+        });
+      }
+      scenarioIds.add(scenario.id);
+
+      for (const [toolIndex, toolName] of scenario.enabledTools.entries()) {
+        if (!tools.has(toolName)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["scenarios", scenarioIndex, "enabledTools", toolIndex],
+            message: `Unknown tool \"${toolName}\"`,
+          });
+        }
+      }
+
+      const duplicateGuard = scenario.faults.duplicateGuard;
+      if (
+        duplicateGuard &&
+        !design.idempotencyTools.some(
+          (requirement) =>
+            requirement.toolName === duplicateGuard.toolName &&
+            requirement.argument === duplicateGuard.keyArgument,
+        )
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["scenarios", scenarioIndex, "faults", "duplicateGuard"],
+          message:
+            "Duplicate guard must match a declared contractDesign.idempotencyTools requirement",
+        });
+      }
+
+      // Multi-scenario V1 suites can describe different fault contracts. V2's
+      // protected values apply only to scenarios that exercise this declared
+      // untrusted-content boundary.
+      if (
+        scenario.faults.maliciousContent?.toolName !==
+        design.untrustedContentTool
+      ) {
+        return;
+      }
+      participatingScenarios += 1;
+
+      const safeValue = valueAtContractPath(
+        scenario.walkthroughs.successFinalState,
+        design.protectedState.path,
+      );
+      const unsafeValue = valueAtContractPath(
+        scenario.walkthroughs.failureFinalState,
+        design.protectedState.path,
+      );
+      if (JSON.stringify(safeValue) !== JSON.stringify(design.protectedState.safeValue)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["scenarios", scenarioIndex, "walkthroughs", "successFinalState"],
+          message: `Safe final state must set ${design.protectedState.path} to the declared safe value`,
+        });
+      }
+      if (JSON.stringify(unsafeValue) !== JSON.stringify(design.protectedState.unsafeValue)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["scenarios", scenarioIndex, "walkthroughs", "failureFinalState"],
+          message: `Unsafe final state must set ${design.protectedState.path} to the declared unsafe value`,
+        });
+      }
+    });
+    if (participatingScenarios === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["scenarios"],
+        message:
+          "At least one scenario must inject malicious content through the declared untrusted-content tool",
+      });
+    }
+  });
+
+export type SuiteDefinitionV2 = z.infer<typeof SuiteDefinitionV2Schema>;
+
+/** Compatibility reader. Existing V1 suites remain valid; new authoring emits V2. */
+export const SuiteDefinitionSchema = z.discriminatedUnion("schemaVersion", [
+  SuiteDefinitionV2Schema,
+  SuiteDefinitionV1Schema,
+]);
+
 export type SuiteDefinition = z.infer<typeof SuiteDefinitionSchema>;
+
+export const GuidedExpectedCallSchema = z
+  .object({
+    toolName: IdentifierSchema,
+    args: JsonObjectSchema,
+  })
+  .strict();
+
+export type GuidedExpectedCall = z.infer<typeof GuidedExpectedCallSchema>;
+
+const GuidedExpectedPathSchema = z
+  .object({
+    calls: z.array(GuidedExpectedCallSchema).min(2).max(40),
+    finalState: JsonObjectSchema,
+  })
+  .strict();
+
+/**
+ * JSON-only authoring input. Semantic checks that need to execute the bounded
+ * action DSL live in compileGuidedSuiteDraft so this schema stays reusable by
+ * clients and forms.
+ */
+export const GuidedSuiteDraftSchema = z
+  .object({
+    draftVersion: z.literal(1),
+    id: SlugSchema,
+    version: SemverSchema,
+    title: z.string().min(1).max(120),
+    domain: SlugSchema,
+    goal: z.string().min(12).max(500),
+    seed: z.number().int(),
+    syntheticState: JsonObjectSchema,
+    tools: z.array(ToolDefinitionSchema).min(2).max(24),
+    faults: FaultProfileSchema,
+    contractDesign: ContractDesignSchema,
+    expected: z
+      .object({
+        safe: GuidedExpectedPathSchema,
+        unsafe: GuidedExpectedPathSchema,
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((draft, ctx) => {
+    const readTools = draft.tools.filter((tool) => tool.annotations.readOnlyHint);
+    const mutationTools = draft.tools.filter((tool) => !tool.annotations.readOnlyHint);
+    if (readTools.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["tools"],
+        message: "Include at least one read tool",
+      });
+    }
+    if (mutationTools.length === 0) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["tools"],
+        message: "Include at least one mutation tool",
+      });
+    }
+  });
+
+export type GuidedSuiteDraft = z.infer<typeof GuidedSuiteDraftSchema>;
 
 const ScoreComponentSchema = z
   .object({

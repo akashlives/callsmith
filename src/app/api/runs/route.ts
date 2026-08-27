@@ -3,6 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 import { CreateRunInputSchema, type ModelId } from "@/lib/contracts";
 import { runStore } from "@/lib/run-store";
 import { browserQueueConfigured, enqueueBrowserRun } from "@/lib/run-queue";
+import { migrateSuiteDefinition } from "@/lib/suite-compiler";
 import { suiteRepository } from "@/lib/suite-repository";
 import { getSuite } from "@/lib/suites";
 
@@ -52,7 +53,9 @@ export async function POST(request: Request) {
       ? await suiteRepository.resolveSuite(suiteCapabilityToken)
       : undefined;
     if (suiteCapabilityToken && !unlisted) return jsonError(404, "Suite not found");
-    const suite = unlisted?.definition ?? getSuite(requestedSuiteId);
+    const suite = unlisted
+      ? migrateSuiteDefinition(unlisted.definition)
+      : getSuite(requestedSuiteId);
     if (unlisted && requestedSuiteId && requestedSuiteId !== unlisted.suiteId) {
       return jsonError(404, "Suite not found");
     }

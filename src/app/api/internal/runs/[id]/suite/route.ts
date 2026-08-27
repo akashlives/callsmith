@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 
 import { runStore } from "@/lib/run-store";
+import { migrateSuiteDefinition } from "@/lib/suite-compiler";
 import { suiteRepository } from "@/lib/suite-repository";
 import { getSuite } from "@/lib/suites";
 
@@ -30,10 +31,11 @@ export async function GET(
   if (!run) return jsonError(404, "Run not found");
 
   const registered = getSuite(run.suiteId);
-  const suite =
+  const resolved =
     (registered?.version === run.suiteVersion ? registered : undefined) ??
     (await suiteRepository.getSuiteInternal(run.suiteId, run.suiteVersion))
       ?.definition;
+  const suite = resolved ? migrateSuiteDefinition(resolved) : undefined;
   const scenario = suite?.scenarios.find(
     (candidate) => candidate.id === run.scenarioId,
   );

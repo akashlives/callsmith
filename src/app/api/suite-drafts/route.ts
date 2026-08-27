@@ -2,48 +2,41 @@ import {
   MAX_DRAFT_BYTES,
   suiteRepository,
 } from "@/lib/suite-repository";
-import { getSuite, validateSuite } from "@/lib/suites";
+import { getSuite } from "@/lib/suites";
 
-import { jsonError, readJsonBody } from "../_lib/http";
+import { jsonError, messageFromUnknown, readJsonBody } from "../_lib/http";
+import {
+  SuiteAuthoringError,
+  compileDraftEnvelope,
+} from "../_lib/suite-authoring";
 import { suiteRepositoryError } from "../_lib/suite-capabilities";
 
 export const dynamic = "force-dynamic";
 
-function suiteInput(input: unknown): unknown {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
-  return (input as Record<string, unknown>).suite;
-}
-
 export async function POST(request: Request) {
   try {
-    const candidate = suiteInput(await readJsonBody(request));
-    const validation = validateSuite(candidate);
-    if (!validation.success) return jsonError(422, "Suite draft is invalid");
+    const submission = compileDraftEnvelope(await readJsonBody(request));
     if (
-      Buffer.byteLength(JSON.stringify(validation.data), "utf8") >
+      Buffer.byteLength(JSON.stringify(submission.candidate), "utf8") >
       MAX_DRAFT_BYTES
     ) {
       return jsonError(422, "Suite draft is invalid");
     }
-    if (getSuite(validation.data.id)) {
+    if (getSuite(submission.candidate.id)) {
       return jsonError(409, "Suite id is reserved");
     }
 
-    const created = await suiteRepository.createDraft({
-      kind: "suite_definition",
-      suiteId: validation.data.id,
-      suiteVersion: validation.data.version,
-      title: validation.data.title,
-    });
+    const created = await suiteRepository.createDraft(submission.storedDraft);
     const challenge = await suiteRepository.requestApproval(
       created.draft.id,
       created.ownerToken,
-      validation.data,
+      submission.candidate,
     );
 
     return Response.json(
       {
         draft: challenge.draft,
+        source: submission.source,
         ownerToken: created.ownerToken,
         confirmationToken: challenge.confirmationToken,
         confirmationExpiresAt: challenge.expiresAt,
@@ -58,6 +51,12 @@ export async function POST(request: Request) {
       },
     );
   } catch (error) {
+    if (error instanceof SuiteAuthoringError) {
+      return jsonError(422, "Suite draft is invalid", error.issues);
+    }
+    if (error instanceof SyntaxError || error instanceof TypeError) {
+      return jsonError(400, messageFromUnknown(error));
+    }
     return suiteRepositoryError(error);
   }
 }

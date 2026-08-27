@@ -1,4 +1,5 @@
 import { suiteRepository } from "@/lib/suite-repository";
+import { migrateSuiteDefinition } from "@/lib/suite-compiler";
 
 import { jsonError } from "../../../_lib/http";
 
@@ -11,10 +12,11 @@ export async function GET(
   const { token } = await params;
   const published = await suiteRepository.resolveSuite(token);
   if (!published) return jsonError(404, "Suite not found");
+  const suite = migrateSuiteDefinition(published.definition);
 
   return Response.json(
     {
-      suite: published.definition,
+      suite,
       publishedAt: published.publishedAt,
       immutable: true,
     },
