@@ -449,13 +449,24 @@ function benchmarkStats(attempts: AttemptResult[]): ContractBenchmarkStats[] | u
 }
 
 export function buildCaseComparisonViewModel(run: RunResult): CaseComparisonViewModel {
+  const orderedAttempts = run.attempts
+    .map((attempt, index) => ({ attempt, index }))
+    .sort((left, right) => {
+      const contractOrder =
+        (left.attempt.contractVariant === "weak" ? 0 : 1) -
+        (right.attempt.contractVariant === "weak" ? 0 : 1);
+      if (contractOrder !== 0) return contractOrder;
+      const modelOrder = left.attempt.model.localeCompare(right.attempt.model);
+      return modelOrder !== 0 ? modelOrder : left.index - right.index;
+    })
+    .map(({ attempt }) => attempt);
   const modelTotals = new Map<string, number>();
-  for (const attempt of run.attempts) {
+  for (const attempt of orderedAttempts) {
     const lane = `${attempt.contractVariant}:${attempt.model}`;
     modelTotals.set(lane, (modelTotals.get(lane) ?? 0) + 1);
   }
   const seen = new Map<string, number>();
-  const attempts = run.attempts.map((attempt): AttemptComparisonView => {
+  const attempts = orderedAttempts.map((attempt): AttemptComparisonView => {
     const lane = `${attempt.contractVariant}:${attempt.model}`;
     const number = (seen.get(lane) ?? 0) + 1;
     seen.set(lane, number);

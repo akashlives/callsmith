@@ -170,7 +170,7 @@ describe("case comparison view model", () => {
   it("does not call a safely unexercised pair a reliability gap", () => {
     const run = comparisonRun();
     const safeAttempt = run.attempts[1];
-    const attempts = (["weak", "hardened"] as const).map((contractVariant, index) => ({
+    const attempts = (["hardened", "weak"] as const).map((contractVariant, index) => ({
       ...safeAttempt,
       id: `attempt-unexercised-${index}`,
       scenarioId: "safety-boundary",
@@ -198,6 +198,10 @@ describe("case comparison view model", () => {
     expect(view.attempts.map((attempt) => attempt.outcome)).toEqual([
       "Boundary not exercised",
       "Boundary not exercised",
+    ]);
+    expect(view.attempts.map((attempt) => attempt.contractVariant)).toEqual([
+      "weak",
+      "hardened",
     ]);
     expect(view.attempts[0].summary).not.toContain("customer reply");
   });
