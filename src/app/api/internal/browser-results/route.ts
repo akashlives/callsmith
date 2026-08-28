@@ -26,6 +26,11 @@ const AttemptEventSchema = BaseEventSchema.extend({
   browserVersion: z.string().min(1),
   sandboxUrl: z.string().url(),
   latencyMs: z.number().int().min(0),
+  webMcpRunner: z
+    .object({ name: z.literal("webmcp-evals"), version: z.string().min(1) })
+    .strict(),
+  modelBackend: z.string().min(1),
+  browserConsole: z.array(z.unknown()).default([]),
   report: z.unknown(),
 }).strict();
 
@@ -37,6 +42,10 @@ const FailureEventSchema = BaseEventSchema.extend({
   browserVersion: z.string().min(1).optional(),
   sandboxUrl: z.string().url().optional(),
   latencyMs: z.number().int().min(0),
+  webMcpRunner: z
+    .object({ name: z.literal("webmcp-evals"), version: z.string().min(1) })
+    .strict(),
+  modelBackend: z.string().min(1),
   error: z.string().min(1).max(2_000),
 }).strict();
 
@@ -121,6 +130,8 @@ export async function POST(request: Request) {
             browserVersion: event.browserVersion,
             sandboxUrl: event.sandboxUrl,
             latencyMs: event.latencyMs,
+            runner: event.webMcpRunner,
+            modelBackend: event.modelBackend,
             report: event.report,
           })
         : createProviderFailureAttempt(
@@ -137,9 +148,9 @@ export async function POST(request: Request) {
                 ...(event.browserVersion
                   ? { browserVersion: event.browserVersion }
                   : {}),
-                webMcpEngine: "webmcp-evals",
-                webMcpEngineVersion: "0.0.3",
-                modelBackend: "vercel-openai",
+                webMcpEngine: event.webMcpRunner.name,
+                webMcpEngineVersion: event.webMcpRunner.version,
+                modelBackend: event.modelBackend,
                 model: event.model,
                 suiteVersion: contractedSuite.version,
                 seed: event.seed,

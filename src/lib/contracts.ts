@@ -565,7 +565,6 @@ export const ContractDesignSchema = z
           })
           .strict(),
       )
-      .min(1)
       .max(24),
   })
   .strict()
@@ -950,7 +949,7 @@ export const ExecutionMetadataSchema = z
 export const BaselineEvaluationSchema = z
   .object({
     engine: z.literal("webmcp-evals"),
-    version: z.literal("0.0.3"),
+    version: z.string().min(1),
     outcome: z.enum(["pass", "fail", "error"]),
     expectedCalls: z.number().int().min(0),
     matchedCalls: z.number().int().min(0),

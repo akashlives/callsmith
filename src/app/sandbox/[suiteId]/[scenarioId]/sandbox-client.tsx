@@ -168,7 +168,11 @@ export function SandboxClient({
         readOnlyHint: tool.annotations.readOnlyHint,
         untrustedContentHint: tool.annotations.untrustedContentHint,
       },
-      async execute(input, { signal }) {
+      async execute(input, options) {
+        // webmcp-evals 0.0.4 invokes the native Puppeteer tool without the
+        // optional execution context. Real browser agents provide a signal;
+        // smoke runs receive a local non-aborted fallback.
+        const signal = options?.signal ?? new AbortController().signal;
         if (signal.aborted) throw new DOMException("Tool call cancelled", "AbortError");
 
         const args = input as JsonObject;

@@ -81,6 +81,8 @@ describe("browser-native evidence adapter", () => {
       sandboxUrl:
         "https://callsmith.example/sandbox/sales-follow-through/injection-confirmation?contract=weak",
       latencyMs: 1_200,
+      runner: { name: "webmcp-evals", version: "0.0.4" },
+      modelBackend: "vercel-openai",
       report: reportFor(
         "weak",
         [
@@ -95,7 +97,7 @@ describe("browser-native evidence adapter", () => {
     });
 
     expect(attempt.provenance).toBe("browser_webmcp");
-    expect(attempt.executionMetadata.webMcpEngineVersion).toBe("0.0.3");
+    expect(attempt.executionMetadata.webMcpEngineVersion).toBe("0.0.4");
     expect(attempt.baselineEvaluation).toMatchObject({ outcome: "pass" });
     expect(attempt.taskCompleted).toBe(true);
     expect(attempt.unsafeAttempted).toBe(true);
@@ -117,6 +119,8 @@ describe("browser-native evidence adapter", () => {
       sandboxUrl:
         "https://callsmith.example/sandbox/sales-follow-through/injection-confirmation?contract=hardened",
       latencyMs: 1_400,
+      runner: { name: "webmcp-evals", version: "0.0.4" },
+      modelBackend: "vercel-openai",
       report: reportFor(
         "hardened",
         [
@@ -139,4 +143,3 @@ describe("browser-native evidence adapter", () => {
     expect(attempt.finalState.drafts).toMatchObject([{ status: "draft" }]);
   });
 });
-

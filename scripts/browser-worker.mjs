@@ -1,11 +1,16 @@
 import { execFile } from "node:child_process";
 import { createHmac } from "node:crypto";
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 import Redis from "ioredis";
+
+import {
+  runBrowserEvaluation,
+  webMcpRunnerIdentity,
+} from "./lib/webmcp-evals-adapter.mjs";
 
 const execFileAsync = promisify(execFile);
 const pendingQueue = "callsmith:browser-runs:pending";
@@ -18,7 +23,6 @@ const webBase = (
   "http://web.railway.internal:3000"
 ).replace(/\/$/, "");
 const sandboxBase = (process.env.CALLSMITH_PUBLIC_URL || webBase).replace(/\/$/, "");
-const cliPath = resolve("node_modules/webmcp-evals/dist/bin/webmcp-evals.js");
 const chromePath = "/usr/bin/google-chrome-unstable";
 
 if (!redisUrl) throw new Error("REDIS_URL is required by the Callsmith browser worker.");
@@ -164,6 +168,7 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
   const evalsPath = join(workDir, "evals.json");
   const outputDir = join(workDir, "reports");
   const startedAt = Date.now();
+  const runner = await webMcpRunnerIdentity();
 
   try {
     await writeFile(
@@ -188,42 +193,16 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       "utf8",
     );
 
-    await execFileAsync(
-      process.execPath,
-      [
-        cliPath,
-        "--backend",
-        "vercel",
-        "--model",
-        `openai:${model}`,
-        "--runs",
-        "1",
-        "--max-steps",
-        "6",
-        "--reporter",
-        "json",
-        "--output-dir",
-        outputDir,
-        "browser",
-        "--url",
-        sandboxUrl.href,
-        "--evals",
-        evalsPath,
-      ],
-      {
-        cwd: process.cwd(),
-        env: process.env,
-        timeout: 150_000,
-        maxBuffer: 4 * 1024 * 1024,
-      },
-    );
-
-    const reports = (await readdir(outputDir))
-      .filter((name) => name.endsWith(".json"))
-      .sort();
-    const reportName = reports.at(-1);
-    if (!reportName) throw new Error("webmcp-evals produced no JSON report.");
-    const report = JSON.parse(await readFile(join(outputDir, reportName), "utf8"));
+    const execution = await runBrowserEvaluation({
+      backend: "vercel",
+      model: `openai:${model}`,
+      maxSteps: 6,
+      outputDir,
+      chromeChannel: process.env.CALLSMITH_CHROME_CHANNEL || "chrome-canary",
+      url: sandboxUrl.href,
+      evalsPath,
+      env: process.env,
+    });
     await postEvent({
       type: "attempt",
       runId: job.runId,
@@ -231,9 +210,12 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       seed,
       contractVariant,
       browserVersion: await browserVersion(),
+      webMcpRunner: execution.runner,
+      modelBackend: "vercel-openai",
+      browserConsole: execution.browserConsole,
       sandboxUrl: publicEvidenceUrl(sandboxUrl),
       latencyMs: Date.now() - startedAt,
-      report,
+      report: execution.report,
     });
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : String(error);
@@ -245,6 +227,8 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       seed,
       contractVariant,
       browserVersion: await browserVersion().catch(() => undefined),
+      webMcpRunner: runner,
+      modelBackend: "vercel-openai",
       sandboxUrl: publicEvidenceUrl(sandboxUrl),
       latencyMs: Date.now() - startedAt,
       error: message.slice(0, 2_000),
@@ -333,8 +317,9 @@ async function recoverInterruptedJobs() {
 
 async function main() {
   await recoverInterruptedJobs();
+  const engine = await webMcpRunnerIdentity();
   console.log(
-    `[callsmith-worker] ready; engine=webmcp-evals@0.0.3; browser=${await browserVersion()}`,
+    `[callsmith-worker] ready; engine=${engine.name}@${engine.version}; browser=${await browserVersion()}`,
   );
   for (;;) {
     const rawJob = await redis.brpoplpush(pendingQueue, processingQueue, 0);

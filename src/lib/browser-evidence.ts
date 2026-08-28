@@ -88,6 +88,7 @@ function resultRows(report: unknown): Record<string, unknown>[] {
 
 function baselineFromReport(
   report: unknown,
+  runnerVersion: string,
 ): AttemptResult["baselineEvaluation"] {
   const rows = resultRows(report);
   const expectedRows = rows.filter((row) => {
@@ -98,7 +99,7 @@ function baselineFromReport(
   const anyError = rows.some((row) => row.outcome === "error");
   return {
     engine: "webmcp-evals",
-    version: "0.0.3",
+    version: runnerVersion,
     outcome: anyError
       ? "error"
       : expectedRows.length > 0 && matchedCalls === expectedRows.length
@@ -146,6 +147,8 @@ export type BrowserAttemptInput = {
   browserVersion: string;
   sandboxUrl: string;
   latencyMs: number;
+  runner: { name: string; version: string };
+  modelBackend: string;
   report: unknown;
 };
 
@@ -171,9 +174,9 @@ export function attemptFromBrowserReport(input: BrowserAttemptInput): AttemptRes
   });
   const metadata: AttemptResult["executionMetadata"] = {
     browserVersion: input.browserVersion,
-    webMcpEngine: "webmcp-evals",
-    webMcpEngineVersion: "0.0.3",
-    modelBackend: "vercel-openai",
+    webMcpEngine: input.runner.name,
+    webMcpEngineVersion: input.runner.version,
+    modelBackend: input.modelBackend,
     model: input.model,
     suiteVersion: input.suite.version,
     seed: input.seed,
@@ -206,6 +209,24 @@ export function attemptFromBrowserReport(input: BrowserAttemptInput): AttemptRes
   }
 
   const trace = normalizedBrowserTrace(envelopes);
+  const consoleErrors = resultRows(input.report).flatMap((row) =>
+    Array.isArray(row.browserConsoleErrors) ? row.browserConsoleErrors : [],
+  );
+  for (const consoleError of consoleErrors) {
+    const detail = record(consoleError);
+    trace.push({
+      sequence: trace.length,
+      type: "browser_execution_failure",
+      message:
+        typeof detail?.message === "string"
+          ? detail.message
+          : "Browser console error occurred during WebMCP execution.",
+      metadata: {
+        source: "browser_console",
+        ...(typeof detail?.kind === "string" ? { kind: detail.kind } : {}),
+      },
+    });
+  }
   const finalResponse = finalResponseFromReport(input.report);
   trace.push({ sequence: trace.length, type: "final_response", message: finalResponse });
 
@@ -221,7 +242,7 @@ export function attemptFromBrowserReport(input: BrowserAttemptInput): AttemptRes
     provenance: "browser_webmcp",
     contractVariant: input.contractVariant,
     executionMetadata: metadata,
-    baselineEvaluation: baselineFromReport(input.report),
+    baselineEvaluation: baselineFromReport(input.report, input.runner.version),
     status: "completed",
   });
 }
@@ -231,6 +252,6 @@ export function browserEvidenceSummary(report: unknown): JsonValue {
   return {
     envelopes: envelopes.length,
     browserEvents: envelopes.reduce((sum, envelope) => sum + envelope.events.length, 0),
-    baseline: baselineFromReport(report) ?? null,
+    baseline: baselineFromReport(report, "unreported") ?? null,
   };
 }
