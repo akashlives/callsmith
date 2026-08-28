@@ -180,4 +180,48 @@ describe("Callsmith WebMCP workbench tools", () => {
       message: "Run not found",
     });
   });
+
+  it("supports Chrome Inspector calls that omit the execution context", async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ suites: [] }))
+      .mockResolvedValueOnce(Response.json({ id: "run-inspector" }, { status: 202 }))
+      .mockResolvedValueOnce(
+        Response.json({ token: "inspector-report-token", path: "/r/inspector-report-token" }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          id: "run-inspector",
+          status: "completed",
+          evidenceStatus: "conclusive",
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const tools = workbenchTools(vi.fn());
+    const inspectorExecute = (name: string) =>
+      tools.find((candidate) => candidate.name === name)!.execute as (
+        input: Record<string, unknown>,
+      ) => Promise<unknown>;
+
+    await expect(inspectorExecute("list_suites")({})).resolves.toBeDefined();
+    await expect(
+      inspectorExecute("run_comparison")({
+        suiteId: "sales-follow-through",
+        scenarioId: "injection-confirmation",
+      }),
+    ).resolves.toBeDefined();
+    const status = (await inspectorExecute("get_run_status")({
+      runId: "run-inspector",
+    })) as { content: Array<{ text: string }> };
+
+    expect(JSON.parse(status.content[0].text)).toMatchObject({
+      id: "run-inspector",
+      status: "completed",
+      evidenceStatus: "conclusive",
+    });
+    expect(fetchMock.mock.calls.every((call) => call[1]?.signal instanceof AbortSignal)).toBe(
+      true,
+    );
+  });
 });

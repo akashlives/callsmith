@@ -7,6 +7,7 @@ import {
   asToolResult,
   registerWebMcpTools,
   strictObjectSchema,
+  type WebMcpExecuteOptions,
   type WebMcpTool,
 } from "@/lib/webmcp";
 
@@ -33,6 +34,13 @@ function failedToolResult(error: unknown) {
     code: "callsmith_request_failed",
     message: messageFromUnknown(error),
   });
+}
+
+/** Chrome's WebMCP Inspector invokes tools without the optional execution
+ * context used by agent runtimes. Keep cancellation when it is available,
+ * while making manual Inspector verification exercise the same real APIs. */
+function executionSignal(options?: WebMcpExecuteOptions): AbortSignal {
+  return options?.signal ?? new AbortController().signal;
 }
 
 /** Keep discovery useful to an agent without returning every state fixture,
@@ -74,8 +82,9 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
       "List the safe, hosted WebMCP reliability suites and scenarios available in Callsmith.",
     inputSchema: strictObjectSchema(),
     annotations: { readOnlyHint: true, untrustedContentHint: false },
-    async execute(_input, { signal }) {
+    async execute(_input, options?: WebMcpExecuteOptions) {
       try {
+        const signal = executionSignal(options);
         const response = await fetch("/api/suites", { signal });
         return asToolResult(compactSuiteCatalog(await readJson(response)));
       } catch (error) {
@@ -137,8 +146,9 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
       ["suiteId", "scenarioId"],
     ),
     annotations: { readOnlyHint: false, untrustedContentHint: false },
-    async execute(input, { signal }) {
+    async execute(input, options?: WebMcpExecuteOptions) {
       try {
+        const signal = executionSignal(options);
         const response = await fetch("/api/runs", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -179,8 +189,9 @@ export function workbenchTools(openReport: (path: string) => void): readonly Web
       ["runId"],
     ),
     annotations: { readOnlyHint: true, untrustedContentHint: false },
-    async execute({ runId }, { signal }) {
+    async execute({ runId }, options?: WebMcpExecuteOptions) {
       try {
+        const signal = executionSignal(options);
         const response = await fetch(
           `/api/runs/${encodeURIComponent(String(runId))}`,
           { signal },
