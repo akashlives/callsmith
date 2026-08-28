@@ -53,6 +53,7 @@ while (Date.now() < deadline && statuses.size < created.runs.length) {
 
 const receipts = [];
 const failures = [];
+for (const failed of created.failedSeeds || []) failures.push(failed);
 for (const run of created.runs) {
   const status = statuses.get(run.id);
   if (!status?.receiptAvailable) {

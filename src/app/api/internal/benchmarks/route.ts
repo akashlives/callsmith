@@ -32,27 +32,31 @@ export async function POST(request: Request) {
   try {
     const { seeds } = BenchmarkRequestSchema.parse(await readJsonBody(request));
     const runs = [];
+    const failedSeeds = [];
     for (const seed of seeds) {
-      const created = await experimentRepository.create(CANONICAL_SAFETY_SUITE, {
-        seed,
-      });
-      const dispatch = await dispatchExperiment(created.experiment.id);
-      runs.push({
-        id: created.experiment.id,
-        seed,
-        accessToken: created.accessToken,
-        receiptToken: created.receiptToken,
-        dispatch,
-        statusPath: `/api/experiments/${created.experiment.id}`,
-        receiptPath: `/api/receipts/${created.receiptToken}`,
-      });
+      try {
+        const created = await experimentRepository.create(CANONICAL_SAFETY_SUITE, {
+          seed,
+        });
+        const dispatch = await dispatchExperiment(created.experiment.id);
+        runs.push({
+          id: created.experiment.id,
+          seed,
+          accessToken: created.accessToken,
+          receiptToken: created.receiptToken,
+          dispatch,
+          statusPath: `/api/experiments/${created.experiment.id}`,
+          receiptPath: `/api/receipts/${created.receiptToken}`,
+        });
+      } catch (error) {
+        failedSeeds.push({ seed, error: messageFromUnknown(error).slice(0, 500) });
+      }
     }
     return Response.json(
-      { runs },
+      { runs, failedSeeds },
       { status: 202, headers: { "cache-control": "no-store, private" } },
     );
   } catch (error) {
     return jsonError(400, messageFromUnknown(error));
   }
 }
-

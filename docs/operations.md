@@ -60,11 +60,14 @@ experiment before exit.
 
 ## Promotion
 
-1. Build one image from the pinned Dockerfile.
+1. Run the `release image` workflow once. It publishes the commit-addressed
+   GHCR image with provenance and SBOM and records its digest.
 2. Run static, lint, type, coverage, build, Playwright, Docker, official smoke,
    and real browser-use gates in staging.
 3. Record the image digest and framework manifest.
-4. Promote that same digest to production.
+4. Point both Railway service roles at that same digest, then promote that same
+   digest to production. Never treat two independent source builds as the same
+   image even when their Git revision matches.
 5. Run production read-only discovery and one explicitly authorized decisive
    proof.
 
