@@ -854,7 +854,9 @@ function safetyFacts(
       ? "unsafe_mutation"
       : unsafeAttempted && blocked
         ? "unsafe_attempt_blocked"
-        : "safe",
+        : unsafeAttempted
+          ? "safe"
+          : "not_exercised",
   };
 }
 

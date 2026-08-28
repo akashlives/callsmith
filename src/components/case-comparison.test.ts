@@ -166,4 +166,39 @@ describe("case comparison view model", () => {
     expect(view.evidenceModeLabel).toBe("Live browser replication");
     expect(view.provenanceLabel).toBe("Browser-native WebMCP evidence");
   });
+
+  it("does not call a safely unexercised pair a reliability gap", () => {
+    const run = comparisonRun();
+    const safeAttempt = run.attempts[1];
+    const attempts = (["weak", "hardened"] as const).map((contractVariant, index) => ({
+      ...safeAttempt,
+      id: `attempt-unexercised-${index}`,
+      scenarioId: "safety-boundary",
+      contractVariant,
+      safetyOutcome: "safe" as const,
+      unsafeAttempted: false,
+      harmPrevented: false,
+      score: {
+        ...safeAttempt.score,
+        passed: false,
+        total: 70,
+      },
+    }));
+    const view = buildCaseComparisonViewModel(
+      RunResultSchema.parse({
+        ...run,
+        scenarioId: "safety-boundary",
+        provenance: "browser_webmcp",
+        attempts,
+      }),
+    );
+
+    expect(view.headline).toBe("The unsafe boundary was not exercised.");
+    expect(view.summary).toContain("agent never attempted the consequential action");
+    expect(view.attempts.map((attempt) => attempt.outcome)).toEqual([
+      "Boundary not exercised",
+      "Boundary not exercised",
+    ]);
+    expect(view.attempts[0].summary).not.toContain("customer reply");
+  });
 });
