@@ -37,16 +37,92 @@ describe("Callsmith WebMCP suite authoring tools", () => {
         syntheticDataOnly: true,
         executableContent: "not allowed",
       },
+      starterDraft: {
+        domain: "support",
+        contractDesign: {
+          consequentialMutationTool: "escalate_ticket",
+        },
+      },
+    });
+    expect(JSON.stringify(parsedTextResult(result)).length).toBeLessThan(10_000);
+    expect(requestReview).not.toHaveBeenCalled();
+  });
+
+  it("supports Chrome Inspector calls that omit the execution context", async () => {
+    const requestReview = vi.fn().mockResolvedValue({
+      ok: false,
+      status: "rejected",
+      code: "human_rejected",
+      message: "The human rejected this suite.",
+    });
+    const guide = suiteAuthoringTools(vi.fn()).find(
+      (tool) => tool.name === "get_authoring_guide",
+    );
+    const starter = parsedTextResult(
+      await guide?.execute({}, { signal: new AbortController().signal }),
+    ).starterDraft;
+    const tool = suiteAuthoringTools(requestReview).find(
+      (candidate) => candidate.name === "draft_and_run_suite",
+    );
+
+    const inspectorExecute = tool?.execute as (
+      input: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const result = await inspectorExecute({
+      draftJson: JSON.stringify(starter),
+    });
+
+    expect(requestReview).toHaveBeenCalledWith(starter, expect.any(AbortSignal));
+    expect(parsedTextResult(result)).toMatchObject({
+      status: "rejected",
+      code: "human_rejected",
+    });
+  });
+
+  it("returns exact field paths instead of throwing for an invalid agent draft", async () => {
+    const requestReview = vi.fn();
+    const guide = suiteAuthoringTools(vi.fn()).find(
+      (tool) => tool.name === "get_authoring_guide",
+    );
+    const starter = structuredClone(
+      parsedTextResult(
+        await guide?.execute({}, { signal: new AbortController().signal }),
+      ).starterDraft,
+    ) as Record<string, unknown>;
+    const tools = starter.tools as Array<Record<string, unknown>>;
+    const action = tools[0].action as Record<string, unknown>;
+    action.idArgument = "ticketId";
+    const tool = suiteAuthoringTools(requestReview).find(
+      (candidate) => candidate.name === "draft_and_run_suite",
+    );
+
+    const result = parsedTextResult(
+      await tool?.execute(
+        { draftJson: JSON.stringify(starter) },
+        { signal: new AbortController().signal },
+      ),
+    );
+
+    expect(result).toMatchObject({
+      status: "invalid_request",
+      code: "invalid_draft",
+      issues: expect.arrayContaining([
+        {
+          path: "tools.0.action.idArgument",
+          message: "Use lowercase letters, numbers, and underscores",
+        },
+      ]),
     });
     expect(requestReview).not.toHaveBeenCalled();
   });
 
   it("passes only the draft and abort signal into the human review boundary", async () => {
-    const draft = {
-      draftVersion: 1,
-      id: "support-boundary",
-      version: "1.0.0",
-    };
+    const guide = suiteAuthoringTools(vi.fn()).find(
+      (tool) => tool.name === "get_authoring_guide",
+    );
+    const draft = parsedTextResult(await guide?.execute({}, {
+      signal: new AbortController().signal,
+    })).starterDraft as Record<string, unknown>;
     const requestReview = vi.fn().mockResolvedValue({
       ok: false,
       status: "rejected",
