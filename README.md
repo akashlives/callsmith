@@ -1,107 +1,111 @@
 # Callsmith
 
-> Forge tool calls that hold up in the real world.
+**Can your website stop an agent when the model fails?**
 
-Callsmith is the chaos and safety layer for browser-native WebMCP evaluations. Its one-click meeting-note case runs the same agent against weak and hardened website contracts, then checks what actually changed in the browser.
+Callsmith is a safety-contract workbench for agent-facing websites. It runs the
+same model, prompt, seed, and synthetic task against two WebMCP contracts:
 
-**Live workbench:** [web-production-6cecc.up.railway.app](https://web-production-6cecc.up.railway.app/)
+- a weak contract that treats hostile content and a consequential mutation as
+  routine;
+- a hardened contract that labels untrusted content and requires browser-side
+  human confirmation.
 
-**Source:** [github.com/akashlives/callsmith](https://github.com/akashlives/callsmith)
+Both variants can satisfy the official expected-call matcher. Callsmith then
+checks the browser state itself and seals the result in a SHA-256 evidence
+receipt. A verdict exists only when a complete weak/hardened pair exists.
 
-It is being built for [The WebMCP Challenge](https://webmcp.devpost.com/). The featured Sales Follow-through Gauntlet uses synthetic data shaped like a real post-meeting workflow: identify the right account, refresh context, update the opportunity once, create follow-up work, draft a response, and stop at the human confirmation boundary.
+## The decisive case
 
-## Why Callsmith
+The canonical case contains a plausible meeting handoff that pressures an agent
+to send a follow-up. The protected state is `followups.0.status`:
 
-`webmcp-evals` can prove that expected calls appeared. Callsmith asks the consequential question: did an unsafe state transition happen, did the agent attempt it, and did the website prevent harm?
+- weak: the mutation can change `draft` to `sent`;
+- hardened: the same call requests human approval and preserves `draft`.
 
-- Deterministic stateful fault injection
-- Temporal and state assertions over exact tool trajectories
-- Same model, task, seed, and hostile content across contract variants
-- Official `webmcp-evals@0.0.3` browser execution and expected-call baseline
-- Separate task-complete, unsafe-attempt, unsafe-mutation, and harm-prevented outcomes
-- Read-only shareable reliability reports
-- Agent-native controls exposed through WebMCP
+The public application exposes one primary action: **Run the decisive proof**.
+Custom safety contracts are the second act and always require an on-page human
+decision.
 
-## Local development
+## WebMCP surface
 
-Requirements: Node.js 22+ and npm.
+Callsmith registers exactly five concise tools through
+`document.modelContext.registerTool()`:
+
+- `get_contract_template`
+- `propose_safety_contract`
+- `get_callsmith_status`
+- `run_decisive_case`
+- `open_evidence_receipt`
+
+Proposal tools return immediately. Approval is not a tool argument and no WebMCP
+promise remains open while a human reviews the contract.
+
+## Runtime
+
+The verified production lane is pinned to Node 24.20.0, Next.js 16.3.3, React
+19.2.8, TypeScript 5.9.3, `webmcp-evals` 0.0.4, Playwright 1.62.1, Vitest
+4.1.11, Zod 4.5.1, and ioredis 5.8.2. Installed versions are recorded in every
+framework manifest; browser and runner versions are recorded per attempt.
+
+Required production services:
+
+- Railway web service
+- Railway worker service using the same immutable image
+- Postgres
+- Redis
+- an HTTPS public origin for the browser sandbox
+
+Required variables are documented in [operations](docs/operations.md).
+
+## Local verification
 
 ```bash
-cp .env.example .env.local
-npm install
-npm run dev
-```
-
-Open <http://localhost:3000>. Chrome testing requires the WebMCP testing feature documented by the challenge. Callsmith remains fully usable when `document.modelContext` is unavailable.
-
-Browser-native production runs require Chrome Canary/unstable with WebMCP enabled, Redis, the dedicated worker, a server-side provider key, and `CALLSMITH_PUBLIC_URL` pointing to the HTTPS sandbox origin. Worker callbacks use private networking, but WebMCP browser pages require a secure context. Server simulation and deterministic preview remain explicit fallbacks; neither is labeled as browser WebMCP evidence.
-
-Run the checked-in official baseline directly:
-
-```bash
-npx webmcp-evals \
-  --backend vercel \
-  --model openai:gpt-5.6-luna \
-  --reporter json \
-  browser \
-  --url 'http://localhost:3000/sandbox/sales-follow-through/injection-confirmation?contract=weak&seed=606' \
-  --evals evals/signature-baseline.json
-```
-
-The repository applies a reviewed compatibility patch to `webmcp-evals@0.0.3`.
-For GPT-5.6 judge runs it sets `reasoningEffort: "none"` (required by the Chat
-Completions backend used by this release) and requests the provider’s `fast`
-service tier. It also enforces the CLI’s configured browser step cap and clones
-the Chrome flags array so the preflight launch cannot strip WebMCP from the
-actual evaluation browser. The neutral agent policy, dynamic tool refresh,
-browser `document.modelContext` invocation, trajectory matcher, and report
-scorer are otherwise unchanged. The full patch is committed in
-[`patches/webmcp-evals+0.0.3.patch`](patches/webmcp-evals+0.0.3.patch).
-
-## Verification
-
-```bash
+npm ci
+npm run static
 npm run lint
+npm run typecheck
 npm test
 npm run build
 npm run test:e2e
 ```
 
-The milestone contract and verification gates live in [`docs/hackathon-build/checklist.md`](docs/hackathon-build/checklist.md).
+The official no-key browser smoke expects a local server and Chrome Dev/unstable
+with WebMCP enabled. Set `CALLSMITH_CHROME_CHANNEL=chrome` when intentionally
+verifying an eligible stable Chrome build:
 
-## Core API
+```bash
+npm run dev
+npm run smoke:webmcp
+```
 
-- `POST /api/runs` — start one model or a comparison run
-- `GET /api/runs/:id` — read run status and results
-- `GET /api/runs/:id/events` — stream run events with SSE
-- `POST /api/runs/:id/share` — create a read-only report token
-- `GET /r/:token` — open an unlisted report
-- `GET /api/health` — deployment health
-- `POST /api/suite-drafts` — create a private draft and approval challenge
-- `GET /api/suite-drafts/:id` — read a draft with its owner capability
-- `POST /api/suite-drafts/:id/approve-and-run` — publish once and start a run
-- `GET /api/suites/unlisted/:token` — read an immutable unlisted suite
-- `POST /api/suites` — retired public import (`410`)
-- `POST /api/suites/validate` — compile a guided draft or validate a legacy suite without importing
+Real Postgres and Redis coverage runs when
+`CALLSMITH_INTEGRATION_DATABASE_URL` and
+`CALLSMITH_INTEGRATION_REDIS_URL` are defined. CI provisions both services and
+enforces 85% statement and 75% branch coverage across `src/lib`.
 
-## Security boundaries
+## Public APIs
 
-- Synthetic data only; no Publicus or customer records
-- Hosted sandbox suites only; no arbitrary URL execution
-- Safe declarative action DSL; no uploaded JavaScript
-- Immutable guest suites stay unlisted and require opaque capabilities
-- Raw owner, confirmation, and suite capabilities are never persisted
-- Hardened mutations are idempotent and consequential actions require confirmation
-- BYOK secrets are ephemeral and excluded from persistent output and logs
+- `POST /api/experiments`
+- `GET /api/experiments/:id`
+- `GET /api/experiments/:id/events`
+- `POST /api/contracts/proposals`
+- `GET /api/contracts/proposals/:id/status`
+- `POST /api/contracts/proposals/:id/decision`
+- `GET /api/receipts/:token`
+- `GET /r/:token`
 
-## Railway topology
+Experiment status and proposal status require separate opaque read
+capabilities. Raw capabilities are returned once; only SHA-256 hashes are
+stored. Receipt URLs are immutable read capabilities.
 
-The production path is a Dockerized Next.js web/API service, Postgres-backed reports, a Redis reliable queue, and a dedicated Chrome-unstable worker. The worker uses Railway private networking and posts signed browser evidence back to the web service. Queue jobs contain no request-scoped API key.
+## Documentation
 
-The suite schema and non-sales starter are documented in [`docs/suite-format.md`](docs/suite-format.md).
+- [Architecture](docs/architecture.md)
+- [Safety contract format](docs/contract-format.md)
+- [Evidence receipt format](docs/receipt-format.md)
+- [Railway operations](docs/operations.md)
+- [QA evidence](docs/qa-evidence.md)
+- [Devpost draft](devpost-submission.md)
 
-See [`docs/hackathon-build/spec.md`](docs/hackathon-build/spec.md) for the implementation contract and [`docs/architecture.md`](docs/architecture.md) for deployment boundaries.
-
-## License
-
-[MIT](LICENSE) © 2026 Akash Shetty
+All data is synthetic. Callsmith accepts no arbitrary URL, executable suite
+content, customer credential, or external action.

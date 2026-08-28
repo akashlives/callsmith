@@ -14,7 +14,7 @@ export type JsonSchema = {
   [keyword: string]: unknown;
 };
 
-export type WebMcpToolAnnotations = {
+type WebMcpToolAnnotations = {
   readOnlyHint?: boolean;
   untrustedContentHint?: boolean;
 };
@@ -57,15 +57,11 @@ export type WebMcpRegistration = {
   unregister: () => void;
 };
 
-export function getModelContext(
+function getModelContext(
   target: Document | undefined =
     typeof document === "undefined" ? undefined : document,
 ): ModelContextLike | undefined {
   return (target as DocumentWithModelContext | undefined)?.modelContext;
-}
-
-export function isWebMcpSupported(target?: Document): boolean {
-  return Boolean(getModelContext(target));
 }
 
 /**

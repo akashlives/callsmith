@@ -1,38 +1,26 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { compileGuidedSuiteDraft } from "../../src/lib/suite-compiler";
-import supportFixture from "../fixtures/guided-suite/support.json" with { type: "json" };
+import { CANONICAL_SAFETY_CONTRACT } from "../../src/lib/canonical-contract";
 
-const liveDeployment = Boolean(process.env.PLAYWRIGHT_BASE_URL);
-
-type BrowserToolResult = {
-  content: Array<{ type: string; text: string }>;
-};
-
+type BrowserToolResult = { content: Array<{ type: string; text: string }> };
 type BrowserTool = {
+  name: string;
+  inputSchema: { properties?: Record<string, unknown> };
   execute: (
     input: Record<string, unknown>,
-    options: { signal: AbortSignal },
+    options?: { signal: AbortSignal },
   ) => Promise<BrowserToolResult> | BrowserToolResult;
 };
-
-type ToolTestWindow = Window & {
-  __callsmithTools: Record<string, BrowserTool>;
-  __callsmithToolRun?: {
-    controller: AbortController;
-    result: Promise<BrowserToolResult>;
-  };
-};
+type ToolWindow = Window & { __callsmithTools: Record<string, BrowserTool> };
 
 async function installWebMcpHarness(page: Page) {
   await page.addInitScript(() => {
     const tools: Record<string, BrowserTool> = {};
-    const testWindow = window as unknown as ToolTestWindow;
-    testWindow.__callsmithTools = tools;
+    (window as unknown as ToolWindow).__callsmithTools = tools;
     Object.defineProperty(document, "modelContext", {
       configurable: true,
       value: Object.assign(new EventTarget(), {
-        registerTool(tool: BrowserTool & { name: string }) {
+        registerTool(tool: BrowserTool) {
           tools[tool.name] = tool;
         },
       }),
@@ -40,209 +28,206 @@ async function installWebMcpHarness(page: Page) {
   });
 }
 
-async function startAuthoringTool(page: Page, id: string) {
-  await page.evaluate(
-    ({ fixture, suiteId }) => {
-      const testWindow = window as unknown as ToolTestWindow;
-      const tool = testWindow.__callsmithTools.draft_and_run_suite;
-      if (!tool) throw new Error("draft_and_run_suite was not registered");
-      const controller = new AbortController();
-      testWindow.__callsmithToolRun = {
-        controller,
-        result: Promise.resolve(
-          tool.execute({ ...fixture, id: suiteId }, { signal: controller.signal }),
-        ),
-      };
+async function callTool(
+  page: Page,
+  name: string,
+  input: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  return page.evaluate(
+    async ({ toolName, args }) => {
+      const tool = (window as unknown as ToolWindow).__callsmithTools[toolName];
+      if (!tool) throw new Error(`${toolName} was not registered`);
+      const result = await tool.execute(args, {
+        signal: new AbortController().signal,
+      });
+      return JSON.parse(result.content[0].text) as Record<string, unknown>;
     },
-    { fixture: supportFixture, suiteId: id },
+    { toolName: name, args: input },
   );
 }
 
-async function toolResult(page: Page) {
-  const result = await page.evaluate(async () => {
-    const run = (window as unknown as ToolTestWindow).__callsmithToolRun;
-    if (!run) throw new Error("No authoring tool run is pending");
-    return run.result;
-  });
-  return JSON.parse(result.content[0].text) as Record<string, unknown>;
+function proposalResponse() {
+  return {
+    operation: {
+      operationId: "proposal-browser",
+      status: "awaiting_review",
+      expiresAt: "2026-08-28T23:00:00.000Z",
+    },
+    review: {
+      draft: CANONICAL_SAFETY_CONTRACT,
+      protectedState: {
+        path: "followups.0.status",
+        safeValue: "draft",
+        unsafeValue: "sent",
+      },
+      prompt: CANONICAL_SAFETY_CONTRACT.goal,
+      expectedCalls: [
+        { toolName: "read_meeting_note", args: { record_id: "followup-001" } },
+        { toolName: "send_followup", args: { record_id: "followup-001" } },
+      ],
+    },
+    privateCapabilities: {
+      ownerToken: "owner-browser-private",
+      decisionToken: "decision-browser-private",
+    },
+    statusCapability: "status-browser-read",
+    links: {
+      status: "/api/contracts/proposals/proposal-browser/status",
+      decision: "/api/contracts/proposals/proposal-browser/decision",
+    },
+  };
 }
 
-test("browser WebMCP authoring remains behind the human confirmation boundary", async ({
-  page,
-}, testInfo) => {
-  test.skip(liveDeployment, "Staging Browser Use owns the live authoring acceptance gate.");
+test.beforeEach(async ({ page }) => {
   await installWebMcpHarness(page);
+});
 
-  let mode: "normal" | "approval" | "stale" = "normal";
-  const apiCalls: string[] = [];
-  await page.route("**/api/suite-drafts**", async (route) => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname;
-    apiCalls.push(path);
-    if (path === "/api/suite-drafts") {
-      const body = request.postDataJSON() as { draft: typeof supportFixture };
-      const candidateSuite = compileGuidedSuiteDraft(body.draft);
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify({
-          draft: {
-            id: "draft-browser-e2e",
-            status: "awaiting_confirmation",
-            candidateSuite,
-          },
-          ownerToken: "cs_owner_browser_private",
-          confirmationToken: "cs_confirm_browser_private",
-          confirmationExpiresAt: new Date(
-            Date.now() + (mode === "stale" ? -1_000 : 60_000),
-          ).toISOString(),
-          links: {
-            approveAndRun:
-              "/api/suite-drafts/draft-browser-e2e/approve-and-run",
-            reject: "/api/suite-drafts/draft-browser-e2e/reject",
-          },
-        }),
-      });
-      return;
-    }
-    if (path.endsWith("/approve-and-run")) {
-      expect(mode).toBe("approval");
-      expect(request.headers().authorization).toBe(
-        "Bearer cs_owner_browser_private",
-      );
-      expect(request.headers()["x-callsmith-confirmation-token"]).toBe(
-        "cs_confirm_browser_private",
-      );
-      // Keep the approving state observable in both desktop and mobile while
-      // the double click proves that only one mutation request can escape.
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await route.fulfill({
-        status: 202,
-        contentType: "application/json",
-        body: JSON.stringify({
-          run: { id: "run-browser-human-approved", status: "queued" },
-          report: {
-            token: "browser-agent-report-token-123456",
-            path: "/r/browser-agent-report-token-123456",
-            url: "http://callsmith.test/r/browser-agent-report-token-123456",
-            readOnly: true,
-            status: "queued",
-            evidenceStatus: "pending",
-          },
-        }),
-      });
-      return;
-    }
-    if (path.endsWith("/reject")) {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ rejected: true, runCreated: false }),
-      });
-      return;
-    }
-    await route.abort();
+test("proposal returns immediately and rejection creates no experiment", async ({ page }) => {
+  await page.route("**/api/contracts/proposals", (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify(proposalResponse()),
+    }),
+  );
+  await page.route("**/api/contracts/proposals/proposal-browser/decision", async (route) => {
+    expect(route.request().headers().authorization).toBe(
+      "Bearer decision-browser-private",
+    );
+    expect(route.request().postDataJSON()).toEqual({ decision: "reject" });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        operation: { status: "rejected" },
+        experiment: null,
+      }),
+    });
   });
 
   await page.goto("/");
   await page.waitForFunction(
-    () =>
-      Boolean(
-        (window as unknown as ToolTestWindow).__callsmithTools
-          .draft_and_run_suite,
-      ),
+    () => Object.keys((window as unknown as ToolWindow).__callsmithTools).length === 5,
   );
+  const toolNames = await page.evaluate(() =>
+    Object.keys((window as unknown as ToolWindow).__callsmithTools),
+  );
+  expect(toolNames).toEqual([
+    "get_contract_template",
+    "propose_safety_contract",
+    "get_callsmith_status",
+    "run_decisive_case",
+    "open_evidence_receipt",
+  ]);
+  const schemaHasApproval = await page.evaluate(() =>
+    Object.hasOwn(
+      (window as unknown as ToolWindow).__callsmithTools.propose_safety_contract
+        .inputSchema.properties ?? {},
+      "approved",
+    ),
+  );
+  expect(schemaHasApproval).toBe(false);
 
-  const fabricated = await page.evaluate(async (fixture) => {
-    const tool = (window as unknown as ToolTestWindow).__callsmithTools
-      .draft_and_run_suite;
-    const result = await tool.execute(
-      { ...fixture, id: "browser-fabricated-approval", approved: true },
-      { signal: new AbortController().signal },
-    );
-    return JSON.parse(result.content[0].text) as Record<string, unknown>;
-  }, supportFixture);
-  expect(fabricated).toMatchObject({
-    ok: false,
-    status: "invalid_request",
-    code: "invalid_draft",
-  });
-  expect(apiCalls).toHaveLength(0);
-
-  mode = "normal";
-  await startAuthoringTool(
+  const result = await callTool(
     page,
-    `browser-reject-${testInfo.project.name.replace(/[^a-z0-9]+/g, "-")}`,
+    "propose_safety_contract",
+    CANONICAL_SAFETY_CONTRACT as unknown as Record<string, unknown>,
   );
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toContainText("Hostile content fixture");
-  await expect(dialog).toContainText("Protected state boundary");
-  await expect(dialog).toContainText("Confirmation required");
-  await expect(dialog).toContainText("Derived assertions");
-  await page.getByRole("button", { name: "Reject suite" }).click();
-  expect(await toolResult(page)).toMatchObject({
-    ok: false,
-    status: "rejected",
-    code: "human_rejected",
-  });
-  expect(apiCalls.filter((path) => path.endsWith("/approve-and-run"))).toHaveLength(0);
-
-  mode = "approval";
-  await startAuthoringTool(
-    page,
-    `browser-approve-${testInfo.project.name.replace(/[^a-z0-9]+/g, "-")}`,
-  );
-  await expect(dialog).toBeVisible();
-  await page.getByRole("button", { name: "Approve suite" }).dblclick();
-  await expect(page.getByRole("button", { name: "Approving…" })).toBeDisabled();
-  expect(await toolResult(page)).toMatchObject({
+  expect(result).toMatchObject({
     ok: true,
-    status: "approved",
-    run: {
-      runId: "run-browser-human-approved",
-      runStatus: "queued",
-      reportPath: "/r/browser-agent-report-token-123456",
+    operationId: "proposal-browser",
+    status: "awaiting_review",
+    statusCapability: "status-browser-read",
+  });
+  expect(JSON.stringify(result)).not.toContain("decision-browser-private");
+  expect(JSON.stringify(result)).not.toContain("owner-browser-private");
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText(CANONICAL_SAFETY_CONTRACT.record.hostileContent);
+  await expect(dialog).toContainText("followups.0.status");
+  const form = dialog.locator("form");
+  await expect(form).toHaveAttribute("toolname", "review_callsmith_contract");
+  await expect(form).not.toHaveAttribute("toolautosubmit");
+
+  await page.getByRole("button", { name: "Reject" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Rejected. No experiment was created.",
+  );
+});
+
+test("approval is human-only, queues once, and becomes visible to status polling", async ({
+  page,
+}) => {
+  await page.route("**/api/contracts/proposals", (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: "application/json",
+      body: JSON.stringify(proposalResponse()),
+    }),
+  );
+  let decisions = 0;
+  await page.route("**/api/contracts/proposals/proposal-browser/decision", async (route) => {
+    decisions += 1;
+    expect(route.request().postDataJSON()).toEqual({ decision: "approve" });
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify({
+        operation: { status: "approved", experimentId: "experiment-approved" },
+        experiment: { id: "experiment-approved", status: "queued" },
+        privateCapabilities: {
+          accessToken: "experiment-read",
+          receiptToken: "receipt-approved",
+        },
+        links: {
+          receipt: "/r/receipt-approved",
+          status: "/api/experiments/experiment-approved",
+          events: "/api/experiments/experiment-approved/events",
+        },
+      }),
+    });
+  });
+  await page.route("**/api/contracts/proposals/proposal-browser/status", async (route) => {
+    expect(route.request().headers().authorization).toBe("Bearer status-browser-read");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        operationId: "proposal-browser",
+        status: "approved",
+        experimentId: "experiment-approved",
+      }),
+    });
+  });
+
+  await page.goto("/");
+  await page.waitForFunction(
+    () => Boolean((window as unknown as ToolWindow).__callsmithTools.propose_safety_contract),
+  );
+  await callTool(
+    page,
+    "propose_safety_contract",
+    CANONICAL_SAFETY_CONTRACT as unknown as Record<string, unknown>,
+  );
+  const approve = page.getByRole("button", { name: "Approve and run" });
+  await approve.dblclick();
+  await expect(page.getByRole("status")).toContainText(
+    "Approved. The experiment was queued.",
+  );
+  expect(decisions).toBe(1);
+
+  const status = await callTool(page, "get_callsmith_status", {
+    kind: "proposal",
+    operation_id: "proposal-browser",
+    capability: "status-browser-read",
+  });
+  expect(status).toMatchObject({
+    ok: true,
+    approvedExperiment: {
+      experimentId: "experiment-approved",
+      statusCapability: "experiment-read",
+      receiptToken: "receipt-approved",
+      receiptPath: "/r/receipt-approved",
     },
   });
-  expect(apiCalls.filter((path) => path.endsWith("/approve-and-run"))).toHaveLength(1);
-
-  mode = "normal";
-  await startAuthoringTool(
-    page,
-    `browser-abort-${testInfo.project.name.replace(/[^a-z0-9]+/g, "-")}`,
-  );
-  await expect(dialog).toBeVisible();
-  await page.evaluate(() =>
-    (window as unknown as ToolTestWindow).__callsmithToolRun?.controller.abort(),
-  );
-  expect(await toolResult(page)).toMatchObject({
-    ok: false,
-    status: "aborted",
-    code: "request_aborted",
-  });
-
-  await startAuthoringTool(
-    page,
-    `browser-navigation-${testInfo.project.name.replace(/[^a-z0-9]+/g, "-")}`,
-  );
-  await expect(dialog).toBeVisible();
-  await page.evaluate(() => window.dispatchEvent(new Event("pagehide")));
-  expect(await toolResult(page)).toMatchObject({
-    ok: false,
-    status: "aborted",
-    code: "navigation",
-  });
-
-  mode = "stale";
-  await startAuthoringTool(
-    page,
-    `browser-stale-${testInfo.project.name.replace(/[^a-z0-9]+/g, "-")}`,
-  );
-  expect(await toolResult(page)).toMatchObject({
-    ok: false,
-    status: "stale_draft",
-    code: "stale_draft",
-  });
-  expect(apiCalls.filter((path) => path.endsWith("/approve-and-run"))).toHaveLength(1);
-  expect(apiCalls.filter((path) => path.endsWith("/reject")).length).toBeGreaterThanOrEqual(4);
 });

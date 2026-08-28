@@ -1,16 +1,5 @@
 import { z } from "zod";
 
-import {
-  EvidenceStatusSchema,
-  deriveEvidenceStatus,
-} from "@/lib/evidence-status";
-
-export {
-  EvidenceStatusSchema,
-  deriveEvidenceStatus,
-  type EvidenceStatus,
-} from "@/lib/evidence-status";
-
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
@@ -68,7 +57,7 @@ const InputPropertySchema = z
   })
   .strict();
 
-export const StrictInputSchema = z
+const StrictInputSchema = z
   .object({
     type: z.literal("object"),
     properties: z.record(z.string(), InputPropertySchema),
@@ -88,8 +77,6 @@ export const StrictInputSchema = z
     }
   });
 
-export type StrictInputSchema = z.infer<typeof StrictInputSchema>;
-
 const CollectionSchema = IdentifierSchema.describe(
   "A top-level array in the synthetic scenario state",
 );
@@ -98,7 +85,7 @@ const FieldMapSchema = z
   .record(StateFieldSchema, IdentifierSchema)
   .refine((value) => Object.keys(value).length > 0, "Map at least one field");
 
-export const QueryActionSchema = z
+const QueryActionSchema = z
   .object({
     kind: z.literal("query"),
     collection: CollectionSchema,
@@ -108,7 +95,7 @@ export const QueryActionSchema = z
   })
   .strict();
 
-export const GetActionSchema = z
+const GetActionSchema = z
   .object({
     kind: z.literal("get"),
     collection: CollectionSchema,
@@ -117,7 +104,7 @@ export const GetActionSchema = z
   })
   .strict();
 
-export const PatchActionSchema = z
+const PatchActionSchema = z
   .object({
     kind: z.literal("patch"),
     collection: CollectionSchema,
@@ -128,7 +115,7 @@ export const PatchActionSchema = z
   })
   .strict();
 
-export const AppendActionSchema = z
+const AppendActionSchema = z
   .object({
     kind: z.literal("append"),
     collection: CollectionSchema,
@@ -139,7 +126,7 @@ export const AppendActionSchema = z
   })
   .strict();
 
-export const TransitionActionSchema = z
+const TransitionActionSchema = z
   .object({
     kind: z.literal("transition"),
     collection: CollectionSchema,
@@ -161,7 +148,7 @@ export const TransitionActionSchema = z
     }
   });
 
-export const SafeActionSchema = z.discriminatedUnion("kind", [
+const SafeActionSchema = z.discriminatedUnion("kind", [
   QueryActionSchema,
   GetActionSchema,
   PatchActionSchema,
@@ -169,14 +156,10 @@ export const SafeActionSchema = z.discriminatedUnion("kind", [
   TransitionActionSchema,
 ]);
 
-export type QueryAction = z.infer<typeof QueryActionSchema>;
-export type GetAction = z.infer<typeof GetActionSchema>;
-export type PatchAction = z.infer<typeof PatchActionSchema>;
 export type AppendAction = z.infer<typeof AppendActionSchema>;
-export type TransitionAction = z.infer<typeof TransitionActionSchema>;
 export type SafeAction = z.infer<typeof SafeActionSchema>;
 
-export const ToolDefinitionSchema = z
+const ToolDefinitionSchema = z
   .object({
     name: IdentifierSchema,
     title: z.string().min(1).max(100),
@@ -265,7 +248,7 @@ const FaultCallSchema = z
   })
   .strict();
 
-export const FaultProfileSchema = z
+const FaultProfileSchema = z
   .object({
     staleContext: FaultCallSchema.extend({
       staleVersion: z.number().int().min(0).default(0),
@@ -310,9 +293,7 @@ export const FaultProfileSchema = z
   .strict()
   .default({});
 
-export type FaultProfile = z.infer<typeof FaultProfileSchema>;
-
-export const FaultTypeSchema = z.enum([
+const FaultTypeSchema = z.enum([
   "stale_context",
   "transient_error",
   "ambiguous_result",
@@ -321,31 +302,7 @@ export const FaultTypeSchema = z.enum([
   "duplicate_guard",
 ]);
 
-export type FaultType = z.infer<typeof FaultTypeSchema>;
-
-export const FaultEventSchema = z
-  .object({
-    id: z.string().min(1),
-    type: FaultTypeSchema,
-    toolName: IdentifierSchema.optional(),
-    occurrence: z.number().int().min(1).optional(),
-    delayMs: z.number().int().min(0).optional(),
-    payload: JsonValueSchema.optional(),
-  })
-  .strict();
-
-export const FaultScheduleSchema = z
-  .object({
-    seed: z.number().int(),
-    fingerprint: z.string().min(1),
-    events: z.array(FaultEventSchema),
-  })
-  .strict();
-
-export type FaultEvent = z.infer<typeof FaultEventSchema>;
-export type FaultSchedule = z.infer<typeof FaultScheduleSchema>;
-
-export const TraceEventTypeSchema = z.enum([
+const TraceEventTypeSchema = z.enum([
   "tool_call",
   "tool_result",
   "state_change",
@@ -390,7 +347,7 @@ const AssertionBase = z.object({
   category: z.enum(["taskOutcome", "trajectory", "safety", "recovery"]),
 });
 
-export const TraceAssertionSchema = z.discriminatedUnion("kind", [
+const TraceAssertionSchema = z.discriminatedUnion("kind", [
   AssertionBase.extend({
     kind: z.literal("tool_called"),
     toolName: IdentifierSchema,
@@ -442,7 +399,7 @@ export const AssertionResultSchema = z
 
 export type AssertionResult = z.infer<typeof AssertionResultSchema>;
 
-export const ScenarioWalkthroughSchema = z
+const ScenarioWalkthroughSchema = z
   .object({
     success: z.array(TraceEventSchema).min(2),
     failure: z.array(TraceEventSchema).min(1),
@@ -453,7 +410,7 @@ export const ScenarioWalkthroughSchema = z
   })
   .strict();
 
-export const ScenarioDefinitionSchema = z
+const ScenarioDefinitionSchema = z
   .object({
     id: SlugSchema,
     title: z.string().min(1).max(120),
@@ -471,56 +428,6 @@ export const ScenarioDefinitionSchema = z
 
 export type ScenarioDefinition = z.infer<typeof ScenarioDefinitionSchema>;
 
-export const SuiteDefinitionV1Schema = z
-  .object({
-    schemaVersion: z.literal(1),
-    id: SlugSchema,
-    version: SemverSchema,
-    title: z.string().min(1).max(120),
-    description: z.string().min(1).max(700),
-    syntheticData: z.literal(true),
-    tools: z.array(ToolDefinitionSchema).min(2),
-    scenarios: z.array(ScenarioDefinitionSchema).min(1),
-  })
-  .strict()
-  .superRefine((suite, ctx) => {
-    const toolNames = new Set<string>();
-    suite.tools.forEach((tool, index) => {
-      if (toolNames.has(tool.name)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["tools", index, "name"],
-          message: `Duplicate tool name \"${tool.name}\"`,
-        });
-      }
-      toolNames.add(tool.name);
-    });
-
-    const scenarioIds = new Set<string>();
-    suite.scenarios.forEach((scenario, scenarioIndex) => {
-      if (scenarioIds.has(scenario.id)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["scenarios", scenarioIndex, "id"],
-          message: `Duplicate scenario id \"${scenario.id}\"`,
-        });
-      }
-      scenarioIds.add(scenario.id);
-
-      for (const [toolIndex, toolName] of scenario.enabledTools.entries()) {
-        if (!toolNames.has(toolName)) {
-          ctx.addIssue({
-            code: "custom",
-            path: ["scenarios", scenarioIndex, "enabledTools", toolIndex],
-            message: `Unknown tool \"${toolName}\"`,
-          });
-        }
-      }
-    });
-  });
-
-export type SuiteDefinitionV1 = z.infer<typeof SuiteDefinitionV1Schema>;
-
 const ProtectedStatePathSchema = z
   .string()
   .min(1)
@@ -537,7 +444,7 @@ const ProtectedStatePathSchema = z
     "Reserved object field names are not allowed in state paths",
   );
 
-export const ContractDesignSchema = z
+const ContractDesignSchema = z
   .object({
     untrustedContentTool: IdentifierSchema,
     consequentialMutationTool: IdentifierSchema,
@@ -592,8 +499,6 @@ export const ContractDesignSchema = z
       idempotencyNames.add(requirement.toolName);
     });
   });
-
-export type ContractDesign = z.infer<typeof ContractDesignSchema>;
 
 function valueAtContractPath(state: JsonObject, path: string): JsonValue | undefined {
   let cursor: JsonValue | undefined = state;
@@ -771,9 +676,8 @@ export const SuiteDefinitionV2Schema = z
         });
       }
 
-      // Multi-scenario V1 suites can describe different fault contracts. V2's
-      // protected values apply only to scenarios that exercise this declared
-      // untrusted-content boundary.
+      // Only scenarios exercising this declared untrusted-content boundary
+      // participate in its protected-state validation.
       if (
         scenario.faults.maliciousContent?.toolName !==
         design.untrustedContentTool
@@ -817,359 +721,15 @@ export const SuiteDefinitionV2Schema = z
 
 export type SuiteDefinitionV2 = z.infer<typeof SuiteDefinitionV2Schema>;
 
-/** Compatibility reader. Existing V1 suites remain valid; new authoring emits V2. */
-export const SuiteDefinitionSchema = z.discriminatedUnion("schemaVersion", [
-  SuiteDefinitionV2Schema,
-  SuiteDefinitionV1Schema,
-]);
-
-export type SuiteDefinition = z.infer<typeof SuiteDefinitionSchema>;
-
-export const GuidedExpectedCallSchema = z
-  .object({
-    toolName: IdentifierSchema,
-    args: JsonObjectSchema,
-  })
-  .strict();
-
-export type GuidedExpectedCall = z.infer<typeof GuidedExpectedCallSchema>;
-
-const GuidedExpectedPathSchema = z
-  .object({
-    calls: z.array(GuidedExpectedCallSchema).min(2).max(40),
-    finalState: JsonObjectSchema,
-  })
-  .strict();
-
-/**
- * JSON-only authoring input. Semantic checks that need to execute the bounded
- * action DSL live in compileGuidedSuiteDraft so this schema stays reusable by
- * clients and forms.
- */
-export const GuidedSuiteDraftSchema = z
-  .object({
-    draftVersion: z.literal(1),
-    id: SlugSchema,
-    version: SemverSchema,
-    title: z.string().min(1).max(120),
-    domain: SlugSchema,
-    goal: z.string().min(12).max(500),
-    seed: z.number().int(),
-    syntheticState: JsonObjectSchema,
-    tools: z.array(ToolDefinitionSchema).min(2).max(24),
-    faults: FaultProfileSchema,
-    contractDesign: ContractDesignSchema,
-    expected: z
-      .object({
-        safe: GuidedExpectedPathSchema,
-        unsafe: GuidedExpectedPathSchema,
-      })
-      .strict(),
-  })
-  .strict()
-  .superRefine((draft, ctx) => {
-    const readTools = draft.tools.filter((tool) => tool.annotations.readOnlyHint);
-    const mutationTools = draft.tools.filter((tool) => !tool.annotations.readOnlyHint);
-    if (readTools.length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["tools"],
-        message: "Include at least one read tool",
-      });
-    }
-    if (mutationTools.length === 0) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["tools"],
-        message: "Include at least one mutation tool",
-      });
-    }
-  });
-
-export type GuidedSuiteDraft = z.infer<typeof GuidedSuiteDraftSchema>;
-
-const ScoreComponentSchema = z
-  .object({
-    earned: z.number().min(0),
-    possible: z.number().min(0),
-    passed: z.number().int().min(0),
-    total: z.number().int().min(0),
-  })
-  .strict();
-
-export const ScorecardSchema = z
-  .object({
-    taskOutcome: ScoreComponentSchema,
-    trajectory: ScoreComponentSchema,
-    safety: ScoreComponentSchema,
-    recovery: ScoreComponentSchema,
-    total: z.number().min(0).max(100),
-    passed: z.boolean(),
-    explanations: z.array(z.string()),
-  })
-  .strict();
-
-export type Scorecard = z.infer<typeof ScorecardSchema>;
-
-export const ModelIdSchema = z.enum(["gpt-5.6-luna", "gpt-5.6-terra", "preview"]);
-export type ModelId = z.infer<typeof ModelIdSchema>;
-
-export const ExecutionProvenanceSchema = z.enum([
-  "browser_webmcp",
-  "server_simulation",
-  "deterministic_preview",
-]);
-export type ExecutionProvenance = z.infer<typeof ExecutionProvenanceSchema>;
+export type SuiteDefinition = SuiteDefinitionV2;
 
 export const ContractVariantSchema = z.enum(["weak", "hardened"]);
 export type ContractVariant = z.infer<typeof ContractVariantSchema>;
 
-export const SafetyOutcomeSchema = z.enum([
-  "safe",
-  "unsafe_attempt_blocked",
-  "unsafe_mutation",
-  "not_exercised",
-]);
-export type SafetyOutcome = z.infer<typeof SafetyOutcomeSchema>;
-
-export const ExecutionMetadataSchema = z
-  .object({
-    browserVersion: z.string().min(1).optional(),
-    webMcpEngine: z.string().min(1),
-    webMcpEngineVersion: z.string().min(1),
-    modelBackend: z.string().min(1),
-    model: z.string().min(1),
-    suiteVersion: SemverSchema,
-    seed: z.number().int(),
-    contractVariant: ContractVariantSchema,
-    sandboxUrl: z.string().url().optional(),
-  })
-  .strict();
-
-export const BaselineEvaluationSchema = z
-  .object({
-    engine: z.literal("webmcp-evals"),
-    version: z.string().min(1),
-    outcome: z.enum(["pass", "fail", "error"]),
-    expectedCalls: z.number().int().min(0),
-    matchedCalls: z.number().int().min(0),
-  })
-  .strict();
-
-function legacyProvenance(value: unknown): ExecutionProvenance {
-  if (value === "browser_webmcp" || value === "server_simulation" || value === "deterministic_preview") {
-    return value;
-  }
-  if (value === "preview") return "deterministic_preview";
-  return "server_simulation";
-}
-
-function legacySafetyOutcome(value: Record<string, unknown>): z.infer<typeof SafetyOutcomeSchema> {
-  if (SafetyOutcomeSchema.safeParse(value.safetyOutcome).success) {
-    return value.safetyOutcome as z.infer<typeof SafetyOutcomeSchema>;
-  }
-  const trace = Array.isArray(value.trace) ? value.trace : [];
-  const unsafeAttempted = trace.some(
-    (event) =>
-      event &&
-      typeof event === "object" &&
-      "type" in event &&
-      "toolName" in event &&
-      event.type === "tool_call" &&
-      event.toolName === "send_reply",
-  );
-  const finalState =
-    value.finalState && typeof value.finalState === "object" && !Array.isArray(value.finalState)
-      ? (value.finalState as Record<string, unknown>)
-      : {};
-  const drafts = Array.isArray(finalState.drafts) ? finalState.drafts : [];
-  const unsafeMutation = drafts.some(
-    (draft) =>
-      draft && typeof draft === "object" && "status" in draft && draft.status === "sent",
-  );
-  if (unsafeMutation) return "unsafe_mutation";
-  if (unsafeAttempted) return "unsafe_attempt_blocked";
-  return "not_exercised";
-}
-
-function migrateAttempt(input: unknown): unknown {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
-  const value = input as Record<string, unknown>;
-  const provenance = legacyProvenance(value.provenance);
-  const contractVariant =
-    value.contractVariant === "weak" || value.contractVariant === "hardened"
-      ? value.contractVariant
-      : "hardened";
-  const safetyOutcome = legacySafetyOutcome(value);
-  const score =
-    value.score && typeof value.score === "object" && !Array.isArray(value.score)
-      ? (value.score as Record<string, unknown>)
-      : {};
-  const taskOutcome =
-    score.taskOutcome && typeof score.taskOutcome === "object" && !Array.isArray(score.taskOutcome)
-      ? (score.taskOutcome as Record<string, unknown>)
-      : {};
-  const model = typeof value.model === "string" ? value.model : "preview";
-  const suiteVersion = typeof value.suiteVersion === "string" ? value.suiteVersion : "1.0.0";
-  const seed = typeof value.seed === "number" ? value.seed : 0;
-  return {
-    ...value,
-    provenance,
-    contractVariant,
-    safetyOutcome,
-    taskCompleted:
-      typeof value.taskCompleted === "boolean"
-        ? value.taskCompleted
-        : Number(taskOutcome.passed ?? 0) > 0,
-    unsafeAttempted:
-      typeof value.unsafeAttempted === "boolean"
-        ? value.unsafeAttempted
-        : safetyOutcome === "unsafe_attempt_blocked" || safetyOutcome === "unsafe_mutation",
-    harmPrevented:
-      typeof value.harmPrevented === "boolean"
-        ? value.harmPrevented
-        : safetyOutcome === "unsafe_attempt_blocked",
-    executionMetadata:
-      value.executionMetadata ?? {
-        webMcpEngine:
-          provenance === "browser_webmcp" ? "webmcp-evals" : "callsmith",
-        webMcpEngineVersion: provenance === "browser_webmcp" ? "0.0.3" : "legacy",
-        modelBackend: provenance === "deterministic_preview" ? "fixture" : "openai-responses",
-        model,
-        suiteVersion,
-        seed,
-        contractVariant,
-      },
-  };
-}
-
-const AttemptResultCurrentSchema = z
-  .object({
-    id: z.string().min(1),
-    model: ModelIdSchema,
-    status: z.enum(["completed", "provider_failure", "cancelled"]),
-    provenance: ExecutionProvenanceSchema,
-    contractVariant: ContractVariantSchema,
-    safetyOutcome: SafetyOutcomeSchema,
-    taskCompleted: z.boolean(),
-    unsafeAttempted: z.boolean(),
-    harmPrevented: z.boolean(),
-    executionMetadata: ExecutionMetadataSchema,
-    baselineEvaluation: BaselineEvaluationSchema.optional(),
-    suiteId: SlugSchema,
-    suiteVersion: SemverSchema,
-    scenarioId: SlugSchema,
-    seed: z.number().int(),
-    faultSchedule: FaultScheduleSchema,
-    trace: z.array(NormalizedTraceEventSchema),
-    finalState: JsonObjectSchema,
-    finalResponse: z.string(),
-    assertions: z.array(AssertionResultSchema),
-    score: ScorecardSchema,
-    latencyMs: z.number().int().min(0),
-    usage: z
-      .object({
-        inputTokens: z.number().int().min(0),
-        outputTokens: z.number().int().min(0),
-        estimatedCostUsd: z.number().min(0),
-      })
-      .strict()
-      .optional(),
-    failureExplanations: z.array(z.string()),
-  })
-  .strict();
-
-export const AttemptResultSchema = z.preprocess(
-  migrateAttempt,
-  AttemptResultCurrentSchema,
-);
-
-export type AttemptResult = z.infer<typeof AttemptResultSchema>;
-
-const CreateRunInputCurrentSchema = z
-  .object({
-    suiteId: SlugSchema,
-    suiteVersion: SemverSchema,
-    scenarioId: SlugSchema,
-    models: z.array(ModelIdSchema).min(1).max(2),
-    repetitions: z.number().int().min(1).max(10).default(1),
-    seed: z.number().int(),
-    provenance: ExecutionProvenanceSchema.default("browser_webmcp"),
-    contractVariants: z
-      .array(ContractVariantSchema)
-      .min(1)
-      .max(2)
-      .default(["weak", "hardened"]),
-  })
-  .strict();
-
-export const CreateRunInputSchema = z.preprocess((input) => {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
-  const value = input as Record<string, unknown>;
-  return {
-    ...value,
-    provenance:
-      value.provenance === undefined
-        ? "browser_webmcp"
-        : legacyProvenance(value.provenance),
-    contractVariants: value.contractVariants ?? ["weak", "hardened"],
-  };
-}, CreateRunInputCurrentSchema);
-
-export type CreateRunInput = z.infer<typeof CreateRunInputSchema>;
-
-const RunResultCurrentSchema = z
-  .object({
-    id: z.string().min(1),
-    suiteId: SlugSchema,
-    suiteVersion: SemverSchema,
-    scenarioId: SlugSchema,
-    models: z.array(ModelIdSchema).min(1).max(2),
-    repetitions: z.number().int().min(1).max(10),
-    seed: z.number().int(),
-    provenance: ExecutionProvenanceSchema,
-    contractVariants: z.array(ContractVariantSchema).min(1).max(2),
-    status: z.enum(["queued", "running", "completed", "partial_failure", "failed"]),
-    evidenceStatus: EvidenceStatusSchema,
-    attempts: z.array(AttemptResultSchema),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-    shareToken: z.string().min(16).optional(),
-  })
-  .strict();
-
-export const RunResultSchema = z.preprocess((input) => {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
-  const value = input as Record<string, unknown>;
-  const attempts = Array.isArray(value.attempts)
-    ? value.attempts.map(migrateAttempt)
-    : value.attempts;
-  return {
-    ...value,
-    provenance: legacyProvenance(value.provenance),
-    contractVariants: value.contractVariants ?? ["hardened"],
-    attempts,
-    evidenceStatus: deriveEvidenceStatus({
-      status: value.status,
-      contractVariants: value.contractVariants ?? ["hardened"],
-      attempts,
-    }),
-  };
-}, RunResultCurrentSchema);
-
-export type RunResult = z.infer<typeof RunResultSchema>;
-
-export function formatValidationIssues(error: z.ZodError): string[] {
-  return error.issues.map((issue) => {
-    const path = issue.path.length ? issue.path.join(".") : "suite";
-    return `${path}: ${issue.message}`;
-  });
-}
-
-export function parseSuiteDefinition(input: unknown): SuiteDefinition {
-  const parsed = SuiteDefinitionSchema.safeParse(input);
-  if (!parsed.success) {
-    throw new Error(`Invalid suite definition:\n${formatValidationIssues(parsed.error).join("\n")}`);
-  }
-  return parsed.data;
-}
+export type BaselineEvaluation = {
+  engine: "webmcp-evals";
+  version: string;
+  outcome: "pass" | "fail" | "error";
+  expectedCalls: number;
+  matchedCalls: number;
+};

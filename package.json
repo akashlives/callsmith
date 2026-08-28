@@ -12,14 +12,32 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "verify": "npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e",
+    "static": "knip && node scripts/check-reset.mjs",
+    "framework:manifest": "node scripts/framework-manifest.mjs",
+    "smoke:webmcp": "node scripts/run-official-smoke.mjs",
+    "verify": "npm run static && npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e",
     "typecheck": "tsc --noEmit"
+  },
+  "knip": {
+    "entry": [
+      "src/**/*.test.{ts,tsx}",
+      "tests/**/*.test.{ts,tsx}",
+      "tests/e2e/**/*.spec.ts"
+    ],
+    "project": [
+      "scripts/**/*.{mjs,js}",
+      "src/**/*.{ts,tsx}",
+      "tests/**/*.{ts,tsx}"
+    ],
+    "ignoreDependencies": [
+      "webmcp-evals",
+      "tailwindcss"
+    ]
   },
   "dependencies": {
     "ioredis": "5.8.2",
     "lucide-react": "1.35.0",
     "next": "16.3.3",
-    "openai": "^7.5.0",
     "postgres": "^3.4.9",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -39,6 +57,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
     "jsdom": "^29.1.1",
+    "knip": "6.33.0",
     "tailwindcss": "^4",
     "typescript": "5.9.3",
     "vitest": "^4.1.11"

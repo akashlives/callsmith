@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 
 import { getScenario, getSuite } from "@/lib/suites";
 import type { ContractVariant } from "@/lib/contracts";
-import { runStore } from "@/lib/run-store";
-import { suiteRepository } from "@/lib/suite-repository";
+import { experimentRepository } from "@/lib/experiment-repository";
 import { verifyWorkerSandboxAccess } from "@/lib/worker-sandbox-access";
 
 import { SandboxClient } from "./sandbox-client";
@@ -39,17 +38,14 @@ export default async function SandboxPage({
     );
     if (!authorized) notFound();
 
-    const run = await runStore.getPersistent(query.run ?? "");
+    const experiment = await experimentRepository.getInternal(query.run ?? "");
     if (
-      !run ||
-      run.suiteId !== suiteId ||
-      run.scenarioId !== scenarioId
+      !experiment ||
+      experiment.contractId !== suiteId
     ) {
       notFound();
     }
-    suite = (
-      await suiteRepository.getSuiteInternal(run.suiteId, run.suiteVersion)
-    )?.definition;
+    suite = await experimentRepository.getSuite(experiment.id);
   }
   const scenario =
     suite?.scenarios.find((candidate) => candidate.id === scenarioId) ??

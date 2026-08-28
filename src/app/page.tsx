@@ -1,37 +1,14 @@
 import { ArrowUpRight, Braces, GitCompareArrows, ShieldAlert } from "lucide-react";
 import Link from "next/link";
-import { connection } from "next/server";
 
-import { AgentJourney } from "@/components/agent-journey";
-import { SignatureStory, type ScenarioOption } from "@/components/signature-story";
-import SuiteAuthoringBridge from "@/components/suite-authoring-bridge";
+import { SignatureStory } from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
 import WebMcpBridge from "@/components/webmcp-bridge";
-import { browserQueueConfigured } from "@/lib/run-queue";
-import { SALES_GAUNTLET_SUITE } from "@/lib/suites";
 
-const scenarioNames: Record<string, string> = {
-  "happy-path": "Clean handoff",
-  "ambiguous-account": "Identity collision",
-  "stale-context": "Stale context",
-  "transient-error": "Network fracture",
-  "duplicate-mutation": "Duplicate mutation",
-  "injection-confirmation": "The meeting-note trap",
-};
-
-export default async function Home() {
-  await connection();
-  const scenarios: ScenarioOption[] = SALES_GAUNTLET_SUITE.scenarios.map((scenario) => ({
-    id: scenario.id,
-    title: scenarioNames[scenario.id] ?? scenario.title,
-    description: scenario.description,
-    seed: scenario.seed,
-  }));
-
+export default function Home() {
   return (
     <>
       <WebMcpBridge />
-      <SuiteAuthoringBridge />
       <main className="story-app">
         <header className="site-header">
           <a className="site-brand" href="#top" aria-label="Callsmith home">
@@ -46,48 +23,36 @@ export default async function Home() {
         </header>
 
         <div id="top">
-          <SignatureStory
-            scenarios={scenarios}
-            modelRunnerConfigured={
-              browserQueueConfigured() &&
-              Boolean(process.env.OPENAI_API_KEY) &&
-              Boolean(process.env.CALLSMITH_RUNNER_TOKEN)
-            }
-            deterministicPreviewEnabled={
-              process.env.CALLSMITH_DETERMINISTIC_PREVIEW_ENABLED === "true"
-            }
-          />
+          <SignatureStory />
         </div>
-
-        <AgentJourney />
 
         <section className="how-section" id="how-it-works" aria-labelledby="how-heading">
           <div className="section-heading">
             <p className="story-eyebrow">How it works</p>
-            <h2 id="how-heading">Test the behavior, not just the registration.</h2>
+            <h2 id="how-heading">Expected calls are not a safety guarantee.</h2>
             <p>
-              A conventional eval can pass because the expected call appeared while the
-              website still crossed an unsafe state boundary. Callsmith records both.
+              A tool-call eval can pass while the website still crosses a dangerous
+              state boundary. Callsmith records the call result and the consequence.
             </p>
           </div>
           <div className="how-grid">
             <article>
               <span>01</span>
               <ShieldAlert size={22} aria-hidden="true" />
-              <h3>Plant controlled trouble</h3>
-              <p>Inject stale state, ambiguity, prompt attacks, retries, and duplicate traps.</p>
+              <h3>Define one dangerous boundary</h3>
+              <p>Name the untrusted content, consequential action, and state that must stay safe.</p>
             </article>
             <article>
               <span>02</span>
               <Braces size={22} aria-hidden="true" />
-              <h3>Watch the tool path</h3>
-              <p>Capture normalized calls, arguments, state changes, and confirmation boundaries.</p>
+              <h3>Run the matched pair</h3>
+              <p>Hold the model, prompt, and seed fixed while only the website contract changes.</p>
             </article>
             <article>
               <span>03</span>
               <GitCompareArrows size={22} aria-hidden="true" />
-              <h3>Compare contract design</h3>
-              <p>Keep the model and prompt fixed; change only what the website guarantees.</p>
+              <h3>Seal the receipt</h3>
+              <p>Record expected calls, unsafe attempts, state changes, prevention, and provenance.</p>
             </article>
           </div>
         </section>
@@ -95,21 +60,21 @@ export default async function Home() {
         <section className="webmcp-callout" aria-labelledby="webmcp-heading">
           <div>
             <p className="story-eyebrow">Built through WebMCP</p>
-            <h2 id="webmcp-heading">The workbench is agent-operable too.</h2>
+            <h2 id="webmcp-heading">Callsmith exposes its own safety controls.</h2>
             <p>
-              Supported browsers can discover Callsmith’s suites, start comparisons,
-              inspect run status, and open read-only reports through registered tools.
+              Supported browsers can start the decisive proof, propose a safety contract,
+              inspect compact status, and open immutable receipts through registered tools.
             </p>
           </div>
-          <Link href="/sandbox/sales-follow-through/injection-confirmation">
-            Open the synthetic sandbox <ArrowUpRight size={16} aria-hidden="true" />
+          <Link href="/sandbox/meeting-note-boundary/safety-boundary">
+            Inspect the synthetic sandbox <ArrowUpRight size={16} aria-hidden="true" />
           </Link>
         </section>
 
         <footer className="story-footer">
           <div>
             <strong>Callsmith</strong>
-            <span>The WebMCP reliability workbench.</span>
+            <span>Safety receipts for agent-facing websites.</span>
           </div>
           <p>Synthetic data only · No customer systems or credentials</p>
         </footer>

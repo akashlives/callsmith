@@ -1,0 +1,931 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`evidence receipt wire contract > keeps its JSON schema reviewable across framework upgrades 1`] = `
+{
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "string",
+        },
+        {
+          "type": "number",
+        },
+        {
+          "type": "boolean",
+        },
+        {
+          "type": "null",
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/__schema0",
+          },
+          "type": "array",
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0",
+          },
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
+      ],
+    },
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "conclusion": {
+      "enum": [
+        "hardened_prevented_harm",
+        "no_unsafe_attempt",
+        "both_mutated",
+        "no_material_difference",
+        "inconclusive",
+      ],
+      "type": "string",
+    },
+    "contentHash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "type": "string",
+    },
+    "contract": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "protectedStatePath": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "safeValue": {
+          "$ref": "#/$defs/__schema0",
+        },
+        "title": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "unsafeValue": {
+          "$ref": "#/$defs/__schema0",
+        },
+        "version": {
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "id",
+        "version",
+        "title",
+        "protectedStatePath",
+        "safeValue",
+        "unsafeValue",
+      ],
+      "type": "object",
+    },
+    "contractDiff": {
+      "additionalProperties": false,
+      "properties": {
+        "consequentialMutationTool": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "hardened": {
+          "additionalProperties": false,
+          "properties": {
+            "destructiveHint": {
+              "const": true,
+              "type": "boolean",
+            },
+            "requiresConfirmation": {
+              "const": true,
+              "type": "boolean",
+            },
+            "untrustedContentHint": {
+              "const": true,
+              "type": "boolean",
+            },
+          },
+          "required": [
+            "untrustedContentHint",
+            "destructiveHint",
+            "requiresConfirmation",
+          ],
+          "type": "object",
+        },
+        "untrustedContentTool": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "weak": {
+          "additionalProperties": false,
+          "properties": {
+            "destructiveHint": {
+              "const": false,
+              "type": "boolean",
+            },
+            "requiresConfirmation": {
+              "const": false,
+              "type": "boolean",
+            },
+            "untrustedContentHint": {
+              "const": false,
+              "type": "boolean",
+            },
+          },
+          "required": [
+            "untrustedContentHint",
+            "destructiveHint",
+            "requiresConfirmation",
+          ],
+          "type": "object",
+        },
+      },
+      "required": [
+        "untrustedContentTool",
+        "consequentialMutationTool",
+        "weak",
+        "hardened",
+      ],
+      "type": "object",
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "completedPairs": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "expectedPairs": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer",
+        },
+      },
+      "required": [
+        "expectedPairs",
+        "completedPairs",
+      ],
+      "type": "object",
+    },
+    "experimentId": {
+      "minLength": 1,
+      "type": "string",
+    },
+    "finalizedAt": {
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$",
+      "type": "string",
+    },
+    "framework": {
+      "additionalProperties": false,
+      "properties": {
+        "applicationRevision": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "frameworkManifestRevision": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "nodeVersion": {
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "nodeVersion",
+        "applicationRevision",
+        "frameworkManifestRevision",
+      ],
+      "type": "object",
+    },
+    "hardened": {
+      "additionalProperties": false,
+      "properties": {
+        "assertions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "assertionId": {
+                "maxLength": 80,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "type": "string",
+              },
+              "category": {
+                "enum": [
+                  "taskOutcome",
+                  "trajectory",
+                  "safety",
+                  "recovery",
+                ],
+                "type": "string",
+              },
+              "evidence": {
+                "$ref": "#/$defs/__schema0",
+              },
+              "explanation": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "kind": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "passed": {
+                "type": "boolean",
+              },
+            },
+            "required": [
+              "assertionId",
+              "kind",
+              "category",
+              "passed",
+              "explanation",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "attemptId": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "contractVariant": {
+          "const": "hardened",
+          "type": "string",
+        },
+        "execution": {
+          "additionalProperties": false,
+          "properties": {
+            "backend": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "browserVersion": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "model": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "webMcpRunner": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "webMcpRunnerVersion": {
+              "minLength": 1,
+              "type": "string",
+            },
+          },
+          "required": [
+            "browserVersion",
+            "webMcpRunner",
+            "webMcpRunnerVersion",
+            "model",
+            "backend",
+          ],
+          "type": "object",
+        },
+        "facts": {
+          "additionalProperties": false,
+          "properties": {
+            "harmPrevention": {
+              "enum": [
+                "prevented",
+                "failed",
+                "not_exercised",
+              ],
+              "type": "string",
+            },
+            "officialExpectedCallBaseline": {
+              "enum": [
+                "pass",
+                "fail",
+                "error",
+              ],
+              "type": "string",
+            },
+            "protectedState": {
+              "enum": [
+                "preserved",
+                "mutated",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "taskOutcome": {
+              "enum": [
+                "completed",
+                "pending_human",
+                "incomplete",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "unsafeAction": {
+              "enum": [
+                "attempted",
+                "not_attempted",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "taskOutcome",
+            "unsafeAction",
+            "protectedState",
+            "harmPrevention",
+            "officialExpectedCallBaseline",
+          ],
+          "type": "object",
+        },
+        "failures": {
+          "items": {
+            "type": "string",
+          },
+          "type": "array",
+        },
+        "finalResponse": {
+          "type": "string",
+        },
+        "finalState": {
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0",
+          },
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
+        "latencyMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer",
+        },
+        "stateChanges": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "after": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "before": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "sequence": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer",
+              },
+              "toolName": {
+                "minLength": 1,
+                "type": "string",
+              },
+            },
+            "required": [
+              "sequence",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "trace": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "faultType": {
+                "enum": [
+                  "stale_context",
+                  "transient_error",
+                  "ambiguous_result",
+                  "prompt_injection",
+                  "latency",
+                  "duplicate_guard",
+                ],
+                "type": "string",
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "message": {
+                "type": "string",
+              },
+              "metadata": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "output": {
+                "$ref": "#/$defs/__schema0",
+              },
+              "sequence": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer",
+              },
+              "stateAfter": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "stateBefore": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "toolName": {
+                "maxLength": 80,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "type": "string",
+              },
+              "type": {
+                "enum": [
+                  "tool_call",
+                  "tool_result",
+                  "state_change",
+                  "fault",
+                  "confirmation",
+                  "confirmation_requested",
+                  "action_blocked",
+                  "browser_state_snapshot",
+                  "browser_execution_failure",
+                  "final_response",
+                  "error",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "id",
+              "sequence",
+              "type",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "usage": {
+          "additionalProperties": false,
+          "properties": {
+            "estimatedCostUsd": {
+              "minimum": 0,
+              "type": "number",
+            },
+            "inputTokens": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer",
+            },
+            "outputTokens": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "inputTokens",
+            "outputTokens",
+            "estimatedCostUsd",
+          ],
+          "type": "object",
+        },
+      },
+      "required": [
+        "attemptId",
+        "contractVariant",
+        "facts",
+        "trace",
+        "stateChanges",
+        "finalState",
+        "assertions",
+        "failures",
+        "finalResponse",
+        "latencyMs",
+        "execution",
+      ],
+      "type": "object",
+    },
+    "prompt": {
+      "minLength": 1,
+      "type": "string",
+    },
+    "receiptId": {
+      "minLength": 1,
+      "type": "string",
+    },
+    "schemaVersion": {
+      "const": 1,
+      "type": "number",
+    },
+    "seed": {
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer",
+    },
+    "weak": {
+      "additionalProperties": false,
+      "properties": {
+        "assertions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "assertionId": {
+                "maxLength": 80,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "type": "string",
+              },
+              "category": {
+                "enum": [
+                  "taskOutcome",
+                  "trajectory",
+                  "safety",
+                  "recovery",
+                ],
+                "type": "string",
+              },
+              "evidence": {
+                "$ref": "#/$defs/__schema0",
+              },
+              "explanation": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "kind": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "passed": {
+                "type": "boolean",
+              },
+            },
+            "required": [
+              "assertionId",
+              "kind",
+              "category",
+              "passed",
+              "explanation",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "attemptId": {
+          "minLength": 1,
+          "type": "string",
+        },
+        "contractVariant": {
+          "const": "weak",
+          "type": "string",
+        },
+        "execution": {
+          "additionalProperties": false,
+          "properties": {
+            "backend": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "browserVersion": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "model": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "webMcpRunner": {
+              "minLength": 1,
+              "type": "string",
+            },
+            "webMcpRunnerVersion": {
+              "minLength": 1,
+              "type": "string",
+            },
+          },
+          "required": [
+            "browserVersion",
+            "webMcpRunner",
+            "webMcpRunnerVersion",
+            "model",
+            "backend",
+          ],
+          "type": "object",
+        },
+        "facts": {
+          "additionalProperties": false,
+          "properties": {
+            "harmPrevention": {
+              "enum": [
+                "prevented",
+                "failed",
+                "not_exercised",
+              ],
+              "type": "string",
+            },
+            "officialExpectedCallBaseline": {
+              "enum": [
+                "pass",
+                "fail",
+                "error",
+              ],
+              "type": "string",
+            },
+            "protectedState": {
+              "enum": [
+                "preserved",
+                "mutated",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "taskOutcome": {
+              "enum": [
+                "completed",
+                "pending_human",
+                "incomplete",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "unsafeAction": {
+              "enum": [
+                "attempted",
+                "not_attempted",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "taskOutcome",
+            "unsafeAction",
+            "protectedState",
+            "harmPrevention",
+            "officialExpectedCallBaseline",
+          ],
+          "type": "object",
+        },
+        "failures": {
+          "items": {
+            "type": "string",
+          },
+          "type": "array",
+        },
+        "finalResponse": {
+          "type": "string",
+        },
+        "finalState": {
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema0",
+          },
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
+        "latencyMs": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer",
+        },
+        "stateChanges": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "after": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "before": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "sequence": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer",
+              },
+              "toolName": {
+                "minLength": 1,
+                "type": "string",
+              },
+            },
+            "required": [
+              "sequence",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "trace": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "args": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "faultType": {
+                "enum": [
+                  "stale_context",
+                  "transient_error",
+                  "ambiguous_result",
+                  "prompt_injection",
+                  "latency",
+                  "duplicate_guard",
+                ],
+                "type": "string",
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string",
+              },
+              "message": {
+                "type": "string",
+              },
+              "metadata": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "output": {
+                "$ref": "#/$defs/__schema0",
+              },
+              "sequence": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer",
+              },
+              "stateAfter": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "stateBefore": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/__schema0",
+                },
+                "propertyNames": {
+                  "type": "string",
+                },
+                "type": "object",
+              },
+              "toolName": {
+                "maxLength": 80,
+                "minLength": 1,
+                "pattern": "^[a-z][a-z0-9_]*$",
+                "type": "string",
+              },
+              "type": {
+                "enum": [
+                  "tool_call",
+                  "tool_result",
+                  "state_change",
+                  "fault",
+                  "confirmation",
+                  "confirmation_requested",
+                  "action_blocked",
+                  "browser_state_snapshot",
+                  "browser_execution_failure",
+                  "final_response",
+                  "error",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "id",
+              "sequence",
+              "type",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "usage": {
+          "additionalProperties": false,
+          "properties": {
+            "estimatedCostUsd": {
+              "minimum": 0,
+              "type": "number",
+            },
+            "inputTokens": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer",
+            },
+            "outputTokens": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "inputTokens",
+            "outputTokens",
+            "estimatedCostUsd",
+          ],
+          "type": "object",
+        },
+      },
+      "required": [
+        "attemptId",
+        "contractVariant",
+        "facts",
+        "trace",
+        "stateChanges",
+        "finalState",
+        "assertions",
+        "failures",
+        "finalResponse",
+        "latencyMs",
+        "execution",
+      ],
+      "type": "object",
+    },
+  },
+  "required": [
+    "schemaVersion",
+    "receiptId",
+    "experimentId",
+    "finalizedAt",
+    "contract",
+    "prompt",
+    "seed",
+    "contractDiff",
+    "weak",
+    "hardened",
+    "conclusion",
+    "coverage",
+    "framework",
+    "contentHash",
+  ],
+  "type": "object",
+}
+`;

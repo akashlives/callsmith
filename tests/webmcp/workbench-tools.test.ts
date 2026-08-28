@@ -1,227 +1,153 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { CANONICAL_SAFETY_CONTRACT } from "@/lib/canonical-contract";
 import { workbenchTools } from "@/components/webmcp-bridge";
 
-describe("Callsmith WebMCP workbench tools", () => {
+function text(result: unknown): Record<string, unknown> {
+  const content = (result as { content: Array<{ text: string }> }).content;
+  return JSON.parse(content[0].text) as Record<string, unknown>;
+}
+
+describe("Callsmith WebMCP safety tools", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("returns a compact suite catalog that an agent can use directly", async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
-      Response.json({
-        suites: [
-          {
-            id: "sales-follow-through",
-            version: "1.1.0",
-            title: "Sales Follow-through Gauntlet",
-            description: "Synthetic sales safety cases.",
-            stateSchema: { large: "implementation detail" },
-            tools: [{ name: "get_meeting_context" }],
-            scenarios: [
-              {
-                id: "injection-confirmation",
-                title: "Injection and confirmation boundary",
-                goal: "Prepare a response without crossing the send boundary.",
-                seed: 606,
-                initialState: { large: "fixture detail" },
-                assertions: [{ type: "state" }],
-              },
-            ],
-          },
-        ],
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+  it("exposes exactly five compact tools within Chrome guidance budgets", async () => {
+    const tools = workbenchTools(vi.fn());
+    expect(tools.map((tool) => tool.name)).toEqual([
+      "get_contract_template",
+      "propose_safety_contract",
+      "get_callsmith_status",
+      "run_decisive_case",
+      "open_evidence_receipt",
+    ]);
+    for (const tool of tools) {
+      expect(tool.description.length).toBeLessThanOrEqual(500);
+    }
 
-    const tool = workbenchTools(vi.fn()).find(
-      (candidate) => candidate.name === "list_suites",
-    )!;
-    const result = (await tool.execute(
-      {},
-      { signal: new AbortController().signal },
-    )) as { content: Array<{ text: string }> };
-    const catalog = JSON.parse(result.content[0].text) as Record<string, unknown>;
-
-    expect(catalog).toEqual({
-      suites: [
-        {
-          id: "sales-follow-through",
-          version: "1.1.0",
-          title: "Sales Follow-through Gauntlet",
-          description: "Synthetic sales safety cases.",
-          scenarios: [
-            {
-              id: "injection-confirmation",
-              title: "Injection and confirmation boundary",
-              goal: "Prepare a response without crossing the send boundary.",
-              seed: 606,
-            },
-          ],
-        },
-      ],
-    });
-    expect(result.content[0].text).not.toContain("stateSchema");
-    expect(result.content[0].text).not.toContain("assertions");
+    const template = await tools[0].execute({});
+    expect(new TextEncoder().encode(JSON.stringify(text(template))).byteLength).toBeLessThanOrEqual(1_500);
+    expect(text(template)).toMatchObject({ ok: true, limits: { bytes: 8192 } });
   });
 
-  it("starts browser-native contract evidence and returns a shareable report", async () => {
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(Response.json({ id: "run-judge" }, { status: 202 }))
-      .mockResolvedValueOnce(
-        Response.json({ token: "opaque-token", path: "/r/opaque-token" }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const tool = workbenchTools(vi.fn()).find(
-      (candidate) => candidate.name === "run_comparison",
-    );
-    expect(tool).toBeDefined();
-    const result = await tool!.execute(
-      {
-        suiteId: "sales-follow-through",
-        scenarioId: "injection-confirmation",
-      },
-      { signal: new AbortController().signal },
-    );
-
-    const createRequest = fetchMock.mock.calls[0];
-    expect(createRequest?.[0]).toBe("/api/runs");
-    expect(JSON.parse(String(createRequest?.[1]?.body))).toMatchObject({
-      provenance: "browser_webmcp",
-      models: ["gpt-5.6-luna"],
-      contractVariants: ["weak", "hardened"],
-    });
-    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/runs/run-judge/share");
-    expect(result).toEqual({
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            run: { id: "run-judge" },
-            report: { token: "opaque-token", path: "/r/opaque-token" },
-          }),
-        },
-      ],
-    });
-  });
-
-  it("polls a terminal run and opens its read-only report capability", async () => {
-    const openReport = vi.fn();
+  it("starts only the fixed browser-native decisive case", async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
-      Response.json({
-        id: "run-agent-journey",
-        status: "completed",
-        evidenceStatus: "conclusive",
-        attempts: [{ provenance: "browser_webmcp" }],
-        shareToken: "agent-report-token-123456",
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-    const tools = workbenchTools(openReport);
-
-    const statusTool = tools.find((candidate) => candidate.name === "get_run_status")!;
-    const status = await statusTool.execute(
-      { runId: "run-agent-journey" },
-      { signal: new AbortController().signal },
-    );
-    expect(fetchMock).toHaveBeenCalledWith("/api/runs/run-agent-journey", {
-      signal: expect.any(AbortSignal),
-    });
-    const statusText = (
-      status as { content: Array<{ type: string; text: string }> }
-    ).content[0].text;
-    expect(JSON.parse(statusText)).toMatchObject({
-      status: "completed",
-      evidenceStatus: "conclusive",
-      shareToken: "agent-report-token-123456",
-      attempts: [{ provenance: "browser_webmcp" }],
-    });
-
-    const openTool = tools.find((candidate) => candidate.name === "open_report")!;
-    expect(
-      await openTool.execute(
-        { token: "agent-report-token-123456" },
-        { signal: new AbortController().signal },
+      Response.json(
+        {
+          experiment: { id: "experiment-judge", status: "queued" },
+          accessToken: "read-capability",
+          receiptToken: "receipt-capability",
+          links: { receipt: "/r/receipt-capability" },
+        },
+        { status: 202 },
       ),
-    ).toEqual({
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            opened: true,
-            path: "/r/agent-report-token-123456",
-          }),
-        },
-      ],
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const tool = workbenchTools(vi.fn()).find(
+      (candidate) => candidate.name === "run_decisive_case",
+    )!;
+    const result = await tool.execute({});
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/experiments",
+      expect.objectContaining({ method: "POST", body: "{}", signal: expect.any(AbortSignal) }),
+    );
+    expect(text(result)).toEqual({
+      ok: true,
+      experimentId: "experiment-judge",
+      status: "queued",
+      statusCapability: "read-capability",
+      receiptToken: "receipt-capability",
+      receiptPath: "/r/receipt-capability",
     });
-    expect(openReport).toHaveBeenCalledWith("/r/agent-report-token-123456");
   });
 
-  it("returns API failures as evidence instead of throwing through WebMCP", async () => {
+  it("returns from proposal creation before the human decision", async () => {
+    const onProposalCreated = vi.fn();
+    const proposalResponse = {
+      operation: {
+        operationId: "proposal-one",
+        status: "awaiting_review",
+        expiresAt: "2026-08-28T21:00:00.000Z",
+      },
+      review: {
+        draft: CANONICAL_SAFETY_CONTRACT,
+        protectedState: { path: "followups.0.status", safeValue: "draft", unsafeValue: "sent" },
+        prompt: CANONICAL_SAFETY_CONTRACT.goal,
+        expectedCalls: [],
+      },
+      privateCapabilities: { ownerToken: "owner", decisionToken: "decision" },
+      statusCapability: "status-capability",
+      links: { status: "/status", decision: "/decision" },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(proposalResponse, { status: 201 })),
+    );
+    const tool = workbenchTools(vi.fn(), { onProposalCreated }).find(
+      (candidate) => candidate.name === "propose_safety_contract",
+    )!;
+
+    const result = await tool.execute(CANONICAL_SAFETY_CONTRACT);
+
+    expect(onProposalCreated).toHaveBeenCalledWith(proposalResponse);
+    expect(text(result)).toEqual({
+      ok: true,
+      operationId: "proposal-one",
+      status: "awaiting_review",
+      statusCapability: "status-capability",
+      expiresAt: "2026-08-28T21:00:00.000Z",
+      message: "Human review opened. Poll status; do not attempt to approve through a tool.",
+    });
+    expect(JSON.stringify(text(result))).not.toContain("decision");
+    expect(JSON.stringify(text(result))).not.toContain("owner");
+  });
+
+  it("reads compact authenticated status and opens receipts", async () => {
+    const open = vi.fn();
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      Response.json({ id: "experiment-one", status: "completed", receiptAvailable: true }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const tools = workbenchTools(open);
+    const status = await tools
+      .find((tool) => tool.name === "get_callsmith_status")!
+      .execute({ kind: "experiment", operation_id: "experiment-one", capability: "read-token" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/experiments/experiment-one",
+      expect.objectContaining({
+        headers: { authorization: "Bearer read-token" },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(text(status)).toMatchObject({ ok: true, status: { status: "completed" } });
+
+    const opened = await tools
+      .find((tool) => tool.name === "open_evidence_receipt")!
+      .execute({ token: "receipt-token" });
+    expect(open).toHaveBeenCalledWith("/r/receipt-token");
+    expect(text(opened)).toMatchObject({ ok: true, opened: true });
+  });
+
+  it("turns API failures into bounded tool results", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof fetch>().mockResolvedValueOnce(
-        Response.json({ error: "Run not found" }, { status: 404 }),
+        Response.json({ error: "Experiment not found" }, { status: 404 }),
       ),
     );
     const tool = workbenchTools(vi.fn()).find(
-      (candidate) => candidate.name === "get_run_status",
+      (candidate) => candidate.name === "get_callsmith_status",
     )!;
-
-    const result = (await tool.execute(
-      { runId: "missing-run" },
-      { signal: new AbortController().signal },
-    )) as { content: Array<{ text: string }> };
-
-    expect(JSON.parse(result.content[0].text)).toEqual({
+    const result = await tool.execute({
+      kind: "experiment",
+      operation_id: "missing",
+      capability: "wrong",
+    });
+    expect(text(result)).toEqual({
       ok: false,
-      status: "request_failed",
       code: "callsmith_request_failed",
-      message: "Run not found",
+      message: "Experiment not found",
     });
-  });
-
-  it("supports Chrome Inspector calls that omit the execution context", async () => {
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(Response.json({ suites: [] }))
-      .mockResolvedValueOnce(Response.json({ id: "run-inspector" }, { status: 202 }))
-      .mockResolvedValueOnce(
-        Response.json({ token: "inspector-report-token", path: "/r/inspector-report-token" }),
-      )
-      .mockResolvedValueOnce(
-        Response.json({
-          id: "run-inspector",
-          status: "completed",
-          evidenceStatus: "conclusive",
-        }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const tools = workbenchTools(vi.fn());
-    const inspectorExecute = (name: string) =>
-      tools.find((candidate) => candidate.name === name)!.execute as (
-        input: Record<string, unknown>,
-      ) => Promise<unknown>;
-
-    await expect(inspectorExecute("list_suites")({})).resolves.toBeDefined();
-    await expect(
-      inspectorExecute("run_comparison")({
-        suiteId: "sales-follow-through",
-        scenarioId: "injection-confirmation",
-      }),
-    ).resolves.toBeDefined();
-    const status = (await inspectorExecute("get_run_status")({
-      runId: "run-inspector",
-    })) as { content: Array<{ text: string }> };
-
-    expect(JSON.parse(status.content[0].text)).toMatchObject({
-      id: "run-inspector",
-      status: "completed",
-      evidenceStatus: "conclusive",
-    });
-    expect(fetchMock.mock.calls.every((call) => call[1]?.signal instanceof AbortSignal)).toBe(
-      true,
-    );
   });
 });

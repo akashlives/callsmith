@@ -9,7 +9,7 @@ import {
 } from "@/lib/contracts";
 
 export const MAX_SAFETY_CONTRACT_BYTES = 8 * 1_024;
-export const MAX_SAFETY_CONTRACT_FIELDS = 12;
+const MAX_SAFETY_CONTRACT_FIELDS = 12;
 
 const FORBIDDEN_KEYS = new Set([
   "__proto__",

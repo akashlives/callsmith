@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
   poweredByHeader: false,
+  deploymentId:
+    process.env.RAILWAY_GIT_COMMIT_SHA?.trim() ||
+    process.env.GIT_SHA?.trim() ||
+    undefined,
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [

@@ -1,0 +1,145 @@
+name: framework radar
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 9 * * *"
+
+concurrency:
+  group: framework-radar
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  edge-canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          check-latest: true
+          cache: npm
+      - name: Capture verified manifest
+        run: |
+          npm ci
+          mkdir -p outputs/framework-radar
+          npm run framework:manifest > outputs/framework-radar/before.json
+      - name: Apply edge candidates
+        id: update
+        continue-on-error: true
+        run: |
+          npx --yes npm-check-updates@23.1.0 -u --target latest
+          npm install --package-lock-only
+          git diff -- package.json package-lock.json > outputs/framework-radar/version-lockfile.diff
+      - name: Install edge candidates
+        id: install
+        continue-on-error: true
+        run: npm ci
+      - name: Run compatibility matrix
+        id: matrix
+        continue-on-error: true
+        run: |
+          set +e
+          report=outputs/framework-radar/gates.txt
+          : > "$report"
+          blocked=0
+          gate() {
+            name="$1"
+            shift
+            "$@" > "outputs/framework-radar/${name}.log" 2>&1
+            code=$?
+            printf '%s=%s\n' "$name" "$code" >> "$report"
+            if [ "$code" -ne 0 ]; then blocked=1; fi
+          }
+          gate audit npm audit --audit-level=moderate
+          gate static npm run static
+          gate lint npm run lint
+          gate typecheck npm run typecheck
+          gate unit npm test
+          gate build npm run build
+          gate browser_install npx playwright install --with-deps chromium
+          gate playwright npm run test:e2e
+          gate docker docker build --tag callsmith-edge-canary .
+          npm run framework:manifest > outputs/framework-radar/after.json 2>&1
+          exit "$blocked"
+      - name: Install latest Chrome unstable for official WebMCP smoke
+        id: chrome
+        continue-on-error: true
+        run: |
+          curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
+            | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" \
+            | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-unstable
+      - name: Run official native smoke
+        id: smoke
+        continue-on-error: true
+        run: |
+          npm run dev > outputs/framework-radar/dev-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in 1 2 3 4 5 6; do
+            curl -fsS http://127.0.0.1:3000/api/health/live && break
+            sleep 2
+          done
+          CALLSMITH_CHROME_CHANNEL=chrome-dev npm run smoke:webmcp \
+            > outputs/framework-radar/webmcp-smoke.log 2>&1
+      - name: Write compatibility report
+        env:
+          UPDATE_OUTCOME: ${{ steps.update.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          MATRIX_OUTCOME: ${{ steps.matrix.outcome }}
+          CHROME_OUTCOME: ${{ steps.chrome.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        run: |
+          day=$(date -u +%F)
+          report="docs/framework-canary/${day}.md"
+          mkdir -p docs/framework-canary
+          status=verified
+          if [ "$UPDATE_OUTCOME$INSTALL_OUTCOME$MATRIX_OUTCOME$CHROME_OUTCOME$SMOKE_OUTCOME" != "successsuccesssuccesssuccesssuccess" ]; then
+            status=blocked
+          fi
+          {
+            echo "# Framework radar — ${day}"
+            echo
+            echo "Promotion status: **${status}**"
+            echo
+            echo "| Gate | Outcome |"
+            echo "|---|---|"
+            echo "| Candidate update | ${UPDATE_OUTCOME} |"
+            echo "| Install | ${INSTALL_OUTCOME} |"
+            echo "| Static/unit/build/browser/Docker matrix | ${MATRIX_OUTCOME} |"
+            echo "| Latest Chrome unstable install | ${CHROME_OUTCOME} |"
+            echo "| Official WebMCP smoke | ${SMOKE_OUTCOME} |"
+            echo
+            echo "A blocked canary does not alter the verified production image."
+          } > "$report"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: framework-radar-evidence
+          path: outputs/framework-radar
+      - name: Open or update compatibility PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          day=$(date -u +%F)
+          branch="codex/framework-radar-${day}"
+          git config user.name "Callsmith Framework Radar"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add package.json package-lock.json docs/framework-canary
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "canary: framework radar ${day}"
+          git push --force-with-lease origin "$branch"
+          gh pr view "$branch" >/dev/null 2>&1 || gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "Framework radar: ${day}" \
+            --body-file "docs/framework-canary/${day}.md"

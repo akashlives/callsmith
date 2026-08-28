@@ -1,31 +1,82 @@
-# Architecture
+# Callsmith architecture
 
-## Target runtime boundaries
+## Product invariant
+
+A safety verdict is impossible without two completed browser-native attempts
+that share the model, prompt, seed, and compiled safety contract. Only the
+website contract variant changes.
 
 ```text
-Browser / ChatGPT
-       │ HTTPS + SSE
-       ▼
-Callsmith web/API ─── Redis queue ─── browser runner
-       │                    │
-       ├── Postgres         └── isolated sandbox browser contexts
-       └── private bucket       (no arbitrary third-party targets)
+SafetyContractDraftV1
+        |
+ deterministic compiler
+        |
+   immutable contract
+        |
+ Postgres experiment + outbox
+        |
+ Redis Stream consumer group
+       / \
+    weak  hardened
+       \ /
+ complete matched pair
+        |
+ EvidenceReceiptV1 + SHA-256
 ```
 
-Only the web service is public. The worker, Postgres, Redis, and bucket remain private Railway resources. The current vertical slice executes attempts in the web service; queue handoff to the provisioned runner is a later production-hardening gate.
+## Web service
 
-## Honest execution modes
+Next.js owns contract validation, human review, experiment status, Redis-backed
+SSE, immutable receipt reads, the narrative UI, and isolated sandbox pages. It
+does not call a model provider directly.
 
-- **Preview:** deterministic traces demonstrate the workbench UI and are marked `preview`.
-- **Hosted:** the server uses its configured OpenAI key and applies guest/account quotas.
-- **BYOK:** a request-scoped credential is held only for the active in-process comparison. It is never placed in run state, reports, analytics, or application logs.
+Postgres is the synchronous source of truth for:
 
-All reports include execution provenance. Preview and provider failures can never be mistaken for completed model attempts.
+- immutable compiled contracts;
+- proposals and their independent capabilities;
+- experiments;
+- unique attempts keyed by experiment, model, seed, and contract;
+- immutable receipts;
+- the transactional experiment outbox.
 
-## WebMCP surfaces
+Raw capabilities never enter a table.
 
-Sandbox routes register state-aware tools against synthetic workflow state. The workbench route registers orchestration tools that let an agent select a suite, start a comparison, inspect status, and open a report. Both adapters treat missing browser support as a capability state, not an application error.
+## Worker
 
-## Persistence adapters
+The worker consumes `callsmith:experiment-jobs:v1` through a Redis Streams
+consumer group. It renews its lease during long browser work, claims stale
+messages after a crash, skips already completed variants, and acknowledges only
+after terminal evidence is preserved.
 
-The hot run store is process-local so SSE updates remain immediate. When `DATABASE_URL` is present, every run and share token is also mirrored to Postgres; status and report reads hydrate from Postgres after a restart. Redis queue/events/TTL and private-bucket screenshot artifacts are provisioned but not yet wired into the vertical slice.
+The worker uses one narrow adapter around `webmcp-evals` 0.0.4. Chrome opens
+the real sandbox, discovers native `page.webmcp` tools, invokes them, and
+returns browser-originated evidence envelopes. The adapter records runner,
+browser, backend, trace, console failures, and official expected-call results.
+
+A Postgres outbox closes the database-to-Redis gap. The worker polls undispatched
+experiments and can redeliver safely because attempt identity is unique.
+
+## Human boundary
+
+`propose_safety_contract` validates and persists a proposal, opens a local
+review panel, and returns immediately with a read-only status capability.
+Decision and owner capabilities remain in the browser closure.
+
+The review shows hostile content, protected state, generated prompt, expected
+calls, and contract difference. Its declarative WebMCP form deliberately omits
+`toolautosubmit`. Approval publishes the immutable contract and starts one
+experiment; rejection starts none.
+
+## Receipt immutability
+
+The receipt contains facts, not a weighted score. Postgres triggers reject
+updates or deletes to receipts and reject attempt or experiment mutations after
+finalization. Identical receipt payloads are idempotent. Every response uses
+immutable caching and an ETag derived from the content hash.
+
+## Deployment
+
+Web and worker use the same Docker image and Git-derived Next.js deployment ID.
+Railway runs them as separate services connected through private networking to
+Postgres and Redis. Readiness requires database, queue, and recent worker
+heartbeat; liveness only confirms process health.

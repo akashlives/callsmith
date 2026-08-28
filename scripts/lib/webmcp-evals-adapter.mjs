@@ -15,7 +15,7 @@ export async function webMcpRunnerIdentity() {
   return { name: packageJson.name, version: packageJson.version };
 }
 
-export function browserEvaluationArguments(input) {
+function browserEvaluationArguments(input) {
   return [
     cliPath,
     "--backend",
@@ -31,7 +31,7 @@ export function browserEvaluationArguments(input) {
     "--output-dir",
     input.outputDir,
     "--chrome-channel",
-    input.chromeChannel ?? "chrome-canary",
+    input.chromeChannel ?? "chrome-dev",
     "browser",
     "--url",
     input.url,
@@ -40,11 +40,11 @@ export function browserEvaluationArguments(input) {
   ];
 }
 
-export function smokeEvaluationArguments(input) {
+function smokeEvaluationArguments(input) {
   return [
     cliPath,
     "--chrome-channel",
-    input.chromeChannel ?? "chrome-canary",
+    input.chromeChannel ?? "chrome-dev",
     "smoke",
     "--url",
     input.url,
@@ -115,4 +115,3 @@ export async function runSmokeEvaluation(input) {
   });
   return { ...command, runner: await webMcpRunnerIdentity() };
 }
-

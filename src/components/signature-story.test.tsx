@@ -1,99 +1,68 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { RunResultSchema } from "@/lib/contracts";
-import { createPreviewAttempt } from "@/lib/evaluation";
-import { getScenario, SALES_GAUNTLET_SUITE } from "@/lib/suites";
+import { CANONICAL_SAFETY_SUITE } from "@/lib/canonical-contract";
+import { completedAttemptFixture } from "@/lib/__tests__/experiment-fixtures";
+import { buildEvidenceReceiptFromExperiment } from "@/lib/evidence-receipt-server";
+import { ExperimentRecordV1Schema } from "@/lib/experiments";
 
-import { SignatureStory, type ScenarioOption } from "./signature-story";
+import { SignatureStory } from "./signature-story";
 
-const scenario = getScenario("sales-follow-through", "injection-confirmation")!;
-const scenarios: ScenarioOption[] = [
-  {
-    id: scenario.id,
-    title: "The meeting-note trap",
-    description: scenario.description,
+function receiptFixture() {
+  const scenario = CANONICAL_SAFETY_SUITE.scenarios[0];
+  const experiment = ExperimentRecordV1Schema.parse({
+    schemaVersion: 1,
+    id: "experiment-component-test",
+    contractId: CANONICAL_SAFETY_SUITE.id,
+    contractVersion: CANONICAL_SAFETY_SUITE.version,
+    model: "gpt-5.6-luna",
     seed: scenario.seed,
-  },
-];
-
-function completedRun() {
-  return RunResultSchema.parse({
-    id: "run-component-test",
-    suiteId: SALES_GAUNTLET_SUITE.id,
-    suiteVersion: SALES_GAUNTLET_SUITE.version,
-    scenarioId: scenario.id,
-    models: ["gpt-5.6-luna", "gpt-5.6-terra"],
-    repetitions: 1,
-    seed: scenario.seed,
-    provenance: "deterministic_preview",
-    contractVariants: ["weak", "hardened"],
     status: "completed",
-    attempts: [
-      createPreviewAttempt(
-        SALES_GAUNTLET_SUITE,
-        scenario,
-        "failure",
-        "gpt-5.6-luna",
-        scenario.seed,
-        "weak",
-      ),
-      createPreviewAttempt(
-        SALES_GAUNTLET_SUITE,
-        scenario,
-        "success",
-        "gpt-5.6-luna",
-        scenario.seed,
-        "hardened",
-      ),
-    ],
-    createdAt: "2026-08-26T12:00:00.000Z",
-    updatedAt: "2026-08-26T12:00:01.000Z",
+    evidenceStatus: "conclusive",
+    attempts: [completedAttemptFixture("weak"), completedAttemptFixture("hardened")],
+    createdAt: "2026-08-28T20:00:00.000Z",
+    updatedAt: "2026-08-28T20:01:00.000Z",
+  });
+  return buildEvidenceReceiptFromExperiment({
+    experiment,
+    suite: CANONICAL_SAFETY_SUITE,
+    framework: {
+      nodeVersion: "24.20.0",
+      applicationRevision: "test-revision",
+      frameworkManifestRevision: "test-manifest",
+    },
   });
 }
 
-class MockEventSource {
-  static latest: MockEventSource | undefined;
-  readonly listeners = new Map<string, EventListener>();
-  onerror: ((event: Event) => void) | null = null;
+const created = {
+  experiment: {
+    schemaVersion: 1,
+    id: "experiment-component-test",
+    status: "queued",
+    evidenceStatus: "pending",
+    model: "gpt-5.6-luna",
+    seed: 606,
+    attempts: [],
+    receiptAvailable: false,
+    updatedAt: "2026-08-28T20:00:00.000Z",
+  },
+  accessToken: "access-token",
+  receiptToken: "receipt-token",
+  links: {
+    status: "/api/experiments/experiment-component-test",
+    events: "/api/experiments/experiment-component-test/events",
+    receipt: "/r/receipt-token",
+  },
+};
 
-  constructor(readonly url: string) {
-    MockEventSource.latest = this;
-  }
-
-  addEventListener(type: string, listener: EventListener) {
-    this.listeners.set(type, listener);
-  }
-
-  emitRun(run: unknown) {
-    this.listeners.get("run")?.(
-      new MessageEvent("run", { data: JSON.stringify(run) }),
-    );
-  }
-
-  close() {}
-}
-
-describe("signature story", () => {
+describe("decisive proof story", () => {
   beforeEach(() => {
-    MockEventSource.latest = undefined;
-    vi.stubGlobal("EventSource", MockEventSource);
     vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
       callback(0);
       return 1;
     });
-    vi.stubGlobal("matchMedia", () => ({
-      matches: true,
-      media: "(prefers-reduced-motion: reduce)",
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }));
     Element.prototype.scrollIntoView = vi.fn();
   });
 
@@ -102,152 +71,105 @@ describe("signature story", () => {
     vi.unstubAllGlobals();
   });
 
-  it("starts with one plain-language action and reveals only API evidence", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            ...completedRun(),
-            status: "queued",
-            attempts: [],
-            links: { events: "/api/runs/run-component-test/events" },
-          }),
-          { status: 202, headers: { "content-type": "application/json" } },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ path: "/r/read-only-token" }), {
-          status: 201,
-          headers: { "content-type": "application/json" },
-        }),
-      );
+  it("starts one browser-native experiment and reveals receipt facts without scores", async () => {
+    const receipt = receiptFixture();
+    const terminalEvent = {
+      ...created.experiment,
+      status: "completed",
+      evidenceStatus: "conclusive",
+      receiptAvailable: true,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/experiments") {
+        expect(init).toMatchObject({ method: "POST", body: "{}" });
+        return new Response(JSON.stringify(created), { status: 202 });
+      }
+      if (url.endsWith("/events")) {
+        expect(new Headers(init?.headers).get("authorization")).toBe(
+          "Bearer access-token",
+        );
+        return new Response(
+          `event: experiment\ndata: ${JSON.stringify(terminalEvent)}\n\n`,
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      }
+      if (url === "/api/receipts/receipt-token") {
+        return new Response(JSON.stringify(receipt), { status: 200 });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<SignatureStory scenarios={scenarios} />);
-    expect(screen.getByRole("heading", { name: /Catch unsafe agent behavior/ })).toBeVisible();
-    expect(screen.queryByText("Same task. One crossed the line.")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Launching browser");
-
-    await waitFor(() => expect(MockEventSource.latest).toBeDefined());
-    expect(screen.getByRole("status")).toHaveTextContent("Running the same agent");
-
-    act(() => MockEventSource.latest?.emitRun(completedRun()));
-    await waitFor(() =>
-      expect(
-        screen.getByText("Same agent. One website let it cross the line."),
-      ).toBeVisible(),
-    );
-    expect(screen.getAllByRole("heading", { name: "Sent without approval" })[0]).toBeVisible();
+    render(<SignatureStory />);
     expect(
-      screen.getAllByRole("heading", { name: "Human boundary respected" })[0],
-    ).toBeVisible();
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/runs",
-      expect.objectContaining({
-        method: "POST",
-        body: expect.stringContaining('"scenarioId":"injection-confirmation"'),
+      screen.getByRole("heading", {
+        name: /Can your website stop an agent when the model fails/i,
       }),
-    );
+    ).toBeVisible();
+    expect(screen.queryByText(/Expected calls passed/)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Create report link" }));
-    await waitFor(() =>
-      expect(screen.getByRole("link", { name: /Open read-only report/ })).toHaveAttribute(
-        "href",
-        "/r/read-only-token",
-      ),
+    fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
+
+    expect(
+      await screen.findByRole("heading", {
+        name: /Expected calls passed. Only one website prevented harm/i,
+      }),
+    ).toBeVisible();
+    expect(screen.getByText("The unsafe state change happened.")).toBeVisible();
+    expect(screen.getByText("The website prevented harm.")).toBeVisible();
+    expect(screen.queryByText("/100")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Download JSON receipt/ })).toHaveAttribute(
+      "href",
+      "/api/receipts/receipt-token",
     );
   });
 
-  it("explains a start failure and offers a real retry", async () => {
+  it("fails honestly when the runner cannot start", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ error: "Runner offline" }), {
+        new Response(JSON.stringify({ error: "Browser worker unavailable" }), {
           status: 503,
-          headers: { "content-type": "application/json" },
         }),
       ),
     );
+    render(<SignatureStory />);
+    fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
 
-    render(<SignatureStory scenarios={scenarios} />);
-    fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("Runner offline");
-    expect(screen.getByRole("button", { name: /Retry the safety test/ })).toBeVisible();
-    expect(screen.queryByText("Same task. One crossed the line.")).not.toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Browser worker unavailable",
+    );
+    expect(screen.getByRole("button", { name: /Retry the decisive proof/ })).toBeVisible();
+    expect(screen.queryByText(/website prevented harm/)).not.toBeInTheDocument();
   });
 
-  it("preserves an unmatched attempt without rendering safety verdict language", async () => {
-    const completed = completedRun();
-    const inconclusive = RunResultSchema.parse({
-      ...completed,
-      attempts: [completed.attempts[1]],
+  it("does not turn an incomplete pair into a verdict", async () => {
+    const terminalEvent = {
+      ...created.experiment,
+      status: "partial_failure",
+      evidenceStatus: "inconclusive",
+      receiptAvailable: false,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/experiments") {
+        return new Response(JSON.stringify(created), { status: 202 });
+      }
+      if (url.endsWith("/events")) {
+        return new Response(
+          `event: experiment\ndata: ${JSON.stringify(terminalEvent)}\n\n`,
+          { status: 200 },
+        );
+      }
+      return new Response(JSON.stringify(terminalEvent), { status: 200 });
     });
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            ...completed,
-            status: "queued",
-            attempts: [],
-            links: { events: "/api/runs/run-component-test/events" },
-          }),
-          { status: 202, headers: { "content-type": "application/json" } },
-        ),
-      ),
-    );
-
-    render(<SignatureStory scenarios={scenarios} />);
-    fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
-    await waitFor(() => expect(MockEventSource.latest).toBeDefined());
-
-    act(() => MockEventSource.latest?.emitRun(inconclusive));
-
-    expect(
-      await screen.findByRole("heading", { name: "This comparison is inconclusive." }),
-    ).toBeVisible();
-    expect(screen.getByText("Evidence status")).toBeVisible();
-    expect(
-      screen.getByRole("heading", { name: "Preserved attempt evidence" }),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole("heading", { name: "Human boundary respected" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByText("Deterministic preview · not a live replication")).toBeVisible();
-  });
-
-  it("requests live model evidence when the server runner is configured", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          ...completedRun(),
-          provenance: "browser_webmcp",
-          status: "queued",
-          attempts: [],
-          links: { events: "/api/runs/run-component-test/events" },
-        }),
-        { status: 202, headers: { "content-type": "application/json" } },
-      ),
-    );
     vi.stubGlobal("fetch", fetchMock);
+    render(<SignatureStory />);
+    fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
 
-    render(<SignatureStory scenarios={scenarios} modelRunnerConfigured />);
-    expect(
-      screen.getByText("Browser WebMCP · one model · two contracts"),
-    ).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Run the safety test" }));
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(JSON.parse(String(request.body))).toMatchObject({
-      provenance: "browser_webmcp",
-      models: ["gpt-5.6-luna"],
-      contractVariants: ["weak", "hardened"],
-      seed: 606,
-    });
+    expect(await screen.findByRole("alert")).toHaveTextContent(/inconclusive/i);
+    expect(screen.queryByText(/Expected calls passed/)).not.toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
   });
 });

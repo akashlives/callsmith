@@ -166,6 +166,13 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .outcome-card.is-risk h3 { color: var(--risk-strong); }
 .outcome-card.is-safe h3 { color: var(--safe-strong); }
 .outcome-card > p { max-width: 520px; margin: 17px 0 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.receipt-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 26px 0 0; border: 1px solid var(--line); background: var(--line); }
+.receipt-facts > div { min-width: 0; background: var(--surface-strong); padding: 12px; }
+.receipt-facts > div:last-child { grid-column: 1 / -1; }
+.receipt-facts dt { color: var(--quiet); font-family: var(--font-evidence); font-size: 8px; letter-spacing: .06em; text-transform: uppercase; }
+.receipt-facts dd { margin: 7px 0 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 650; text-transform: capitalize; }
+.outcome-card.is-risk .receipt-facts dd { color: var(--risk-strong); }
+.outcome-card.is-safe .receipt-facts dd { color: var(--safe-strong); }
 .outcome-card__meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 27px; color: var(--quiet); font-family: var(--font-evidence); font-size: 9px; letter-spacing: .07em; text-transform: uppercase; }
 .outcome-card__safety { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 26px 0 0; background: var(--line); }
 .outcome-card__safety div { min-width: 0; background: var(--surface-strong); padding: 12px; }
@@ -230,6 +237,8 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .developer-grid > section + section { border-left: 1px solid var(--line); padding-left: clamp(24px, 4vw, 54px); }
 .developer-grid header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .developer-grid header h3 { margin: 0; font-size: 14px; }
+.developer-grid h3 { margin: 0; font-size: 14px; }
+.developer-grid pre { max-height: 360px; overflow: auto; margin: 18px 0 0; background: var(--surface-inverse); color: var(--ink-inverse); padding: 15px; font-family: var(--font-evidence); font-size: 9px; line-height: 1.65; white-space: pre-wrap; }
 .developer-grid header span { color: var(--quiet); font-family: var(--font-evidence); font-size: 8px; text-transform: uppercase; }
 .execution-metadata { display: grid; gap: 8px; margin: 20px 0 0; border-top: 1px solid var(--line); padding-top: 16px; }
 .execution-metadata div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
@@ -322,6 +331,8 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .suite-review__eyebrow, .suite-review__label { margin: 0; color: var(--safe); font-family: var(--font-evidence); font-size: 9px; font-weight: 800; letter-spacing: .11em; line-height: 1.4; text-transform: uppercase; }
 .suite-review__header h2 { margin: 10px 0 0; font-size: clamp(30px, 4vw, 46px); font-weight: 620; letter-spacing: -.055em; line-height: 1; }
 .suite-review__header > div > p:last-child { max-width: 680px; margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+.suite-review__close { display: grid; width: 44px; height: 44px; justify-self: end; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: transparent; cursor: pointer; }
+.safety-contract-review .suite-review__header { grid-template-columns: minmax(0, 1fr) auto; }
 .suite-review__identity { display: grid; align-self: end; gap: 12px; margin: 0; }
 .suite-review__identity > div { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
 .suite-review__identity dt { color: var(--quiet); font-family: var(--font-evidence); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
@@ -331,6 +342,19 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .suite-review__body { display: grid; overflow-y: auto; gap: 26px; padding: 28px 38px 34px; overscroll-behavior: contain; }
 .suite-review__goal { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 24px; align-items: baseline; }
 .suite-review__goal > p:last-child { margin: 0; color: var(--ink); font-size: 15px; font-weight: 570; letter-spacing: -.02em; line-height: 1.55; }
+.contract-review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.contract-review-grid > section, .contract-review-tools { min-width: 0; border: 1px solid var(--line); background: var(--surface); padding: 20px; }
+.contract-review-grid blockquote { margin: 14px 0 0; color: var(--risk-strong); font-family: var(--font-evidence); font-size: 10px; line-height: 1.65; }
+.contract-review-grid code { display: block; margin-top: 14px; overflow-wrap: anywhere; color: var(--safe-strong); font-family: var(--font-evidence); font-size: 10px; }
+.contract-review-grid section > p:last-child { color: var(--muted); font-family: var(--font-evidence); font-size: 10px; }
+.contract-review-tools > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 14px; background: var(--line); }
+.contract-review-tools span { display: grid; gap: 6px; background: var(--surface-strong); padding: 13px; }
+.contract-review-tools strong { font-size: 10px; }
+.contract-review-tools code { color: var(--quiet); font-family: var(--font-evidence); font-size: 9px; }
+.safety-contract-review .suite-review__boundary { display: flex; align-items: flex-start; gap: 12px; }
+.safety-contract-review .suite-review__boundary svg { flex: 0 0 auto; color: var(--safe); }
+.safety-contract-review .suite-review__boundary strong { font-size: 11px; }
+.safety-contract-review .suite-review__boundary p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
 .suite-review__tool-grid, .suite-review__risk-grid, .suite-review__requirements-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .suite-review__tool-group, .suite-review__hostile, .suite-review__boundary, .suite-review__requirements-grid > section, .suite-review__assertions { min-width: 0; border: 1px solid var(--line); background: var(--surface); padding: 20px; }
 .suite-review__tool-group.is-read { border-top-color: color-mix(in srgb, var(--safe) 55%, var(--line)); }
@@ -379,6 +403,12 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .suite-review__status strong { display: block; font-size: 11px; }
 .suite-review__status small { display: block; max-width: 520px; margin-top: 3px; color: var(--muted); font-size: 9px; line-height: 1.4; }
 .suite-review__actions { display: flex; flex: 0 0 auto; gap: 8px; }
+.safety-contract-review .suite-review__actions { align-items: center; justify-content: space-between; border-top: 1px solid var(--line-strong); background: var(--surface); padding: 18px 38px; }
+.safety-contract-review .suite-review__actions > div { display: flex; align-items: center; gap: 8px; }
+.safety-contract-review .suite-review__actions > div:first-child { color: var(--muted); font-size: 10px; }
+.safety-contract-review .suite-review__actions > div:first-child svg { color: var(--safe); }
+.safety-contract-review .suite-review__actions button { border: 1px solid var(--line); background: transparent; }
+.safety-contract-review .suite-review__actions button.is-primary { border-color: var(--safe); background: var(--safe); color: var(--ink-inverse); }
 .suite-review__actions button { display: inline-flex; min-width: 142px; min-height: 44px; align-items: center; justify-content: center; gap: 7px; border-radius: 2px; padding: 0 16px; cursor: pointer; font-size: 11px; font-weight: 750; }
 .suite-review__reject { border: 1px solid color-mix(in srgb, var(--risk) 38%, var(--line)); background: transparent; color: var(--risk-strong); }
 .suite-review__approve { border: 1px solid var(--safe); background: var(--safe); color: var(--ink-inverse); }
@@ -404,6 +434,7 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
   .suite-review__header { grid-template-columns: 1fr; gap: 24px; }
   .suite-review__identity { width: 100%; }
   .suite-review__risk-grid { grid-template-columns: 1fr; }
+  .contract-review-grid { grid-template-columns: 1fr; }
   .suite-review__footer { align-items: stretch; flex-direction: column; }
   .suite-review__actions { align-self: flex-end; }
 }
@@ -466,6 +497,9 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
   .suite-review__goal { gap: 8px; }
   .suite-review__assertions ol { grid-template-columns: 1fr; }
   .suite-review__actions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .safety-contract-review .suite-review__actions { align-items: stretch; padding: 16px 20px; }
+  .safety-contract-review .suite-review__actions > div { grid-column: 1 / -1; }
+  .contract-review-tools > div { grid-template-columns: 1fr; }
   .suite-review__actions button { min-width: 0; width: 100%; }
 }
 

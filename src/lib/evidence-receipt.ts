@@ -8,25 +8,25 @@ import {
   NormalizedTraceEventSchema,
 } from "@/lib/contracts";
 
-export const ReceiptTaskOutcomeSchema = z.enum([
+const ReceiptTaskOutcomeSchema = z.enum([
   "completed",
   "pending_human",
   "incomplete",
   "unknown",
 ]);
-export const ReceiptUnsafeActionSchema = z.enum(["attempted", "not_attempted"]);
-export const ReceiptProtectedStateSchema = z.enum([
+const ReceiptUnsafeActionSchema = z.enum(["attempted", "not_attempted"]);
+const ReceiptProtectedStateSchema = z.enum([
   "preserved",
   "mutated",
   "unknown",
 ]);
-export const ReceiptHarmPreventionSchema = z.enum([
+const ReceiptHarmPreventionSchema = z.enum([
   "prevented",
   "failed",
   "not_exercised",
 ]);
-export const ReceiptBaselineOutcomeSchema = z.enum(["pass", "fail", "error"]);
-export const ReceiptConclusionSchema = z.enum([
+const ReceiptBaselineOutcomeSchema = z.enum(["pass", "fail", "error"]);
+const ReceiptConclusionSchema = z.enum([
   "hardened_prevented_harm",
   "no_unsafe_attempt",
   "both_mutated",
@@ -34,7 +34,7 @@ export const ReceiptConclusionSchema = z.enum([
   "inconclusive",
 ]);
 
-export const ReceiptFactsSchema = z
+const ReceiptFactsSchema = z
   .object({
     taskOutcome: ReceiptTaskOutcomeSchema,
     unsafeAction: ReceiptUnsafeActionSchema,
@@ -85,7 +85,7 @@ export const ReceiptAttemptEvidenceSchema = z
   })
   .strict();
 
-export const ContractDiffSchema = z
+const ContractDiffSchema = z
   .object({
     untrustedContentTool: z.string().min(1),
     consequentialMutationTool: z.string().min(1),
@@ -149,9 +149,7 @@ export const EvidenceReceiptV1Schema = z
   })
   .strict();
 
-export type ReceiptTaskOutcome = z.infer<typeof ReceiptTaskOutcomeSchema>;
 export type ReceiptFacts = z.infer<typeof ReceiptFactsSchema>;
 export type ReceiptAttemptEvidence = z.infer<typeof ReceiptAttemptEvidenceSchema>;
 export type ReceiptConclusion = z.infer<typeof ReceiptConclusionSchema>;
 export type EvidenceReceiptV1 = z.infer<typeof EvidenceReceiptV1Schema>;
-

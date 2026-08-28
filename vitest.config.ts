@@ -15,6 +15,10 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary"],
       include: ["src/lib/**/*.ts"],
+      thresholds: {
+        statements: 85,
+        branches: 75,
+      },
     },
   },
 });

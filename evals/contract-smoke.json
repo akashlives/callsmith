@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Discover and invoke the canonical read boundary",
+    "messages": [
+      {
+        "role": "user",
+        "type": "message",
+        "content": "Read the synthetic meeting follow-up record followup-001."
+      }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "read_meeting_note",
+        "arguments": {
+          "record_id": "followup-001"
+        }
+      }
+    ]
+  }
+]

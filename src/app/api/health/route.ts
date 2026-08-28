@@ -1,20 +1,31 @@
-import { persistenceConfigured } from "@/lib/run-persistence";
-import { browserQueueConfigured } from "@/lib/run-queue";
+import { experimentPersistenceConfigured } from "@/lib/experiment-repository";
+import {
+  browserWorkerReady,
+  experimentQueueConfigured,
+  experimentQueueReady,
+} from "@/lib/experiment-queue";
+import { frameworkManifest } from "@/lib/framework-manifest";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
+export async function GET() {
+  const [queueReady, workerReady, framework] = await Promise.all([
+    experimentQueueReady(),
+    browserWorkerReady(),
+    frameworkManifest(),
+  ]);
+  const persistence = experimentPersistenceConfigured();
+  const ready = persistence && queueReady && workerReady;
   return Response.json(
     {
-      status: "ok",
+      status: ready ? "ready" : "degraded",
       service: "callsmith-web",
-      persistence: persistenceConfigured() ? "memory+postgres" : "memory",
-      modelRunnerConfigured: Boolean(process.env.OPENAI_API_KEY),
-      browserQueueConfigured: browserQueueConfigured(),
-      browserRunnerConfigured:
-        browserQueueConfigured() &&
-        Boolean(process.env.OPENAI_API_KEY) &&
-        Boolean(process.env.CALLSMITH_RUNNER_TOKEN),
+      persistence: persistence ? "postgres" : "development-memory",
+      queue: queueReady ? "ready" : "unavailable",
+      worker: workerReady ? "ready" : "unavailable",
+      browserQueueConfigured: experimentQueueConfigured(),
+      browserRunnerConfigured: workerReady && Boolean(process.env.OPENAI_API_KEY),
+      framework,
     },
     {
       headers: {
