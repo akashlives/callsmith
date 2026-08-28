@@ -33,6 +33,10 @@ The runner token must match and must never be exposed to browser code. Model
 credentials stay in the worker and never enter proposals, experiment rows,
 events, receipts, or logs.
 
+The worker fails startup when the provider credential is absent or blank. The
+web service must not receive that credential; readiness is derived from the
+worker heartbeat.
+
 ## Health
 
 - `/api/health/live`: process liveness.
@@ -68,3 +72,17 @@ Do not rebuild production from mutable browser packages during promotion.
 Daily framework changes enter the edge-canary workflow, never the verified lane
 directly.
 
+## Ten-seed benchmark
+
+The authenticated benchmark lane creates up to ten seed-overridden experiments
+without changing the public one-click contract:
+
+```bash
+CALLSMITH_BENCHMARK_URL=https://staging.example \
+CALLSMITH_RUNNER_TOKEN=... \
+npm run benchmark:browser
+```
+
+The JSON artifact records coverage, failures, Wilson intervals, pair latency,
+receipt hashes, and exact execution provenance. It cannot issue a conclusion
+for an incomplete pair because only finalized receipts enter its rates.

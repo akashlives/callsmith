@@ -7,8 +7,12 @@ RUN npm ci \
 
 ARG NODE_VERSION=24.20.0
 FROM node:${NODE_VERSION}-bookworm-slim AS builder
+ARG GIT_SHA=development
+ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV GIT_SHA=${GIT_SHA}
+ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

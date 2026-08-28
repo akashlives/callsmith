@@ -15,6 +15,7 @@
     "static": "knip && node scripts/check-reset.mjs",
     "framework:manifest": "node scripts/framework-manifest.mjs",
     "smoke:webmcp": "node scripts/run-official-smoke.mjs",
+    "benchmark:browser": "node scripts/run-benchmark.mjs",
     "verify": "npm run static && npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e",
     "typecheck": "tsc --noEmit"
   },

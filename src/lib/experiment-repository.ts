@@ -226,8 +226,23 @@ export interface CreatedExperiment {
   receiptToken: string;
 }
 
+export type CreateExperimentOptions = {
+  seed?: number;
+};
+
+function experimentSeed(suite: SuiteDefinitionV2, options?: CreateExperimentOptions) {
+  const seed = options?.seed ?? suite.scenarios[0].seed;
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 2_147_483_647) {
+    throw new Error("Experiment seed must be a non-negative 32-bit integer");
+  }
+  return seed;
+}
+
 export interface ExperimentRepository {
-  create(suite: SuiteDefinitionV2): Promise<CreatedExperiment>;
+  create(
+    suite: SuiteDefinitionV2,
+    options?: CreateExperimentOptions,
+  ): Promise<CreatedExperiment>;
   get(id: string, accessToken: string): Promise<ExperimentRecordV1 | undefined>;
   getInternal(id: string): Promise<ExperimentRecordV1 | undefined>;
   getSuite(id: string): Promise<SuiteDefinitionV2 | undefined>;
@@ -300,8 +315,12 @@ async function loadPostgresExperiment(
 export class PostgresExperimentRepository implements ExperimentRepository {
   constructor(private readonly sql: Sql) {}
 
-  async create(suiteInput: SuiteDefinitionV2): Promise<CreatedExperiment> {
+  async create(
+    suiteInput: SuiteDefinitionV2,
+    options?: CreateExperimentOptions,
+  ): Promise<CreatedExperiment> {
     const suite = SuiteDefinitionV2Schema.parse(suiteInput);
+    const seed = experimentSeed(suite, options);
     await ensureSchema(this.sql);
     const id = `experiment-${crypto.randomUUID()}`;
     const accessToken = createCapabilityToken();
@@ -330,7 +349,7 @@ export class PostgresExperimentRepository implements ExperimentRepository {
         ) VALUES (
           ${id}, ${suite.id}, ${suite.version}, ${hashCapabilityToken(accessToken)},
           ${hashCapabilityToken(receiptToken)}, ${CANONICAL_MODEL},
-          ${suite.scenarios[0].seed}, 'queued', 'pending', ${now}, ${now}
+          ${seed}, 'queued', 'pending', ${now}, ${now}
         )
       `;
       await transaction`
@@ -522,8 +541,12 @@ type MemoryExperiment = {
 export class MemoryExperimentRepository implements ExperimentRepository {
   private readonly records = new Map<string, MemoryExperiment>();
 
-  async create(suiteInput: SuiteDefinitionV2): Promise<CreatedExperiment> {
+  async create(
+    suiteInput: SuiteDefinitionV2,
+    options?: CreateExperimentOptions,
+  ): Promise<CreatedExperiment> {
     const suite = SuiteDefinitionV2Schema.parse(suiteInput);
+    const seed = experimentSeed(suite, options);
     const id = `experiment-${crypto.randomUUID()}`;
     const accessToken = createCapabilityToken();
     const receiptToken = createCapabilityToken();
@@ -534,7 +557,7 @@ export class MemoryExperimentRepository implements ExperimentRepository {
       contractId: suite.id,
       contractVersion: suite.version,
       model: CANONICAL_MODEL,
-      seed: suite.scenarios[0].seed,
+      seed,
       status: "queued",
       evidenceStatus: "pending",
       attempts: [],

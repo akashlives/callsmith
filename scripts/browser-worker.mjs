@@ -19,6 +19,7 @@ const workerHeartbeat = "callsmith:browser-worker:v1:heartbeat";
 const consumerName = `${process.env.RAILWAY_REPLICA_ID || hostname()}-${process.pid}`;
 const redisUrl = process.env.REDIS_URL?.trim();
 const runnerToken = process.env.CALLSMITH_RUNNER_TOKEN?.trim();
+const providerKey = process.env.OPENAI_API_KEY?.trim();
 const webBase = (
   process.env.CALLSMITH_WEB_INTERNAL_URL ||
   process.env.CALLSMITH_PUBLIC_URL ||
@@ -31,6 +32,11 @@ let draining = false;
 if (!redisUrl) throw new Error("REDIS_URL is required by the Callsmith browser worker.");
 if (!runnerToken) {
   throw new Error("CALLSMITH_RUNNER_TOKEN is required by the Callsmith browser worker.");
+}
+if (!providerKey) {
+  throw new Error(
+    "OPENAI_API_KEY is required by the canonical Luna browser worker.",
+  );
 }
 
 const redis = new Redis(redisUrl, {

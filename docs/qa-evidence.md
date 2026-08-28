@@ -55,3 +55,7 @@ These remain evidence tasks, not implemented-code claims:
 
 No pending item may be replaced with fixture evidence or a model-superiority
 claim.
+
+Current staging blocker: the runner has no non-empty model-provider credential,
+so the live Luna pair correctly terminates without a receipt. Provider
+credentials remain worker-only.
