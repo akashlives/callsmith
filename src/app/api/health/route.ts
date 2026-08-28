@@ -24,7 +24,9 @@ export async function GET() {
       queue: queueReady ? "ready" : "unavailable",
       worker: workerReady ? "ready" : "unavailable",
       browserQueueConfigured: experimentQueueConfigured(),
-      browserRunnerConfigured: workerReady && Boolean(process.env.OPENAI_API_KEY),
+      // Provider credentials are intentionally worker-only. A recent worker
+      // heartbeat is the web tier's authority for runner readiness.
+      browserRunnerConfigured: workerReady,
       framework,
     },
     {
