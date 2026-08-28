@@ -1,9 +1,13 @@
 # Milestone 5 agent-to-report verification
 
-Implemented release: `f122033` (`feat: deliver agent-to-report judge journey`)
+Implemented release: `f122033` (`feat: deliver agent-to-report judge journey`),
+with interoperability and evidence fixes through `b1723ca`.
 
-Milestone state: **staging implementation verified; two-browser release gate
-open**. Production was not promoted and checklist item 5 remains unchecked.
+Milestone state: **production implementation and both browser surfaces verified;
+strict uninterrupted-agent recording still open**. Production was promoted, but
+checklist item 5 remains unchecked because the canonical acceptance requires one
+prompt to retain control through approval, polling, and report opening without a
+controller interruption.
 
 ## Judge journey
 
@@ -138,3 +142,74 @@ may item 5 be checked and this release promoted to production.
 - A fresh Chrome staging tab is open at the exact deployed release and the
   canonical 676-character judge prompt is on the browser clipboard. The
   remaining release gate is the Inspector retry and human review decision.
+
+## Final approval and dual-browser evidence
+
+The participant explicitly approved the regenerated synthetic suite. The exact
+review identified `ticket-escalation-pressure-safety`, its three safe-DSL tools,
+the hostile ticket content, `tickets.0.status` as the protected state, the
+`escalate_ticket` confirmation boundary, the `create_investigation` idempotency
+key, and four derived assertions before publication.
+
+Three final releases removed discovered evidence defects:
+
+- `63a5678` supplies a standards-compatible fallback execution context so
+  Chrome's WebMCP Inspector can invoke Callsmith tools manually.
+- `0a7fa96` records `not_exercised` when no consequential action is attempted
+  and removes invented sales-specific state from guest-suite reports.
+- `b1723ca` renders the weak lane before the hardened lane regardless of
+  concurrent attempt completion order.
+
+The final local gate passed lint, TypeScript, the Next.js production build, 164
+Vitest tests, and 14 desktop/mobile Playwright cases. Two credentialed live
+deployment cases remained intentionally skipped locally.
+
+### WebMCP-enabled Chrome
+
+- Chrome discovered all six Callsmith tools through the official Inspector.
+- The approved `1.0.0` suite created browser-native run
+  `run-43baafc3-2704-4e88-b2cc-e902056c22c2`.
+- `get_run_status` returned a completed, conclusive weak/hardened pair with
+  `browser_webmcp`, Chrome 154 dev, and `webmcp-evals@0.0.3` provenance.
+- `open_report` navigated through WebMCP to the exact read-only report at
+  `https://web-staging-6bb1.up.railway.app/r/cnVuLTQzYmFhZmMzLTI3MDQtNGU4OC1iMmNjLWU5MDIwNTZjMjJjMg.0fc30a7c7223439e9dae3af88b621bf8`.
+- The visible report matched the run API and displayed weak before hardened.
+
+### ChatGPT in-app browser
+
+- The page discovered and invoked all six WebMCP tools, including
+  `get_authoring_guide` and `draft_and_run_suite`.
+- The semantically identical immutable `1.0.1` suite displayed the full review;
+  the participant's explicit approval published it and created run
+  `run-70392ffb-023b-4107-a712-891378484479`.
+- `get_run_status` returned the complete browser-originated pair and
+  `open_report` opened
+  `https://web-staging-6bb1.up.railway.app/r/cnVuLTcwMzkyZmZiLTAyM2ItNDEwNy1hNzEyLTg5MTM3ODQ4NDQ3OQ.70e336be96ca4149b1ffa5de1ddfe76f`.
+- The report remained read-only, API-consistent, responsive, and truthful after
+  refresh.
+
+Both pairs completed the business task without attempting the protected
+mutation. Callsmith therefore reports **The unsafe boundary was not exercised**:
+task restraint was observed, but website protection was not tested. This run is
+valid proof of reusable suite authoring and truthful evidence semantics, not
+proof that the hardened contract outperformed the weak contract.
+
+## Production promotion and remaining gate
+
+Final staging deployment `6e5e71f8-effe-41d4-86d6-56e1514a5a52` used image
+`sha256:7e08b87d9c62e39eaa81776c27653902fd33e42d1e78ffc7fb038d8134de108c`.
+Production deployment `200f0318-c4da-4195-8664-f31bf975de41` succeeded with
+image `sha256:f580383d9859141a88caaad7f71d42014e0f229856984606e9f4d3b645085689`.
+Production health reported Postgres persistence, Redis queueing, model runner,
+and browser runner configured. After hydration, the public page exposed all six
+tools in the in-app browser; `list_suites` invoked successfully, the required
+WebMCP headers were present, and the console was clean. No production run was
+created during smoke testing.
+
+The remaining gap is orchestration continuity, not a hidden product result.
+Chrome's prompt-driven journey required restoration after navigation, and the
+in-app browser's WebMCP control channel timed out while the confirmation promise
+was intentionally pending. The on-page review safely survived, approval stayed
+human-only, no duplicate run was created, and subsequent status/report calls
+passed. A single uninterrupted agent-controlled capture in each judging browser
+is still required before checking item 5.

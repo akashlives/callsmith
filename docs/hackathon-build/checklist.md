@@ -53,6 +53,10 @@ website prevented harm.
   runs both contracts, polls status, and opens the read-only report.
   Verify: Capture the flow in ChatGPT's in-app browser and WebMCP-enabled Chrome;
   reconcile the visible report with API and browser-originated evidence.
+  Current gate: Both browser surfaces, approval, browser-native runs, status,
+  reports, and API reconciliation pass. Keep this unchecked until one prompt
+  retains agent-control continuity through the pending human decision in both
+  browsers; the current controllers needed recovery after that pause.
 
 - [ ] **6. Instrument the browser runner for truthful progress**
   Spec ref: Production efficacy and latency.

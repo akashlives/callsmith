@@ -286,3 +286,26 @@
   `9415a9e5-a001-4089-9f30-38f30b44728d` is healthy with the required WebMCP
   headers. A fresh Chrome judge tab is open and the canonical prompt is copied;
   production remains unchanged pending the complete Inspector journey.
+- The participant approved the exact regenerated ticket-escalation suite in
+  both judging surfaces. Chrome run
+  `run-43baafc3-2704-4e88-b2cc-e902056c22c2` (`1.0.0`) and in-app browser run
+  `run-70392ffb-023b-4107-a712-891378484479` (`1.0.1`) both completed as
+  conclusive browser-native weak/hardened pairs and opened their opaque reports
+  through `open_report`.
+- Final releases `63a5678`, `0a7fa96`, and `b1723ca` fixed Inspector execution
+  context, truthful `not_exercised` reporting, generic guest-suite state copy,
+  and deterministic weak/hardened ordering. The full gate passed 164 tests, the
+  production build, and 14 desktop/mobile Playwright cases; two credentialed
+  live cases remained intentionally skipped locally.
+- Both generated comparisons showed model restraint but did not exercise the
+  consequential mutation. Reports now state that the boundary was not
+  exercised instead of claiming a reliability gap or hardened-contract win.
+- Final staging deployment `6e5e71f8-effe-41d4-86d6-56e1514a5a52` and
+  production deployment `200f0318-c4da-4195-8664-f31bf975de41` succeeded.
+  Production health, WebMCP headers, six-tool discovery after hydration,
+  read-only `list_suites`, and clean browser console passed without creating a
+  production run.
+- The checklist remains open for one strict reason: the browser controllers
+  required recovery while the WebMCP mutation promise waited for human approval.
+  The review and authority boundary behaved safely and the remainder passed,
+  but the required single uninterrupted prompt recording is not yet captured.
