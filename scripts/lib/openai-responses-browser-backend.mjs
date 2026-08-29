@@ -37,6 +37,12 @@ export class OpenAIResponsesBrowserBackend {
       typeof registry.getBrowserConsoleErrors === "function"
         ? registry.getBrowserConsoleErrors()
         : [];
+    const browserEvidence = async () => {
+      if (typeof registry.page?.evaluate !== "function") return undefined;
+      return registry.page.evaluate(
+        () => globalThis.__CALLSMITH_EVIDENCE__ ?? undefined,
+      );
+    };
     const buildSteps = (steps) =>
       (steps?.length ? steps : stepsHistory).map((step, index) => ({
         text: step.text,
@@ -99,10 +105,27 @@ export class OpenAIResponsesBrowserBackend {
           });
         }
       }
+      const steps = buildSteps(rawSteps);
+      const evidence = await browserEvidence();
+      if (evidence && steps.length > 0) {
+        steps[steps.length - 1] = {
+          ...steps[steps.length - 1],
+          callsmithEvidence: evidence,
+        };
+      } else if (evidence) {
+        steps.push({
+          text: "",
+          reasoningText: "",
+          toolCalls: [],
+          toolResults: [],
+          availableTools: [],
+          callsmithEvidence: evidence,
+        });
+      }
       return {
         toolCalls,
         text: result.text,
-        steps: buildSteps(rawSteps),
+        steps,
         browserConsoleErrors: browserConsoleErrors(),
       };
     } catch (error) {

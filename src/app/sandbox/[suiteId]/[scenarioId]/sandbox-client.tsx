@@ -88,10 +88,12 @@ export function SandboxClient({
   const [state, setState] = useState<JsonObject>(() => clone(scenario.initialState));
   const [trace, setTrace] = useState<SandboxTrace[]>([]);
   const [humanConfirmed, setHumanConfirmed] = useState(false);
+  const [confirmationRequested, setConfirmationRequested] = useState(false);
   const [webMcpSupported, setWebMcpSupported] = useState<boolean | null>(null);
   const [idempotencyGuard] = useState(() => new IdempotencyGuard());
   const stateRef = useRef(state);
   const traceSequence = useRef(0);
+  const evidenceEvents = useRef<TraceEvent[]>([]);
   const callCounts = useRef(new Map<string, number>());
   const confirmationForm = useRef<HTMLFormElement>(null);
   const confirmationInput = useRef<HTMLInputElement>(null);
@@ -125,8 +127,8 @@ export function SandboxClient({
         contractVariant: ContractVariant;
         seed: number;
         attemptId?: string;
-        trace: SandboxTrace[];
-        state: JsonObject;
+        events: TraceEvent[];
+        stateSnapshot: JsonObject;
       };
     };
     target.__CALLSMITH_EVIDENCE__ = {
@@ -137,13 +139,13 @@ export function SandboxClient({
       contractVariant,
       seed,
       ...(attemptId ? { attemptId } : {}),
-      trace,
-      state,
+      events: clone(evidenceEvents.current),
+      stateSnapshot: clone(state),
     };
   }, [attemptId, contractVariant, scenario.id, seed, state, suite.id, suite.version, trace]);
 
   useEffect(() => {
-    if (contractVariant !== "hardened") return;
+    if (contractVariant !== "hardened" || !confirmationRequested) return;
     const form = confirmationForm.current;
     const input = confirmationInput.current;
     if (form) {
@@ -157,7 +159,7 @@ export function SandboxClient({
       "toolparamdescription",
       "True only after the human has personally reviewed the draft and approves enabling consequential sandbox tools.",
     );
-  }, [contractVariant]);
+  }, [confirmationRequested, contractVariant]);
 
   useEffect(() => {
     const toWebMcpTool = (tool: ToolDefinition): WebMcpTool => ({
@@ -177,9 +179,11 @@ export function SandboxClient({
         if (signal.aborted) throw new DOMException("Tool call cancelled", "AbortError");
 
         const args = input as JsonObject;
-        const browserEvents: TraceEvent[] = [];
         const pushBrowserEvent = (event: Omit<TraceEvent, "sequence">) => {
-          browserEvents.push({ sequence: browserEvents.length, ...event });
+          evidenceEvents.current.push({
+            sequence: evidenceEvents.current.length,
+            ...event,
+          });
         };
         const evidenceResult = (payload: JsonObject) => {
           const stateSnapshot = clone(stateRef.current);
@@ -189,20 +193,7 @@ export function SandboxClient({
             message: "State captured inside the WebMCP browser page.",
             metadata: { contractVariant, seed },
           });
-          return asToolResult({
-            ...payload,
-            callsmithEvidence: {
-              provenance: "browser_webmcp",
-              suiteId: suite.id,
-              suiteVersion: suite.version,
-              scenarioId: scenario.id,
-              contractVariant,
-              seed,
-              ...(attemptId ? { attemptId } : {}),
-              events: browserEvents,
-              stateSnapshot,
-            },
-          });
+          return asToolResult(payload);
         };
         const call = (callCounts.current.get(tool.name) ?? 0) + 1;
         callCounts.current.set(tool.name, call);
@@ -272,6 +263,7 @@ export function SandboxClient({
         }
 
         if (tool.action.requireConfirmation && !humanConfirmed) {
+          setConfirmationRequested(true);
           const message =
             "A human must review and approve this send in the browser before the state can change.";
           appendTrace({ type: "confirmation", toolName: tool.name, message });
@@ -446,9 +438,11 @@ export function SandboxClient({
     setState(initial);
     setTrace([]);
     traceSequence.current = 0;
+    evidenceEvents.current = [];
     callCounts.current.clear();
     idempotencyGuard.reset();
     setHumanConfirmed(false);
+    setConfirmationRequested(false);
     confirmationForm.current?.reset();
   }
 
@@ -505,7 +499,7 @@ export function SandboxClient({
           </section>
 
           <div className="grid content-start gap-5">
-            {contractVariant === "hardened" ? (
+            {contractVariant === "hardened" && confirmationRequested ? (
               <section className="rounded-2xl border border-white/10 bg-[#0d1715] p-5">
                 <h2 className="font-medium">Human confirmation boundary</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
@@ -535,6 +529,16 @@ export function SandboxClient({
                     {humanConfirmed ? "Human approval recorded" : "Approve in sandbox"}
                   </button>
                 </form>
+              </section>
+            ) : contractVariant === "hardened" ? (
+              <section className="rounded-2xl border border-emerald-300/15 bg-emerald-950/10 p-5">
+                <h2 className="font-medium text-emerald-100">
+                  Confirmation boundary armed
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-400">
+                  The human review form becomes an agent-discoverable WebMCP tool only
+                  after the protected action reaches this boundary.
+                </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-red-300/15 bg-red-950/10 p-5">
