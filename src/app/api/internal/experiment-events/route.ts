@@ -134,6 +134,7 @@ export async function POST(request: Request) {
     const attempt =
       event.type === "attempt"
         ? attemptFromBrowserReport({
+            experimentId: experiment.id,
             suite: contractedSuite,
             scenario: contractedScenario,
             seed: experiment.seed,
@@ -146,6 +147,7 @@ export async function POST(request: Request) {
             report: event.report,
           })
         : failedAttemptFromBrowser({
+            experimentId: experiment.id,
             suite: contractedSuite,
             seed: experiment.seed,
             contractVariant: event.contractVariant,

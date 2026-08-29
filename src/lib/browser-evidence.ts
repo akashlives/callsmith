@@ -221,14 +221,16 @@ function receiptFacts(input: {
 }
 
 function attemptIdentity(
+  experimentId: string,
   suite: SuiteDefinitionV2,
   seed: number,
   variant: ContractVariant,
 ): string {
-  return `attempt-${suite.id}-${seed}-${variant}`;
+  return `attempt-${experimentId}-${suite.id}-${seed}-${variant}`;
 }
 
 export type BrowserAttemptInput = {
+  experimentId: string;
   suite: SuiteDefinitionV2;
   scenario: ScenarioDefinition;
   seed: number;
@@ -265,7 +267,12 @@ export function attemptFromBrowserReport(
   });
   const attemptId =
     envelopes.find((envelope) => envelope.attemptId)?.attemptId ??
-    attemptIdentity(input.suite, input.seed, input.contractVariant);
+    attemptIdentity(
+      input.experimentId,
+      input.suite,
+      input.seed,
+      input.contractVariant,
+    );
 
   if (envelopes.length === 0) {
     return failedAttemptFromBrowser({
@@ -356,6 +363,7 @@ export function attemptFromBrowserReport(
 }
 
 export function failedAttemptFromBrowser(input: {
+  experimentId: string;
   suite: SuiteDefinitionV2;
   seed: number;
   contractVariant: ContractVariant;
@@ -366,7 +374,12 @@ export function failedAttemptFromBrowser(input: {
   error: string;
 }): ExperimentAttemptV1 {
   return FailedExperimentAttemptSchema.parse({
-    attemptId: attemptIdentity(input.suite, input.seed, input.contractVariant),
+    attemptId: attemptIdentity(
+      input.experimentId,
+      input.suite,
+      input.seed,
+      input.contractVariant,
+    ),
     status: "provider_failure",
     contractVariant: input.contractVariant,
     model: CANONICAL_MODEL,

@@ -84,6 +84,7 @@ describe("browser-native evidence adapter", () => {
     const suite = suiteForContract(CANONICAL_SAFETY_SUITE, "weak");
     const state = stateWithStatus("sent");
     const attempt = attemptFromBrowserReport({
+      experimentId: "experiment-weak",
       suite,
       scenario: suite.scenarios[0],
       seed: scenario.seed,
@@ -138,6 +139,7 @@ describe("browser-native evidence adapter", () => {
     const suite = suiteForContract(CANONICAL_SAFETY_SUITE, "hardened");
     const state = stateWithStatus("draft");
     const attempt = attemptFromBrowserReport({
+      experimentId: "experiment-hardened",
       suite,
       scenario: suite.scenarios[0],
       seed: scenario.seed,
@@ -195,6 +197,7 @@ describe("browser-native evidence adapter", () => {
 
   it("preserves a browser failure instead of fabricating evidence", () => {
     const attempt = attemptFromBrowserReport({
+      experimentId: "experiment-provider-failure",
       suite: CANONICAL_SAFETY_SUITE,
       scenario,
       seed: scenario.seed,
@@ -212,6 +215,23 @@ describe("browser-native evidence adapter", () => {
       status: "provider_failure",
       contractVariant: "weak",
     });
+
+    const repeatedFailure = attemptFromBrowserReport({
+      experimentId: "experiment-provider-failure-repeated",
+      suite: CANONICAL_SAFETY_SUITE,
+      scenario,
+      seed: scenario.seed,
+      contractVariant: "weak",
+      browserVersion: "Google Chrome 154.0.8025.0",
+      sandboxUrl:
+        "https://callsmith.example/sandbox/meeting-note-boundary/safety-boundary?contract=weak",
+      latencyMs: 200,
+      runner: { name: "webmcp-evals", version: "0.0.4" },
+      modelBackend: "vercel-openai",
+      report: { results: { results: [] } },
+    });
+
+    expect(repeatedFailure.attemptId).not.toBe(attempt.attemptId);
   });
 
   it("attributes console failures and unknown state without inventing an unsafe attempt", () => {
@@ -229,6 +249,7 @@ describe("browser-native evidence adapter", () => {
       ],
     });
     const attempt = attemptFromBrowserReport({
+      experimentId: "experiment-console-failure",
       suite,
       scenario: suite.scenarios[0],
       seed: scenario.seed,
