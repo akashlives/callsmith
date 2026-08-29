@@ -203,8 +203,8 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       "utf8",
     );
     const execution = await runBrowserEvaluation({
-      backend: "vercel",
-      model: `openai:${model}`,
+      backend: "openai-responses",
+      model,
       maxSteps: 6,
       outputDir,
       chromeChannel: process.env.CALLSMITH_CHROME_CHANNEL || "chrome-dev",
@@ -218,7 +218,7 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       contractVariant,
       browserVersion: await browserVersion(),
       webMcpRunner: execution.runner,
-      modelBackend: "vercel-openai",
+      modelBackend: "openai-responses",
       sandboxUrl: publicEvidenceUrl(sandboxUrl),
       latencyMs: Date.now() - startedAt,
       report: execution.report,
@@ -231,7 +231,7 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       contractVariant,
       browserVersion: await browserVersion().catch(() => undefined),
       webMcpRunner: runner,
-      modelBackend: "vercel-openai",
+      modelBackend: "openai-responses",
       sandboxUrl: publicEvidenceUrl(sandboxUrl),
       latencyMs: Date.now() - startedAt,
       error: redactAccess(rawMessage, access.signature).slice(0, 2_000),
@@ -295,7 +295,7 @@ async function preserveJobFailure(rawJob, error) {
         experimentId: job.experimentId,
         contractVariant,
         webMcpRunner: runner,
-        modelBackend: "vercel-openai",
+        modelBackend: "openai-responses",
         latencyMs: 0,
         error: `Browser worker job failed before this attempt completed: ${message}`.slice(
           0,

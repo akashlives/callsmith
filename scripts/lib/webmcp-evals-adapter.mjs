@@ -3,6 +3,10 @@ import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
+import { executeInBrowserEvals } from "webmcp-evals/dist/evaluator/index.js";
+
+import { OpenAIResponsesBrowserBackend } from "./openai-responses-browser-backend.mjs";
+
 const execFileAsync = promisify(execFile);
 const packagePath = resolve("node_modules/webmcp-evals/package.json");
 const cliPath = resolve("node_modules/webmcp-evals/dist/bin/webmcp-evals.js");
@@ -88,13 +92,43 @@ async function latestJsonReport(outputDir) {
 }
 
 function browserConsoleEvidence(report) {
-  if (!report || !Array.isArray(report.results)) return [];
-  return report.results.flatMap((result) =>
+  const results = Array.isArray(report?.results)
+    ? report.results
+    : report?.results?.results;
+  if (!Array.isArray(results)) return [];
+  return results.flatMap((result) =>
     Array.isArray(result.browserConsoleErrors) ? result.browserConsoleErrors : [],
   );
 }
 
 export async function runBrowserEvaluation(input) {
+  if (input.backend === "openai-responses") {
+    const tests = JSON.parse(await readFile(input.evalsPath, "utf8"));
+    const config = {
+      url: input.url,
+      evalsFile: input.evalsPath,
+      backend: input.backend,
+      model: input.model,
+      runs: 1,
+      maxSteps: input.maxSteps ?? 6,
+      outputDir: input.outputDir,
+      reporter: ["json"],
+      chromeChannel: input.chromeChannel ?? "chrome-dev",
+    };
+    const backend = new OpenAIResponsesBrowserBackend({
+      model: input.model,
+      maxSteps: input.maxSteps ?? 6,
+    });
+    const results = await executeInBrowserEvals(tests, backend, config);
+    const report = { config, results };
+    return {
+      stdout: "",
+      stderr: "",
+      browserConsole: browserConsoleEvidence(report),
+      report,
+      runner: await webMcpRunnerIdentity(),
+    };
+  }
   const command = await execute(browserEvaluationArguments(input), {
     ...input,
     processTimeoutMs: input.processTimeoutMs ?? 150_000,
