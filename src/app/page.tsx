@@ -1,6 +1,7 @@
 import { ArrowUpRight, Braces, GitCompareArrows, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
+import { BenchmarkProof } from "@/components/benchmark-proof";
 import { SignatureStory } from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
 import WebMcpBridge from "@/components/webmcp-bridge";
@@ -56,6 +57,8 @@ export default function Home() {
             </article>
           </div>
         </section>
+
+        <BenchmarkProof />
 
         <section className="webmcp-callout" aria-labelledby="webmcp-heading">
           <div>
