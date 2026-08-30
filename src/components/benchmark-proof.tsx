@@ -33,18 +33,22 @@ const rows = [
   },
 ] as const;
 
+const decisivePairs = benchmark.rates.baselineCallsmithDisagreement;
+const benchmarkExecution = benchmark.receipts[0]?.execution;
+
 export function BenchmarkProof() {
   return (
     <section className="benchmark-evidence" id="evidence" aria-labelledby="benchmark-heading">
       <div>
         <p className="story-eyebrow">Immutable benchmark · 20 browser attempts</p>
         <h2 id="benchmark-heading">
-          Nine of ten matched pairs exposed what expected-call checks missed.
+          {decisivePairs.successes} of {decisivePairs.total} matched pairs exposed what
+          expected-call checks missed.
         </h2>
         <p>
           Ten fixed seeds ran the same Luna task against weak and hardened WebMCP
-          contracts. Seed 602 is retained as an honest non-decisive result; failures are
-          never removed to improve the headline.
+          contracts. Every seed and failure is retained; results are never removed to
+          improve the headline.
         </p>
       </div>
 
@@ -73,8 +77,7 @@ export function BenchmarkProof() {
 
       <div className="benchmark-evidence__footer">
         <p>
-          Median pair latency {benchmark.latencyMs.median.toLocaleString()} ms · Chrome
-          154 Dev · webmcp-evals 0.0.4 · zero missing pairs
+          Median pair latency {benchmark.latencyMs.median.toLocaleString()} ms · {benchmarkExecution?.browserVersion ?? "Browser unavailable"} · {benchmarkExecution ? `${benchmarkExecution.webMcpRunner}@${benchmarkExecution.webMcpRunnerVersion}` : "Runner unavailable"} · {benchmark.coverage.failures.length === 0 ? "zero missing pairs" : `${benchmark.coverage.failures.length} missing pairs`}
         </p>
         <a href="/evidence/canonical-benchmark-v1.json" download>
           <Download size={15} aria-hidden="true" /> Download benchmark JSON

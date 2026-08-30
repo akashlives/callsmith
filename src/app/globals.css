@@ -110,6 +110,7 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .story-hero h1 { max-width: 720px; font-size: clamp(54px, 6.7vw, 92px); }
 .story-hero__lede { max-width: 640px; margin: 28px 0 0; color: var(--muted); font-size: clamp(18px, 2vw, 23px); letter-spacing: -.02em; line-height: 1.55; }
 .story-hero__trust { display: flex; align-items: center; gap: 9px; margin-top: 30px; color: var(--safe); font-size: 13px; }
+.story-hero__trust span { min-width: 0; overflow-wrap: anywhere; }
 
 .case-card { position: relative; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-strong); padding: clamp(25px, 3vw, 38px); box-shadow: var(--shadow); }
 .case-card::before { position: absolute; top: 0; right: 0; left: 0; height: 4px; background: var(--risk); content: ""; }
@@ -203,7 +204,7 @@ html[data-theme="dark"] .theme-toggle__moon { display: none; }
 .evidence-disclosure { margin-top: 58px; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line); }
 .evidence-disclosure > summary { display: flex; min-height: 100px; align-items: center; justify-content: space-between; gap: 20px; cursor: pointer; list-style: none; }
 .evidence-disclosure > summary::-webkit-details-marker, .developer-disclosure > summary::-webkit-details-marker, .raw-disclosure > summary::-webkit-details-marker { display: none; }
-.evidence-disclosure > summary > span { display: flex; flex-direction: column; gap: 5px; }
+.evidence-disclosure > summary > span { display: flex; min-width: 0; flex-direction: column; gap: 5px; }
 .evidence-disclosure > summary small { color: var(--risk); font-family: var(--font-evidence); font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .evidence-disclosure > summary strong { font-size: 25px; letter-spacing: -.03em; }
 .evidence-disclosure > summary > i { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid var(--line); border-radius: 50%; font-style: normal; transition: transform 180ms ease; }

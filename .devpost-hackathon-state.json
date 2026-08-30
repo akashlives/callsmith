@@ -15,30 +15,30 @@
   "project": {
     "name": "Callsmith",
     "summary": "The browser-native WebMCP safety workbench that compares weak and hardened website contracts and catches unsafe state transitions expected-call checks miss.",
-    "ai_usage": "OpenAI Responses agents run through webmcp-evals browser mode against isolated weak and hardened WebMCP contracts; previews and simulations remain explicitly labeled fallbacks.",
+    "ai_usage": "OpenAI Responses agents run through webmcp-evals browser mode against isolated weak and hardened WebMCP contracts; preview and server-simulation paths are not part of the product.",
     "codex_usage": "Product shaping, parallel implementation, integration debugging, browser verification, Railway deployment, and judge-ready documentation."
   },
-  "current_stage": "resources",
+  "current_stage": "build",
   "completed_stages": [
     "start-hackathon",
-    "review"
+    "review",
+    "resources"
   ],
   "rules_acknowledged": true,
   "learning": {
     "status": "in-progress",
-    "current_step": "build",
+    "current_step": "prepare-submission",
     "completed_steps": [
       "scope",
       "prd",
       "spec",
-      "checklist"
-    ],
-    "plan_file": "docs/hackathon-build/spec.md",
-    "checklist_file": "docs/hackathon-build/checklist.md"
+      "checklist",
+      "build"
+    ]
   },
   "submission": {
     "draft_file": "devpost-submission.md",
     "status": "drafting"
   },
-  "next_command": "build-project"
+  "next_command": "prepare-submission"
 }

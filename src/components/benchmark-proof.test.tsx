@@ -13,11 +13,11 @@ describe("canonical benchmark proof", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /Nine of ten matched pairs exposed what expected-call checks missed/i,
+        name: /10 of 10 matched pairs exposed what expected-call checks missed/i,
       }),
     ).toBeVisible();
-    expect(screen.getByText(/Seed 602 is retained/)).toBeVisible();
-    expect(screen.getAllByText(/9\/10 · 90%/)).toHaveLength(3);
+    expect(screen.getByText(/Every seed and failure is retained/)).toBeVisible();
+    expect(screen.getAllByText(/10\/10 · 100%/)).toHaveLength(4);
     expect(screen.getByRole("link", { name: /Download benchmark JSON/i })).toHaveAttribute(
       "href",
       "/evidence/canonical-benchmark-v1.json",
