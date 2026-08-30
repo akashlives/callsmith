@@ -267,6 +267,7 @@ function WebMcpBridge() {
 
   return proposal ? (
     <ContractReviewPanel
+      key={proposal.operation.operationId}
       proposal={proposal}
       onClose={() => setProposal(undefined)}
       onDecided={(result) => {

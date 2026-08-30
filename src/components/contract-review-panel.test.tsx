@@ -100,4 +100,46 @@ describe("safety contract human review", () => {
     await waitFor(() => expect(decided).toHaveBeenCalledOnce());
     expect(screen.getByRole("status")).toHaveTextContent("No experiment was created");
   });
+
+  it("resets the human decision state when a new proposal replaces a rejected one", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>().mockResolvedValueOnce(
+        Response.json({ operation: { status: "rejected" }, experiment: null }),
+      ),
+    );
+    const { rerender } = render(
+      <ContractReviewPanel
+        key={proposal.operation.operationId}
+        proposal={proposal}
+        onClose={vi.fn()}
+        onDecided={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent("No experiment was created");
+    });
+
+    const replacement: ContractProposalResponse = {
+      ...proposal,
+      operation: { ...proposal.operation, operationId: "proposal-replacement" },
+      links: {
+        status: "/api/contracts/proposals/proposal-replacement/status",
+        decision: "/api/contracts/proposals/proposal-replacement/decision",
+      },
+    };
+    rerender(
+      <ContractReviewPanel
+        key={replacement.operation.operationId}
+        proposal={replacement}
+        onClose={vi.fn()}
+        onDecided={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Waiting for your explicit decision");
+    expect(screen.getByRole("button", { name: "Approve and run" })).toBeEnabled();
+  });
 });
