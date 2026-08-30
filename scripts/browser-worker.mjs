@@ -11,6 +11,10 @@ import {
   runBrowserEvaluation,
   webMcpRunnerIdentity,
 } from "./lib/webmcp-evals-adapter.mjs";
+import {
+  interruptionDuringDrain,
+  shouldRetryWithoutAcknowledgement,
+} from "./lib/worker-lifecycle.mjs";
 
 const execFileAsync = promisify(execFile);
 const jobStream = "callsmith:experiment-jobs:v1";
@@ -224,6 +228,8 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       report: execution.report,
     });
   } catch (error) {
+    const interruption = interruptionDuringDrain(error, draining);
+    if (interruption) throw interruption;
     const rawMessage = error instanceof Error ? error.message : String(error);
     await postEvent({
       type: "failure",
@@ -409,8 +415,14 @@ async function main() {
       acknowledge = true;
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
-      console.error(`[callsmith-worker] job failed: ${detail}`);
-      acknowledge = await preserveJobFailure(rawJob, error);
+      if (shouldRetryWithoutAcknowledgement(error, draining)) {
+        console.warn(
+          `[callsmith-worker] leaving interrupted job unacknowledged for recovery: ${detail}`,
+        );
+      } else {
+        console.error(`[callsmith-worker] job failed: ${detail}`);
+        acknowledge = await preserveJobFailure(rawJob, error);
+      }
     } finally {
       clearInterval(leaseTimer);
     }
