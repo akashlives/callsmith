@@ -216,6 +216,11 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       evalsPath,
       env: process.env,
     });
+    const interruption = interruptionDuringDrain(
+      new Error("Browser evaluation returned after worker shutdown began."),
+      draining,
+    );
+    if (interruption) throw interruption;
     await postEvent({
       type: "attempt",
       experimentId: job.experimentId,
