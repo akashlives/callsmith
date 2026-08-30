@@ -8,7 +8,7 @@ browser result.
 
 - static reset guard and `knip`: pass;
 - ESLint and TypeScript: pass;
-- Vitest locally: 56 pass, 2 service-backed tests skipped when integration URLs
+- Vitest locally: 57 pass, 2 service-backed tests skipped when integration URLs
   are absent;
 - release CI: pass with real Postgres 17 and Redis 8 services;
 - library coverage gate: at least 85% statements and 75% branches;
@@ -61,6 +61,17 @@ The JSON artifact preserves every receipt hash, seed, outcome, browser version,
 runner version, model/backend, application revision, and framework-manifest
 revision.
 
+## Final release-candidate identity
+
+- application revision: `548987bda92eb79c968b5cbb361cb66827e59529`;
+- verified container digest:
+  `sha256:77b323764ede4db454ef81bd67d2e9bae6165647dc74cc73a938e79bce66dbae`;
+- Railway staging web and runner use that same digest;
+- runtime framework-manifest revision:
+  `3d1a8d1aa527521b3fc396aa205b1cced7700b1e6c5ab204eab1dea25d99766d`;
+- GitHub verify gate: static analysis, lint, typecheck, real-service coverage,
+  build, desktop/mobile Playwright, and Docker all pass.
+
 ## Real browser-use acceptance
 
 Completed in ChatGPT's in-app browser against staging:
@@ -80,10 +91,35 @@ The responsive inspection found a 43 px receipt overflow caused by a long
 SHA-256 value. The value and disclosure labels now wrap without changing the
 narrative order; Playwright mobile regression passes.
 
-Chrome has separately passed native discovery/invocation smoke and all ten live
-benchmark pairs. The desktop-control connector can inspect the Chrome page but
-does not expose its WebMCP capability, so it is not counted as the required
-human-visible Chrome agent journey.
+Completed in Chrome 152 with WebMCP enabled through the official native
+`page.webmcp` surface:
+
+- all five Callsmith tools discovered;
+- a synthetic non-sales refund contract opened a human review;
+- rejection persisted and created no experiment;
+- a replacement proposal reset the decision UI instead of inheriting the prior
+  rejection;
+- visible approval queued one experiment;
+- the experiment completed and its receipt opened through WebMCP;
+- browser-console errors captured during tool execution: zero.
+
+That test found and closed a real state-isolation defect: a second proposal on
+the same page previously inherited the first review's terminal decision. The
+review component is now keyed by immutable proposal ID and has a regression
+test. Chrome also passed two consecutive visible decisive journeys, official
+native weak/hardened smoke, and all ten benchmark pairs.
+
+The final in-app-browser check opened a conclusive canonical receipt through
+Callsmith's WebMCP tools. At a 390 px emulated viewport, the deployed receipt had
+375 px client and scroll widths—zero horizontal overflow.
+
+## Demo asset
+
+A 97-second, 1440×900 narrated rough cut was generated from a real staged run.
+It shows the one-click experiment, live progress, weak/hardened outcome, browser
+proof, immutable receipt, and ten-seed benchmark. The MP4 is stored locally at
+`outputs/callsmith-demo-final.mp4`; it remains a draft until the submitter
+reviews the narration and explicitly approves a public upload.
 
 ## External session protocol
 
@@ -106,19 +142,14 @@ Recruitment copy (not yet posted):
 > customer systems. You’ll turn one risky workflow from your domain into a safety
 > contract and tell me where the experience breaks.
 
-## Remaining release gates
+## Remaining human/external release gates
 
-- deploy the final benchmark/mobile/documentation revision to staging and repeat
-  the automated gate on that exact image;
-- repeat mobile overflow inspection on the deployed receipt;
-- complete two consecutive human-visible agent-to-report journeys in a
-  WebMCP-enabled Chrome session;
 - record five uncoached external non-sales contract sessions (four must complete
   without intervention and all five must explain the value);
-- record and publish a public, narrated, sub-three-minute demo video;
-- freeze one repository revision, image digest, benchmark, screenshots, video,
-  and Devpost narrative;
-- promote that same verified image to production;
+- review the local demo, then publish it as a public narrated video under three
+  minutes;
+- freeze the release after external findings, then promote the same verified
+  image to production;
 - obtain the submitter country and explicit approval before creating/updating the
   Devpost project, then obtain a separate explicit “yes, submit” before final
   submission.

@@ -139,15 +139,16 @@ remains reproducible.
 - AI tools: OpenAI Responses API through the AI SDK, Codex
 - Learning/career: built browser-native WebMCP evaluation, durable Redis/Postgres
   execution, tamper-evident receipts, and human-in-the-loop tool boundaries
-- Public demo video with audio under three minutes: **PENDING**
+- Public demo video with audio under three minutes: **97-second local rough cut
+  ready; public URL pending submitter review and upload approval**
 
 ## Evidence to attach before submission freeze
 
 - final production URL, repository revision, and container digest;
 - checked-in ten-seed matched benchmark;
-- Chrome WebMCP and ChatGPT in-app-browser QA screenshots;
+- Chrome WebMCP and ChatGPT in-app-browser QA screenshots (captured);
 - five genuine, uncoached non-sales tester receipts;
-- public sub-three-minute narrated demo video.
+- public sub-three-minute narrated demo video (local rough cut ready).
 
 The project must not be created or updated on Devpost until the submitter reviews
 these exact fields and confirms the missing country. Final submission requires a
