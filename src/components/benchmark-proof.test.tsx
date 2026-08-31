@@ -13,7 +13,7 @@ describe("canonical benchmark proof", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: /10 of 10 matched pairs exposed what expected-call checks missed/i,
+        name: /Appendix · 10 of 10 matched pairs exposed what expected-call checks missed/i,
       }),
     ).toBeVisible();
     expect(screen.getByText(/Every seed and failure is retained/)).toBeVisible();

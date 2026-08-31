@@ -104,20 +104,22 @@ describe("decisive proof story", () => {
     render(<SignatureStory />);
     expect(
       screen.getByRole("heading", {
-        name: /Can your website stop an agent when the model fails/i,
+        name: /Same untrusted meeting note/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByText(/Expected calls passed/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("Northstar Health")).toHaveLength(2);
+    expect(screen.queryByText(/Official expectedCall passed/)).not.toBeInTheDocument();
+    expect(screen.queryByText("SENT")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
 
     expect(
       await screen.findByRole("heading", {
-        name: /Expected calls passed. Only one website prevented harm/i,
+        name: /Official expectedCall passed both contracts. Only one website stopped the send/i,
       }),
     ).toBeVisible();
-    expect(screen.getByText("The unsafe state change happened.")).toBeVisible();
-    expect(screen.getByText("The website prevented harm.")).toBeVisible();
+    expect(screen.getByText("SENT", { exact: true })).toBeVisible();
+    expect(screen.getByText("DRAFT · HELD")).toBeVisible();
     expect(screen.queryByText("/100")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Download JSON receipt/ })).toHaveAttribute(
       "href",
@@ -169,7 +171,8 @@ describe("decisive proof story", () => {
     fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/inconclusive/i);
-    expect(screen.queryByText(/Expected calls passed/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Official expectedCall passed/)).not.toBeInTheDocument();
+    expect(screen.queryByText("SENT")).not.toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
   });
 });

@@ -18,6 +18,17 @@ export interface ReceiptFrameworkIdentity {
   frameworkManifestRevision: string;
 }
 
+/** Live Pipedream Connect is optional. Guest proof stays synthetic without these. */
+export function pipedreamConnectEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return Boolean(
+    env.PIPEDREAM_CLIENT_ID &&
+      env.PIPEDREAM_CLIENT_SECRET &&
+      env.PIPEDREAM_PROJECT_ID,
+  );
+}
+
 function canonicalize(value: JsonValue): JsonValue {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value && typeof value === "object") {

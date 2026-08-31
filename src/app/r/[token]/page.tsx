@@ -1,51 +1,16 @@
-import { Download, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import {
+  CrmPair,
+  HOSTILE_MEETING_NOTE,
+  laneFromEvidence,
+} from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { experimentRepository } from "@/lib/experiment-repository";
-import type { ReceiptAttemptEvidence } from "@/lib/evidence-receipt";
+import { pipedreamConnectEnabled } from "@/lib/evidence-receipt-server";
 
 export const dynamic = "force-dynamic";
-
-function Outcome({
-  label,
-  evidence,
-  tone,
-}: {
-  label: string;
-  evidence: ReceiptAttemptEvidence;
-  tone: "risk" | "safe";
-}) {
-  const heading =
-    evidence.facts.protectedState === "mutated"
-      ? "Protected state mutated"
-      : evidence.facts.protectedState === "preserved" &&
-          evidence.facts.harmPrevention === "prevented"
-        ? "Harm was prevented"
-        : "Evidence was inconclusive";
-
-  return (
-    <article className={`outcome-card is-${tone}`}>
-      <div className="outcome-card__topline">
-        <span className="outcome-card__model"><i aria-hidden="true" /> {label}</span>
-        <small>{evidence.execution.model}</small>
-      </div>
-      <h3>{heading}</h3>
-      <p>
-        Official expected calls: {evidence.facts.officialExpectedCallBaseline}. Unsafe
-        action: {evidence.facts.unsafeAction}. Human boundary: {evidence.facts.harmPrevention}.
-      </p>
-      <dl className="receipt-facts">
-        <div><dt>Expected calls</dt><dd>{evidence.facts.officialExpectedCallBaseline}</dd></div>
-        <div><dt>Unsafe action</dt><dd>{evidence.facts.unsafeAction}</dd></div>
-        <div><dt>Protected state</dt><dd>{evidence.facts.protectedState}</dd></div>
-        <div><dt>Harm prevention</dt><dd>{evidence.facts.harmPrevention}</dd></div>
-        <div><dt>Task outcome</dt><dd>{evidence.facts.taskOutcome}</dd></div>
-      </dl>
-    </article>
-  );
-}
 
 export default async function ReceiptPage({
   params,
@@ -56,6 +21,7 @@ export default async function ReceiptPage({
   const receipt = await experimentRepository.getReceipt(token);
   if (!receipt) notFound();
   const decisive = receipt.conclusion === "hardened_prevented_harm";
+  const connectEnabled = pipedreamConnectEnabled();
 
   return (
     <main className="report-wrap">
@@ -67,31 +33,35 @@ export default async function ReceiptPage({
         <ThemeToggle />
       </header>
 
+      <section className="crm-stage receipt-stage" aria-label="Sealed CRM pair">
+        <CrmPair
+          weak={laneFromEvidence(receipt.weak)}
+          hardened={laneFromEvidence(receipt.hardened)}
+          note={HOSTILE_MEETING_NOTE}
+          pipedreamConnectEnabled={connectEnabled}
+        />
+      </section>
+
+      <p className="sha-first">
+        <span className="crm-fig">SHA-256</span>
+        <code>{receipt.contentHash}</code>
+      </p>
+
       <section className="report-hero">
-        <p className="story-eyebrow">SHA-256 verified · read only</p>
         <h1>
           {decisive
-            ? "Expected calls passed. Only the hardened website prevented harm."
+            ? "Official expectedCall passed both contracts. Only one website stopped the send."
             : "This receipt preserves an inconclusive safety result."}
         </h1>
         <p>
-          Same model, prompt, and seed. This report records the official call matcher
-          beside the protected browser state—not a weighted score.
+          Same model, prompt, and seed. Weak SENT means followups.0.status mutated.
+          Hardened DRAFT means confirmation held and protected state stayed draft.
         </p>
-        <div className="story-hero__trust">
-          <ShieldCheck size={17} aria-hidden="true" />
-          <span>{receipt.contentHash}</span>
-        </div>
-      </section>
-
-      <section className="outcome-grid" aria-label="Contract outcomes">
-        <Outcome label="Weak contract" evidence={receipt.weak} tone="risk" />
-        <Outcome label="Hardened contract" evidence={receipt.hardened} tone="safe" />
       </section>
 
       <div className="result-actions">
         <a className="secondary-action" href={`/api/receipts/${encodeURIComponent(token)}`} download>
-          <Download size={15} aria-hidden="true" /> Download JSON receipt
+          Download JSON receipt
         </a>
       </div>
 

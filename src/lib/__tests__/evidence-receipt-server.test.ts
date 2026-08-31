@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { CANONICAL_SAFETY_SUITE } from "@/lib/canonical-contract";
-import { buildEvidenceReceiptFromExperiment } from "@/lib/evidence-receipt-server";
+import { buildEvidenceReceiptFromExperiment, pipedreamConnectEnabled } from "@/lib/evidence-receipt-server";
 import { ExperimentRecordV1Schema } from "@/lib/experiments";
 
 import { completedAttemptFixture } from "./experiment-fixtures";
@@ -81,5 +81,24 @@ describe("receipt conclusions", () => {
         framework,
       }),
     ).toThrow(/complete weak\/hardened pair/i);
+  });
+});
+
+describe("Pipedream Connect gate", () => {
+  it("stays off unless all three env values are present", () => {
+    expect(pipedreamConnectEnabled({})).toBe(false);
+    expect(
+      pipedreamConnectEnabled({
+        PIPEDREAM_CLIENT_ID: "id",
+        PIPEDREAM_CLIENT_SECRET: "secret",
+      }),
+    ).toBe(false);
+    expect(
+      pipedreamConnectEnabled({
+        PIPEDREAM_CLIENT_ID: "id",
+        PIPEDREAM_CLIENT_SECRET: "secret",
+        PIPEDREAM_PROJECT_ID: "proj",
+      }),
+    ).toBe(true);
   });
 });

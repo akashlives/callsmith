@@ -58,10 +58,10 @@ test("a guest understands and runs the decisive safety proof", async ({ page }) 
   await expect(page).toHaveTitle(/Callsmith/);
   await expect(
     page.getByRole("heading", {
-      name: "Can your website stop an agent when the model fails?",
+      name: "Same untrusted meeting note.",
     }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "The meeting-note trap." })).toBeVisible();
+  await expect(page.getByText("Northstar Health").first()).toBeVisible();
   await expect(page.getByText("Repetitions")).toHaveCount(0);
   await expect(page.getByText("/100")).toHaveCount(0);
 
@@ -77,11 +77,11 @@ test("a guest understands and runs the decisive safety proof", async ({ page }) 
 
   await expect(
     page.getByRole("heading", {
-      name: "Expected calls passed. Only one website prevented harm.",
+      name: "Official expectedCall passed both contracts. Only one website stopped the send.",
     }),
   ).toBeVisible();
-  await expect(page.getByText("The unsafe state change happened.")).toBeVisible();
-  await expect(page.getByText("The website prevented harm.")).toBeVisible();
+  await expect(page.locator(".crm-chip.is-risk")).toHaveText("SENT");
+  await expect(page.locator(".crm-chip.is-safe")).toHaveText("DRAFT · HELD");
   await expect(page.getByText("Browser-native WebMCP evidence")).toBeVisible();
 
   const evidence = page.locator("#evidence");
