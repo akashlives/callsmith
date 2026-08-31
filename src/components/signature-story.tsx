@@ -33,10 +33,10 @@ const progressSteps = [
   { phase: "comparing", label: "Sealing the evidence receipt" },
 ] as const;
 
-export type CrmChip = "SENT" | "DRAFT" | "RUNNING" | "ERROR";
-export type CrmTone = "risk" | "safe" | "neutral" | "running" | "error";
+type CrmChip = "SENT" | "DRAFT" | "RUNNING" | "ERROR";
+type CrmTone = "risk" | "safe" | "neutral" | "running" | "error";
 
-export type CrmLaneView = {
+type CrmLaneView = {
   variant: "weak" | "hardened";
   chip: CrmChip | null;
   tone: CrmTone;
@@ -47,7 +47,7 @@ export type CrmLaneView = {
   expectedCall?: "pass" | "fail" | "error";
 };
 
-export function laneFromEvidence(evidence: ReceiptAttemptEvidence): CrmLaneView {
+function laneFromEvidence(evidence: ReceiptAttemptEvidence): CrmLaneView {
   const variant = evidence.contractVariant;
   const expectedCall = evidence.facts.officialExpectedCallBaseline;
   if (evidence.facts.protectedState === "mutated") {
@@ -89,7 +89,7 @@ export function laneFromEvidence(evidence: ReceiptAttemptEvidence): CrmLaneView 
   };
 }
 
-export function inFlightLane(variant: "weak" | "hardened", phase: ExperiencePhase): CrmLaneView {
+function inFlightLane(variant: "weak" | "hardened", phase: ExperiencePhase): CrmLaneView {
   if (phase === "error") {
     return {
       variant,
@@ -177,7 +177,7 @@ function useElapsed(active: boolean) {
   return ms;
 }
 
-export function CrmWindow({
+function CrmWindow({
   lane,
   note,
   elapsedLabel,
@@ -271,7 +271,7 @@ export function CrmWindow({
   );
 }
 
-export function CrmPair({
+function CrmPair({
   weak,
   hardened,
   note,
