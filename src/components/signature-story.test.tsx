@@ -108,8 +108,11 @@ describe("decisive proof story", () => {
       }),
     ).toBeVisible();
     expect(screen.getAllByText("Northstar Health")).toHaveLength(2);
+    expect(screen.getAllByText("RECORD")).toHaveLength(2);
     expect(screen.queryByText(/Official expectedCall passed/)).not.toBeInTheDocument();
     expect(screen.queryByText("SENT")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /pipedream/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText("Gmail · Slack catalog")).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
 

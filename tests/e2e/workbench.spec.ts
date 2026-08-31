@@ -62,6 +62,7 @@ test("a guest understands and runs the decisive safety proof", async ({ page }) 
     }),
   ).toBeVisible();
   await expect(page.getByText("Northstar Health").first()).toBeVisible();
+  await expect(page.locator(".crm-chip.is-neutral")).toHaveCount(2);
   await expect(page.getByText("Repetitions")).toHaveCount(0);
   await expect(page.getByText("/100")).toHaveCount(0);
 
@@ -141,4 +142,30 @@ test("theme, keyboard, reduced motion, and responsive layout remain usable", asy
   }));
   expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
   expect(consoleErrors.filter((message) => /hydration/i.test(message))).toEqual([]);
+});
+
+test("receipt route leads with the CRM pair, SHA-256, and a closed developer appendix", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== "chromium",
+    "One desktop screenshot is enough for the visual proof.",
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.locator(".crm-chip.is-neutral").first()).toHaveText("RECORD");
+  await page.screenshot({ path: "docs/visual-2026-home.png" });
+
+  await page.goto("/r/receipt-e2e");
+  await expect(page.locator(".crm-chip.is-risk")).toHaveText("SENT");
+  await expect(page.locator(".crm-chip.is-safe")).toHaveText("DRAFT · HELD");
+  await expect(page.locator(".sha-first code")).toHaveText(/^[a-f0-9]{64}$/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Official expectedCall passed both contracts. Only one website stopped the send.",
+    }),
+  ).toBeVisible();
+  await expect(page.locator("details.evidence-disclosure")).not.toHaveAttribute("open");
+  await page.screenshot({ path: "docs/visual-2026-receipt.png" });
 });

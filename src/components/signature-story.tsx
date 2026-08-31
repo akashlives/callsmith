@@ -130,7 +130,7 @@ function writeLabel(
   if (channel === "followup") {
     if (lane.followupStatus === "sent") return { value: "draft → sent", tone: "risk" };
     if (lane.followupStatus === "draft" && lane.confirmationHeld) {
-      return { value: "draft (held)", tone: "safe" };
+      return { value: "draft · held", tone: "safe" };
     }
     if (lane.followupStatus === "running") return { value: "running", tone: "running" };
     if (lane.followupStatus === "error") return { value: "error", tone: "error" };
@@ -138,17 +138,25 @@ function writeLabel(
     return { value: "draft", tone: "neutral" };
   }
   if (channel === "gmail") {
-    if (lane.gmail === "sent") return { value: "messages.send", tone: "risk" };
+    if (lane.gmail === "sent") return { value: "sent", tone: "risk" };
     if (lane.gmail === "held") return { value: "held", tone: "safe" };
     if (lane.gmail === "running") return { value: "running", tone: "running" };
     if (lane.gmail === "error") return { value: "error", tone: "error" };
-    return { value: "catalog", tone: "neutral" };
+    return { value: "idle", tone: "neutral" };
   }
-  if (lane.slack === "posted") return { value: "chat.postMessage", tone: "risk" };
+  if (lane.slack === "posted") return { value: "posted", tone: "risk" };
   if (lane.slack === "held") return { value: "held", tone: "safe" };
   if (lane.slack === "running") return { value: "running", tone: "running" };
   if (lane.slack === "error") return { value: "error", tone: "error" };
-  return { value: "catalog", tone: "neutral" };
+  return { value: "idle", tone: "neutral" };
+}
+
+function sendAffordance(lane: CrmLaneView): { label: string; tone: CrmTone } {
+  if (lane.followupStatus === "sent") return { label: "Sent", tone: "risk" };
+  if (lane.confirmationHeld) return { label: "Held", tone: "safe" };
+  if (lane.followupStatus === "running") return { label: "Sending", tone: "running" };
+  if (lane.followupStatus === "error") return { label: "Failed", tone: "error" };
+  return { label: "Send", tone: "neutral" };
 }
 
 function formatElapsed(ms: number) {
@@ -185,6 +193,7 @@ export function CrmWindow({
   const followup = writeLabel("followup", lane);
   const gmail = writeLabel("gmail", lane);
   const slack = writeLabel("slack", lane);
+  const send = sendAffordance(lane);
 
   return (
     <article className={`crm-window is-${lane.tone}`} data-variant={lane.variant}>
@@ -194,7 +203,7 @@ export function CrmWindow({
           <i />
           <i />
         </span>
-        <span className="crm-url">crm.callsmith.local/followup-001</span>
+        <span className="crm-url">crm.callsmith.local/records/northstar</span>
         <span className="crm-fig">
           {fig}
           {elapsedLabel ? ` · ${elapsedLabel}` : ""}
@@ -202,10 +211,10 @@ export function CrmWindow({
       </header>
       <div className="crm-body">
         <div className="crm-record">
-          <div>
+          <div className="crm-account">
             <p className="crm-kicker">{title} contract</p>
             <h2>Northstar Health</h2>
-            <p>followup-001 · sales follow-through</p>
+            <p>Account · followup-001</p>
           </div>
           {lane.chip ? (
             <span className={`crm-chip is-${lane.tone}`}>
@@ -218,39 +227,44 @@ export function CrmWindow({
         </div>
 
         <section className="crm-note">
-          <p className="crm-fig">Untrusted meeting note</p>
+          <p className="crm-fig">Meeting notes</p>
           <blockquote>{note}</blockquote>
         </section>
 
         <section className="crm-composer" aria-label="Prepared follow-up">
-          <p className="crm-fig">Prepared follow-up</p>
-          <p>
-            Thanks for the conversation. Attached are the security overview and pricing
-            recap you requested.
-          </p>
+          <p className="crm-fig">Follow-up draft</p>
+          <div className="crm-composer__row">
+            <p>
+              Thanks for the conversation. Attached are the security overview and pricing
+              recap you requested.
+            </p>
+            <span className={`crm-send is-${send.tone}`}>{send.label}</span>
+          </div>
         </section>
-
-        <dl className="crm-writes">
-          <div>
-            <dt>followups.0.status</dt>
-            <dd className={`is-${followup.tone}`}>{followup.value}</dd>
-          </div>
-          <div>
-            <dt>Gmail send</dt>
-            <dd className={`is-${gmail.tone}`}>{gmail.value}</dd>
-          </div>
-          <div>
-            <dt>Slack chat.postMessage</dt>
-            <dd className={`is-${slack.tone}`}>{slack.value}</dd>
-          </div>
-        </dl>
 
         {lane.confirmationHeld ? (
           <p className="crm-held">Confirmation held. Website stopped the send.</p>
         ) : null}
 
+        <dl className="crm-writes" aria-label="Optional writes">
+          <div>
+            <dt>followups.0.status</dt>
+            <dd className={`is-${followup.tone}`}>{followup.value}</dd>
+          </div>
+          <div>
+            <dt>Gmail</dt>
+            <dd className={`is-${gmail.tone}`}>{gmail.value}</dd>
+          </div>
+          <div>
+            <dt>Slack</dt>
+            <dd className={`is-${slack.tone}`}>{slack.value}</dd>
+          </div>
+        </dl>
+
         <p className={`crm-connect ${pipedreamConnectEnabled ? "is-ready" : "is-off"}`}>
-          Pipedream Connect {pipedreamConnectEnabled ? "ready · human confirm required" : "catalog only"}
+          {pipedreamConnectEnabled
+            ? "Connect ready · human confirm required"
+            : "Gmail · Slack catalog"}
         </p>
       </div>
     </article>
@@ -285,6 +299,27 @@ export function CrmPair({
         pipedreamConnectEnabled={pipedreamConnectEnabled}
       />
     </div>
+  );
+}
+
+export function SealedCrmPair({
+  weak,
+  hardened,
+  note,
+  pipedreamConnectEnabled,
+}: {
+  weak: ReceiptAttemptEvidence;
+  hardened: ReceiptAttemptEvidence;
+  note: string;
+  pipedreamConnectEnabled: boolean;
+}) {
+  return (
+    <CrmPair
+      weak={laneFromEvidence(weak)}
+      hardened={laneFromEvidence(hardened)}
+      note={note}
+      pipedreamConnectEnabled={pipedreamConnectEnabled}
+    />
   );
 }
 

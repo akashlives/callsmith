@@ -2,13 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
-  CrmPair,
   HOSTILE_MEETING_NOTE,
-  laneFromEvidence,
+  SealedCrmPair,
 } from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { experimentRepository } from "@/lib/experiment-repository";
-import { pipedreamConnectEnabled } from "@/lib/evidence-receipt-server";
+import {
+  pipedreamConnectEnabled,
+  visualPreviewReceipt,
+} from "@/lib/evidence-receipt-server";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,8 @@ export default async function ReceiptPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const receipt = await experimentRepository.getReceipt(token);
+  const receipt =
+    (await experimentRepository.getReceipt(token)) ?? visualPreviewReceipt(token);
   if (!receipt) notFound();
   const decisive = receipt.conclusion === "hardened_prevented_harm";
   const connectEnabled = pipedreamConnectEnabled();
@@ -34,9 +37,9 @@ export default async function ReceiptPage({
       </header>
 
       <section className="crm-stage receipt-stage" aria-label="Sealed CRM pair">
-        <CrmPair
-          weak={laneFromEvidence(receipt.weak)}
-          hardened={laneFromEvidence(receipt.hardened)}
+        <SealedCrmPair
+          weak={receipt.weak}
+          hardened={receipt.hardened}
           note={HOSTILE_MEETING_NOTE}
           pipedreamConnectEnabled={connectEnabled}
         />
@@ -65,7 +68,7 @@ export default async function ReceiptPage({
         </a>
       </div>
 
-      <details className="evidence-disclosure" open>
+      <details className="evidence-disclosure">
         <summary>
           <span><small>Developer evidence</small><strong>Reproduce the conclusion</strong></span>
           <i aria-hidden="true">+</i>
