@@ -46,11 +46,26 @@ that the model produced a plausible final answer.
 
 ## WebMCP use
 
-The evaluated sandbox registers tools through
-`document.modelContext.registerTool()` and executes them through Chrome's
-native WebMCP surface using Google's `webmcp-evals` runner. Callsmith itself is
-also operable through five WebMCP tools, including asynchronous contract
-proposal and receipt navigation.
+Judges score **page tools**, not a remote MCP server. The public homepage
+registers exactly five tools through `document.modelContext.registerTool()` in
+`src/components/webmcp-bridge.tsx`:
+
+1. `get_contract_template`
+2. `propose_safety_contract`
+3. `get_callsmith_status`
+4. `run_decisive_case`
+5. `open_evidence_receipt`
+
+The evaluated **sandbox** (`/sandbox/meeting-note-boundary/safety-boundary`)
+registers the meeting-note contract the same way. Chrome's native WebMCP
+surface runs those tools with Google's `webmcp-evals` runner. Confirm in
+DevTools with `document.modelContext.getTools()`.
+
+Pipedream Connect is an **optional write backend** (Gmail / Slack catalog rows
+inside the fake CRM). It is not the demo, not extra `registerTool`s, and not
+the guest Run path. Live Connect requires `PIPEDREAM_CLIENT_ID`,
+`PIPEDREAM_CLIENT_SECRET`, and `PIPEDREAM_PROJECT_ID`; otherwise those rows stay
+catalog-only. Hardened still requires the existing human confirmation form.
 
 Human approval cannot be fabricated as a tool parameter. It occurs only in a
 visible, non-autosubmitting declarative form.
@@ -139,17 +154,38 @@ remains reproducible.
 - AI tools: OpenAI Responses API through the AI SDK, Codex
 - Learning/career: built browser-native WebMCP evaluation, durable Redis/Postgres
   execution, tamper-evident receipts, and human-in-the-loop tool boundaries
-- Public demo video with audio under three minutes: **97-second local rough cut
-  ready; public URL pending submitter review and upload approval**
+- Public demo video with audio under three minutes: **silent live restage
+  walkthrough at `outputs/callsmith-demo-restage.webm`; narrated public URL
+  pending submitter review and upload approval**
+
+## Demo video plan (<3 min)
+
+Do **not** click production Run (paid Luna, seed 606). Use a mocked or
+already-sealed receipt. The restage is live on
+https://web-production-6cecc.up.railway.app/ as of 2026-08-31.
+
+1. Idle pair on `/` — two CRM windows, RECORD chips, in-stage CTA.
+2. Reveal a sealed pair (fixture or existing token) — SENT vs DRAFT·HELD in
+   two seconds from the window chrome.
+3. Open `/r/<token>` — windows first, then SHA-256, then the claim.
+4. DevTools: `document.modelContext.getTools()` lists the five names above.
+
+Existing sealed receipts for visual proof only:
+
+- https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
+- https://web-production-6cecc.up.railway.app/r/x2Vs0PVufQs4SEmMSZBXMZhfU_LXR7JgfKP5Agsiu-c
 
 ## Evidence to attach before submission freeze
 
+- MIT license visible on the GitHub About panel;
 - final production URL, repository revision, and container digest;
 - checked-in ten-seed matched benchmark;
 - Chrome WebMCP and ChatGPT in-app-browser QA screenshots (captured);
 - five genuine, uncoached non-sales tester receipts;
-- public sub-three-minute narrated demo video (local rough cut ready).
+- public sub-three-minute narrated demo video (silent live cut local; public
+  URL pending upload approval).
 
 The project must not be created or updated on Devpost until the submitter reviews
 these exact fields and confirms the missing country. Final submission requires a
-second, explicit “yes, submit.”
+second, explicit “yes, submit.” Tester sessions, if time remains, use production
+after this deploy and must not be fabricated.

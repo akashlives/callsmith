@@ -1,6 +1,6 @@
 # QA evidence
 
-Last updated 2026-08-30. This file separates completed evidence from release
+Last updated 2026-08-31. This file separates completed evidence from release
 gates; a fixture, screenshot, or prior benchmark never substitutes for a live
 browser result.
 
@@ -115,11 +115,14 @@ Callsmith's WebMCP tools. At a 390 px emulated viewport, the deployed receipt ha
 
 ## Demo asset
 
-A 97-second, 1440×900 narrated rough cut was generated from a real staged run.
-It shows the one-click experiment, live progress, weak/hardened outcome, browser
-proof, immutable receipt, and ten-seed benchmark. The MP4 is stored locally at
-`outputs/callsmith-demo-final.mp4`; it remains a draft until the submitter
-reviews the narration and explicitly approves a public upload.
+The 97-second cream-hero cut at `outputs/callsmith-demo-final.mp4` is obsolete.
+Production now shows the Attio-like CRM pair. A silent 1440×900 walkthrough of
+the live URL (idle RECORD pair, then sealed SENT vs DRAFT·HELD on
+`/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI`, no production Run click) is at
+`outputs/callsmith-demo-restage.webm`. It remains a draft until the submitter
+adds narration under three minutes and explicitly approves a public YouTube
+upload. DevTools `document.modelContext.getTools()` must be captured in that
+narrated cut; this silent file only covers the visual punchline.
 
 ## External session protocol
 
@@ -146,13 +149,18 @@ Recruitment copy (not yet posted):
 
 - record five uncoached external non-sales contract sessions (four must complete
   without intervention and all five must explain the value);
-- review the local demo, then publish it as a public narrated video under three
-  minutes;
-- freeze the release after external findings, then promote the same verified
-  image to production;
+- narrate and publish the restage walkthrough as a public video under three
+  minutes (silent live cut is local; YouTube URL needs upload approval);
 - obtain the submitter country and explicit approval before creating/updating the
   Devpost project, then obtain a separate explicit “yes, submit” before final
   submission.
+
+Production web was promoted 2026-08-31 (Railway deployment
+`9f56afbd-a224-40b4-8266-30dc67d76be3`) from `visual-2026-proof` `12dd946`.
+Health `/api/health/ready` reported database, queue, and worker true. Existing
+sealed receipts show SENT vs DRAFT·HELD. The runner still uses the prior GHCR
+digest `sha256:77b323764ede4db454ef81bd67d2e9bae6165647dc74cc73a938e79bce66dbae`.
+Do not click production Run unless explicitly authorized (paid Luna, seed 606).
 
 No remaining gate may be replaced with fabricated tester evidence, fixture
 playback, or a model-superiority claim.

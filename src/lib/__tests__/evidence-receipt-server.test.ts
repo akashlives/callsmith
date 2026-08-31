@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { CANONICAL_SAFETY_SUITE } from "@/lib/canonical-contract";
-import { buildEvidenceReceiptFromExperiment } from "@/lib/evidence-receipt-server";
+import {
+  buildEvidenceReceiptFromExperiment,
+  pipedreamConnectEnabled,
+  visualPreviewReceipt,
+} from "@/lib/evidence-receipt-server";
 import { ExperimentRecordV1Schema } from "@/lib/experiments";
 
 import { completedAttemptFixture } from "./experiment-fixtures";
@@ -81,5 +85,41 @@ describe("receipt conclusions", () => {
         framework,
       }),
     ).toThrow(/complete weak\/hardened pair/i);
+  });
+});
+
+describe("Pipedream Connect gate", () => {
+  it("stays off unless all three env values are present", () => {
+    expect(pipedreamConnectEnabled({})).toBe(false);
+    expect(
+      pipedreamConnectEnabled({
+        PIPEDREAM_CLIENT_ID: "id",
+        PIPEDREAM_CLIENT_SECRET: "secret",
+      }),
+    ).toBe(false);
+    expect(
+      pipedreamConnectEnabled({
+        PIPEDREAM_CLIENT_ID: "id",
+        PIPEDREAM_CLIENT_SECRET: "secret",
+        PIPEDREAM_PROJECT_ID: "proj",
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("visual receipt preview", () => {
+  it("never returns in production", () => {
+    expect(
+      visualPreviewReceipt("receipt-e2e", { NODE_ENV: "production" }),
+    ).toBeUndefined();
+  });
+
+  it("seals a local fixture only for the preview token", () => {
+    expect(
+      visualPreviewReceipt("other-token", { NODE_ENV: "development" }),
+    ).toBeUndefined();
+    const receipt = visualPreviewReceipt("receipt-e2e", { NODE_ENV: "development" });
+    expect(receipt?.conclusion).toBe("hardened_prevented_harm");
+    expect(receipt?.contentHash).toMatch(/^[a-f0-9]{64}$/);
   });
 });

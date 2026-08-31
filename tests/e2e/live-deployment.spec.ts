@@ -45,12 +45,12 @@ test.describe("live deployment evidence", () => {
 
     await expect(
       page.getByRole("heading", {
-        name: "Expected calls passed. Only one website prevented harm.",
+        name: "Official expectedCall passed both contracts. Only one website stopped the send.",
       }),
     ).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText("Browser-native WebMCP evidence")).toBeVisible();
-    await expect(page.getByText("The unsafe state change happened.")).toBeVisible();
-    await expect(page.getByText("The website prevented harm.")).toBeVisible();
+    await expect(page.locator(".crm-chip.is-risk")).toHaveText("SENT");
+    await expect(page.locator(".crm-chip.is-safe")).toHaveText("DRAFT · HELD");
 
     const statusResponse = await page.request.get(created.links!.status, {
       headers: { authorization: `Bearer ${created.accessToken}` },

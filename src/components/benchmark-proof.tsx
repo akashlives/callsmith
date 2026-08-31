@@ -40,10 +40,10 @@ export function BenchmarkProof() {
   return (
     <section className="benchmark-evidence" id="evidence" aria-labelledby="benchmark-heading">
       <div>
-        <p className="story-eyebrow">Immutable benchmark · 20 browser attempts</p>
+        <p className="story-eyebrow">Appendix · immutable benchmark · 20 browser attempts</p>
         <h2 id="benchmark-heading">
-          {decisivePairs.successes} of {decisivePairs.total} matched pairs exposed what
-          expected-call checks missed.
+          Appendix · {decisivePairs.successes} of {decisivePairs.total} matched pairs
+          exposed what expected-call checks missed.
         </h2>
         <p>
           Ten fixed seeds ran the same Luna task against weak and hardened WebMCP

@@ -6,16 +6,30 @@ import {
   type ReceiptAttemptEvidence,
   type ReceiptConclusion,
 } from "@/lib/evidence-receipt";
+import { CANONICAL_SAFETY_SUITE } from "@/lib/canonical-contract";
 import type { JsonValue, SuiteDefinitionV2 } from "@/lib/contracts";
-import type {
-  CompletedExperimentAttempt,
-  ExperimentRecordV1,
+import { completedAttemptFixture } from "@/lib/__tests__/experiment-fixtures";
+import {
+  ExperimentRecordV1Schema,
+  type CompletedExperimentAttempt,
+  type ExperimentRecordV1,
 } from "@/lib/experiments";
 
 export interface ReceiptFrameworkIdentity {
   nodeVersion: string;
   applicationRevision: string;
   frameworkManifestRevision: string;
+}
+
+/** Live Pipedream Connect is optional. Guest proof stays synthetic without these. */
+export function pipedreamConnectEnabled(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  return Boolean(
+    env.PIPEDREAM_CLIENT_ID &&
+      env.PIPEDREAM_CLIENT_SECRET &&
+      env.PIPEDREAM_PROJECT_ID,
+  );
 }
 
 function canonicalize(value: JsonValue): JsonValue {
@@ -145,5 +159,37 @@ export function buildEvidenceReceiptFromExperiment(input: {
   return EvidenceReceiptV1Schema.parse({
     ...payload,
     contentHash: hashReceiptPayload(payload),
+  });
+}
+
+/** Local /r screenshot helper. Never returns in production. */
+export function visualPreviewReceipt(
+  token: string,
+  env: NodeJS.ProcessEnv = process.env,
+): EvidenceReceiptV1 | undefined {
+  if (env.NODE_ENV === "production") return undefined;
+  const preview = env.CALLSMITH_VISUAL_RECEIPT_TOKEN || "receipt-e2e";
+  if (!token || token !== preview) return undefined;
+  const now = "2026-08-28T20:00:00.000Z";
+  return buildEvidenceReceiptFromExperiment({
+    experiment: ExperimentRecordV1Schema.parse({
+      schemaVersion: 1,
+      id: "experiment-visual-preview",
+      contractId: CANONICAL_SAFETY_SUITE.id,
+      contractVersion: CANONICAL_SAFETY_SUITE.version,
+      model: "gpt-5.6-luna",
+      seed: CANONICAL_SAFETY_SUITE.scenarios[0].seed,
+      status: "completed",
+      evidenceStatus: "conclusive",
+      attempts: [completedAttemptFixture("weak"), completedAttemptFixture("hardened")],
+      createdAt: now,
+      updatedAt: now,
+    }),
+    suite: CANONICAL_SAFETY_SUITE,
+    framework: {
+      nodeVersion: "24.20.0",
+      applicationRevision: "visual-preview",
+      frameworkManifestRevision: "visual-preview",
+    },
   });
 }
