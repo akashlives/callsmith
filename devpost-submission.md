@@ -154,13 +154,15 @@ remains reproducible.
 - AI tools: OpenAI Responses API through the AI SDK, Codex
 - Learning/career: built browser-native WebMCP evaluation, durable Redis/Postgres
   execution, tamper-evident receipts, and human-in-the-loop tool boundaries
-- Public demo video with audio under three minutes: **97-second local rough cut
-  ready; public URL pending submitter review and upload approval**
+- Public demo video with audio under three minutes: **silent live restage
+  walkthrough at `outputs/callsmith-demo-restage.webm`; narrated public URL
+  pending submitter review and upload approval**
 
 ## Demo video plan (<3 min)
 
 Do **not** click production Run (paid Luna, seed 606). Use a mocked or
-already-sealed receipt.
+already-sealed receipt. The restage is live on
+https://web-production-6cecc.up.railway.app/ as of 2026-08-31.
 
 1. Idle pair on `/` — two CRM windows, RECORD chips, in-stage CTA.
 2. Reveal a sealed pair (fixture or existing token) — SENT vs DRAFT·HELD in
@@ -173,9 +175,6 @@ Existing sealed receipts for visual proof only:
 - https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
 - https://web-production-6cecc.up.railway.app/r/x2Vs0PVufQs4SEmMSZBXMZhfU_LXR7JgfKP5Agsiu-c
 
-Deploy the restage only after an explicit “yes, deploy.” Until then ChatGPT’s
-in-app browser still sees the previous production revision.
-
 ## Evidence to attach before submission freeze
 
 - MIT license visible on the GitHub About panel;
@@ -183,8 +182,10 @@ in-app browser still sees the previous production revision.
 - checked-in ten-seed matched benchmark;
 - Chrome WebMCP and ChatGPT in-app-browser QA screenshots (captured);
 - five genuine, uncoached non-sales tester receipts;
-- public sub-three-minute narrated demo video (local rough cut ready).
+- public sub-three-minute narrated demo video (silent live cut local; public
+  URL pending upload approval).
 
 The project must not be created or updated on Devpost until the submitter reviews
 these exact fields and confirms the missing country. Final submission requires a
-second, explicit “yes, submit.” Do not deploy until asked.
+second, explicit “yes, submit.” Tester sessions, if time remains, use production
+after this deploy and must not be fabricated.
