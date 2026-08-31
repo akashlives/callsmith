@@ -165,11 +165,13 @@ function formatElapsed(ms: number) {
 
 function useElapsed(active: boolean) {
   const [ms, setMs] = useState(0);
+  const [activeKey, setActiveKey] = useState(active);
+  if (activeKey !== active) {
+    setActiveKey(active);
+    setMs(0);
+  }
   useEffect(() => {
-    if (!active) {
-      setMs(0);
-      return;
-    }
+    if (!active) return;
     const started = Date.now();
     const timer = window.setInterval(() => setMs(Date.now() - started), 100);
     return () => window.clearInterval(timer);
