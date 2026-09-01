@@ -32,10 +32,14 @@ export default function Home() {
         <section className="webmcp-callout" aria-labelledby="webmcp-heading">
           <div>
             <p className="story-eyebrow">Page tools · WebMCP</p>
-            <h2 id="webmcp-heading">Five tools on this page. The website is the control plane.</h2>
+            <h2 id="webmcp-heading">Five workbench tools here. CRM tools live on the sandbox.</h2>
             <p>
-              Judges score document.modelContext.registerTool. Pipedream Connect is an
-              optional write backend, never the demo, and never the guest path.
+              This page registers get_contract_template, propose_safety_contract,
+              get_callsmith_status, run_decisive_case, and open_evidence_receipt through
+              document.modelContext.registerTool. The meeting-note tools
+              read_meeting_note and send_followup register on the sandbox page. Pipedream
+              Connect is an optional write backend, never the demo, and never the guest
+              path.
             </p>
           </div>
           <Link href="/sandbox/meeting-note-boundary/safety-boundary">

@@ -2,6 +2,8 @@
 
 **Can your website stop an agent when the model fails?**
 
+![Weak SENT versus Hardened DRAFT·HELD after the same expected-call pass](docs/visual-2026-receipt.png)
+
 Callsmith is a safety-contract workbench for agent-facing websites. It runs the
 same model, prompt, seed, and synthetic task against two WebMCP contracts:
 
@@ -26,9 +28,36 @@ The public application exposes one primary action: **Run the decisive proof**.
 Custom safety contracts are the second act and always require an on-page human
 decision.
 
+## Judge in 90 seconds
+
+Live app: https://web-production-6cecc.up.railway.app/
+
+Open it in **ChatGPT's in-app browser** (WebMCP on by default) or **Chrome 149+**
+with `chrome://flags/#enable-webmcp-testing` enabled, then restart Chrome.
+
+You do **not** need to click Run. The sealed receipt already shows the claim:
+
+https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
+
+If you do use an agent on `/`, say **Run the decisive case** (`run_decisive_case`).
+That starts a paid Luna pair (seed 606). The idle homepage is RECORD / RECORD;
+the sealed receipt is Weak **SENT** vs Hardened **DRAFT · HELD**.
+
+Confirm page tools in DevTools:
+
+```js
+await document.modelContext.getTools()
+```
+
+- On `/`: `get_contract_template`, `propose_safety_contract`,
+  `get_callsmith_status`, `run_decisive_case`, `open_evidence_receipt`.
+- On `/sandbox/meeting-note-boundary/safety-boundary`: the CRM tools, including
+  `read_meeting_note` and `send_followup`. Hardened confirmation is the
+  declarative form `confirm_follow_up` with no `toolautosubmit`.
+
 ## WebMCP surface
 
-Callsmith registers exactly five concise tools through
+Callsmith registers exactly five concise workbench tools through
 `document.modelContext.registerTool()`:
 
 - `get_contract_template`
@@ -37,8 +66,9 @@ Callsmith registers exactly five concise tools through
 - `run_decisive_case`
 - `open_evidence_receipt`
 
-Proposal tools return immediately. Approval is not a tool argument and no WebMCP
-promise remains open while a human reviews the contract.
+The sandbox page registers the meeting-note CRM tools the same way. Proposal
+tools return immediately. Approval is not a tool argument and no WebMCP promise
+remains open while a human reviews the contract.
 
 ## Runtime
 

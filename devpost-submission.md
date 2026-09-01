@@ -46,9 +46,10 @@ that the model produced a plausible final answer.
 
 ## WebMCP use
 
-Judges score **page tools**, not a remote MCP server. The public homepage
-registers exactly five tools through `document.modelContext.registerTool()` in
-`src/components/webmcp-bridge.tsx`:
+Judges score **page tools**, not a remote MCP server. There are two surfaces.
+
+The public homepage registers exactly five workbench tools through
+`document.modelContext.registerTool()` in `src/components/webmcp-bridge.tsx`:
 
 1. `get_contract_template`
 2. `propose_safety_contract`
@@ -57,9 +58,16 @@ registers exactly five tools through `document.modelContext.registerTool()` in
 5. `open_evidence_receipt`
 
 The evaluated **sandbox** (`/sandbox/meeting-note-boundary/safety-boundary`)
-registers the meeting-note contract the same way. Chrome's native WebMCP
-surface runs those tools with Google's `webmcp-evals` runner. Confirm in
-DevTools with `document.modelContext.getTools()`.
+registers the meeting-note CRM tools (`read_meeting_note`, `send_followup`) the
+same way. Chrome's native WebMCP surface runs those tools with Google's
+`webmcp-evals` runner. Confirm in DevTools with
+`document.modelContext.getTools()`.
+
+How to judge without a paid Run: open ChatGPT's in-app browser or Chrome 149+
+with `chrome://flags/#enable-webmcp-testing`, then open the sealed receipt
+https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
+— Weak SENT vs Hardened DRAFT·HELD. Optional agent prompt on `/`: “Run the
+decisive case.”
 
 Pipedream Connect is an **optional write backend** (Gmail / Slack catalog rows
 inside the fake CRM). It is not the demo, not extra `registerTool`s, and not
@@ -160,15 +168,31 @@ remains reproducible.
 
 ## Demo video plan (<3 min)
 
-Do **not** click production Run (paid Luna, seed 606). Use a mocked or
-already-sealed receipt. The restage is live on
-https://web-production-6cecc.up.railway.app/ as of 2026-08-31.
+Do **not** click production Run (paid Luna, seed 606). Use the silent restage
+cut at `outputs/callsmith-demo-restage.webm` plus DevTools, or recapture the
+same live path. Public YouTube URL stays empty until the submitter narrates
+this script and explicitly approves upload.
 
-1. Idle pair on `/` — two CRM windows, RECORD chips, in-stage CTA.
-2. Reveal a sealed pair (fixture or existing token) — SENT vs DRAFT·HELD in
-   two seconds from the window chrome.
-3. Open `/r/<token>` — windows first, then SHA-256, then the claim.
-4. DevTools: `document.modelContext.getTools()` lists the five names above.
+**Narration (~2:00, map 1:1 to judging criteria)**
+
+1. **0:00–0:20 Execution.** On
+   https://web-production-6cecc.up.railway.app/ — two CRM windows, both
+   RECORD, same hostile meeting note, in-stage “Run the decisive proof.”
+   “This is not a model bake-off. Same note, two website contracts.”
+2. **0:20–0:50 Impact.** Cut to
+   https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
+   — Weak SENT, Hardened DRAFT·HELD, SHA-256 first.
+   “Official expectedCall passed both. Only one website stopped the send.”
+3. **0:50–1:25 Leverage.** DevTools on `/`:
+   `await document.modelContext.getTools()` — the five workbench names. Then
+   `/sandbox/meeting-note-boundary/safety-boundary`: `read_meeting_note` and
+   `send_followup`. On hardened, show `toolname="confirm_follow_up"` with no
+   `toolautosubmit`.
+   “Chrome’s evals check the call. Callsmith checks protected browser state.”
+4. **1:25–1:50 Ambition.** Stay on the receipt claim. “Websites are the last
+   enforcement boundary when an agent trusts hostile content. This receipt is
+   that proof, hash-sealed.”
+5. **1:50–2:10 Close.** Guest, synthetic, no OAuth. Do not click Run on camera.
 
 Existing sealed receipts for visual proof only:
 

@@ -1,6 +1,6 @@
 # QA evidence
 
-Last updated 2026-08-31. This file separates completed evidence from release
+Last updated 2026-09-01. This file separates completed evidence from release
 gates; a fixture, screenshot, or prior benchmark never substitutes for a live
 browser result.
 
@@ -61,20 +61,28 @@ The JSON artifact preserves every receipt hash, seed, outcome, browser version,
 runner version, model/backend, application revision, and framework-manifest
 revision.
 
-## Final release-candidate identity
+## Production identity (2026-09-01)
 
-- application revision: `548987bda92eb79c968b5cbb361cb66827e59529`;
-- verified container digest:
-  `sha256:77b323764ede4db454ef81bd67d2e9bae6165647dc74cc73a938e79bce66dbae`;
-- Railway staging web and runner use that same digest;
-- runtime framework-manifest revision:
-  `3d1a8d1aa527521b3fc396aa205b1cced7700b1e6c5ab204eab1dea25d99766d`;
-- GitHub verify gate: static analysis, lint, typecheck, real-service coverage,
-  build, desktop/mobile Playwright, and Docker all pass.
+- application revision on `main` at pin: `fb668f5627c4975fd160daa1993f5b81fcd527cc`;
+- verified container digest (web and runner, same image):
+  `sha256:e25962fe40c139cf5925b0f7dd24b6d8afb99ed5777731058db0807e6047b2b4`;
+- GitHub About license: MIT;
+- GitHub `verify` on that merge: success;
+- `/api/health/ready`: `{status: ready, database, queue, worker: true}`;
+- idle homepage: RECORD / RECORD, CTA **Run the decisive proof**, no SENT chip;
+- sealed receipt
+  `https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI`
+  shows Weak SENT vs Hardened DRAFT·HELD, SHA-256
+  `041e70414efb13809d6d235e5342bdc945a6f70a4fecc43071baea3f5dae947c`, developer
+  evidence closed.
+
+Do not click production Run unless explicitly authorized (paid Luna, seed 606).
 
 ## Real browser-use acceptance
 
-Completed in ChatGPT's in-app browser against staging:
+Completed in ChatGPT's in-app browser against **staging** (prior gate, still
+valid for the five-tool and proposal journeys; not a substitute for the 2026-09-01
+production pin):
 
 - native discovery of all five Callsmith tools;
 - canonical decisive run and receipt opening through WebMCP;
@@ -113,18 +121,27 @@ The final in-app-browser check opened a conclusive canonical receipt through
 Callsmith's WebMCP tools. At a 390 px emulated viewport, the deployed receipt had
 375 px client and scroll widths—zero horizontal overflow.
 
+**2026-09-01 production re-smoke (Cursor browser, no Run):** homepage idle pair,
+sealed receipt SENT vs DRAFT·HELD, sandbox confirm copy present, health ready.
+`document.modelContext` is not exposed in the Cursor-owned Chrome tab, so
+`getTools()` and ChatGPT in-app-browser discovery on this digest still need a
+human pass in ChatGPT desktop or flag-enabled Chrome. Do not treat this Cursor
+pass as ChatGPT in-app evidence.
+
 ## Demo asset
 
 The 97-second cream-hero cut at `outputs/callsmith-demo-final.mp4` is obsolete.
 Production now shows the Attio-like CRM pair. A silent 1440×900 walkthrough of
 the live URL (idle RECORD pair, then sealed SENT vs DRAFT·HELD on
 `/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI`, no production Run click) is at
-`outputs/callsmith-demo-restage.webm`. It remains a draft until the submitter
-adds narration under three minutes and explicitly approves a public YouTube
-upload. DevTools `document.modelContext.getTools()` must be captured in that
-narrated cut; this silent file only covers the visual punchline.
+`outputs/callsmith-demo-restage.webm`. Narration script is in
+`devpost-submission.md`. It remains unpublished until the submitter records
+audio under three minutes and explicitly approves a public YouTube upload.
 
 ## External session protocol
+
+Genuine uncoached sessions recorded: **0**. None may be fabricated. Submit with
+that honest count if the cut clock arrives first.
 
 Each 12-minute session is uncoached after setup:
 
@@ -148,19 +165,15 @@ Recruitment copy (not yet posted):
 ## Remaining human/external release gates
 
 - record five uncoached external non-sales contract sessions (four must complete
-  without intervention and all five must explain the value);
+  without intervention and all five must explain the value) — **0 recorded**;
 - narrate and publish the restage walkthrough as a public video under three
-  minutes (silent live cut is local; YouTube URL needs upload approval);
+  minutes (script ready; silent live cut local; YouTube URL needs upload
+  approval);
+- re-verify five-tool `getTools()` on production in ChatGPT's in-app browser or
+  Chrome with WebMCP enabled;
 - obtain the submitter country and explicit approval before creating/updating the
   Devpost project, then obtain a separate explicit “yes, submit” before final
   submission.
-
-Production web was promoted 2026-08-31 (Railway deployment
-`9f56afbd-a224-40b4-8266-30dc67d76be3`) from `visual-2026-proof` `12dd946`.
-Health `/api/health/ready` reported database, queue, and worker true. Existing
-sealed receipts show SENT vs DRAFT·HELD. The runner still uses the prior GHCR
-digest `sha256:77b323764ede4db454ef81bd67d2e9bae6165647dc74cc73a938e79bce66dbae`.
-Do not click production Run unless explicitly authorized (paid Luna, seed 606).
 
 No remaining gate may be replaced with fabricated tester evidence, fixture
 playback, or a model-superiority claim.

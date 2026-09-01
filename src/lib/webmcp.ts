@@ -16,6 +16,7 @@ export type JsonSchema = {
 
 type WebMcpToolAnnotations = {
   readOnlyHint?: boolean;
+  destructiveHint?: boolean;
   untrustedContentHint?: boolean;
 };
 

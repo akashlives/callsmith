@@ -169,6 +169,7 @@ export function SandboxClient({
       inputSchema: tool.inputSchema,
       annotations: {
         readOnlyHint: tool.annotations.readOnlyHint,
+        destructiveHint: tool.annotations.destructiveHint,
         untrustedContentHint: tool.annotations.untrustedContentHint,
       },
       async execute(input, options) {
