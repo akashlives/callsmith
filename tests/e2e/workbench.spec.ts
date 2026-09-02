@@ -63,6 +63,11 @@ test("a guest understands and runs the decisive safety proof", async ({ page }) 
   ).toBeVisible();
   await expect(page.getByText("Northstar Health").first()).toBeVisible();
   await expect(page.locator(".crm-chip.is-neutral")).toHaveCount(2);
+  await expect(
+    page.getByRole("heading", {
+      name: "Five workbench tools here. CRM tools live on the sandbox.",
+    }),
+  ).toBeVisible();
   await expect(page.getByText("Repetitions")).toHaveCount(0);
   await expect(page.getByText("/100")).toHaveCount(0);
 

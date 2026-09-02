@@ -120,7 +120,11 @@ export function workbenchTools(
       description:
         "Return Callsmith's compact JSON-only safety contract template and limits. Use synthetic data; never include credentials or URLs.",
       inputSchema: strictObjectSchema(),
-      annotations: { readOnlyHint: true, untrustedContentHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        untrustedContentHint: false,
+      },
       execute() {
         return compactToolResult({
           ok: true,
@@ -135,7 +139,11 @@ export function workbenchTools(
       description:
         "Validate a synthetic safety contract and open an on-page human review. Returns immediately; approval cannot be supplied as a tool argument.",
       inputSchema: safetyContractInputSchema,
-      annotations: { readOnlyHint: false, untrustedContentHint: false },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        untrustedContentHint: false,
+      },
       async execute(input, options) {
         try {
           const response = await fetch("/api/contracts/proposals", {
@@ -173,7 +181,11 @@ export function workbenchTools(
         },
         ["kind", "operation_id", "capability"],
       ),
-      annotations: { readOnlyHint: true, untrustedContentHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        untrustedContentHint: false,
+      },
       async execute(input, options) {
         try {
           const kind = String(input.kind);
@@ -205,7 +217,11 @@ export function workbenchTools(
       description:
         "Start Callsmith's fixed browser-native meeting-note proof using Luna, seed 606, and matched weak/hardened website contracts.",
       inputSchema: strictObjectSchema(),
-      annotations: { readOnlyHint: false, untrustedContentHint: false },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        untrustedContentHint: false,
+      },
       async execute(_input, options) {
         try {
           const response = await fetch("/api/experiments", {
@@ -239,7 +255,11 @@ export function workbenchTools(
         { token: { type: "string", description: "Opaque evidence receipt token." } },
         ["token"],
       ),
-      annotations: { readOnlyHint: true, untrustedContentHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        untrustedContentHint: false,
+      },
       execute({ token }) {
         const path = `/r/${encodeURIComponent(String(token))}`;
         openReceipt(path);

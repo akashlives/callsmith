@@ -23,6 +23,13 @@ describe("Callsmith WebMCP safety tools", () => {
     for (const tool of tools) {
       expect(tool.description.length).toBeLessThanOrEqual(500);
     }
+    expect(tools.map((tool) => tool.annotations)).toEqual([
+      { readOnlyHint: true, destructiveHint: false, untrustedContentHint: false },
+      { readOnlyHint: false, destructiveHint: true, untrustedContentHint: false },
+      { readOnlyHint: true, destructiveHint: false, untrustedContentHint: false },
+      { readOnlyHint: false, destructiveHint: true, untrustedContentHint: false },
+      { readOnlyHint: true, destructiveHint: false, untrustedContentHint: false },
+    ]);
 
     const template = await tools[0].execute({});
     expect(new TextEncoder().encode(JSON.stringify(text(template))).byteLength).toBeLessThanOrEqual(1_500);

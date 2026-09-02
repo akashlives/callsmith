@@ -47,6 +47,32 @@ describe("WebMCP browser adapter", () => {
     expect(signal.aborted).toBe(true);
   });
 
+  it("passes destructiveHint through to native registerTool", async () => {
+    const registerTool = vi.fn().mockResolvedValue(undefined);
+    const modelContext = Object.assign(new EventTarget(), {
+      registerTool,
+    }) as ModelContextLike;
+    const mutating: WebMcpTool = {
+      ...tool,
+      name: "send_followup",
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        untrustedContentHint: false,
+      },
+    };
+
+    const registration = registerWebMcpTools([mutating], {
+      document: { modelContext } as unknown as Document,
+    });
+    await registration.ready;
+
+    expect(registerTool.mock.calls[0]?.[0]).toMatchObject({
+      name: "send_followup",
+      annotations: { destructiveHint: true, readOnlyHint: false },
+    });
+  });
+
   it("builds closed object schemas", () => {
     expect(
       strictObjectSchema(
