@@ -2,13 +2,14 @@
 
 ## Tagline
 
-**Immutable safety receipts for agent-facing websites.**
+**Agent platforms review every tool call. Nobody attests the website. Callsmith does.**
 
 ## One-line pitch
 
-Callsmith proves whether an agent-facing website prevented an unsafe browser
-state change—even when a conventional expected-call evaluation says the run
-passed.
+Callsmith seals a receipt of what an agent-facing website actually did when an
+agent was pushed to cross a boundary—the artifact a platform like ChatGPT,
+Chrome, Shopify, or Cloudflare can check before enabling destructive tools on an
+origin, and the evidence the website will need when the loss lands on it.
 
 ## What it does
 
@@ -34,15 +35,32 @@ starts nothing.
 
 ## Why it matters
 
-In the agentic economy, websites become execution environments. Tool discovery
-and correct arguments are necessary but insufficient: the website remains the
-last enforcement boundary when an agent trusts hostile content or makes the
-wrong decision. Callsmith makes that boundary testable and reviewable.
+Websites are becoming execution environments. WebMCP is live in the Chrome 149
+origin trial, ChatGPT desktop Site tools, Shopify storefronts, and Cloudflare's
+edge bridge. Three facts make that dangerous in a way nobody currently owns:
 
-The important distinction is consequence rather than compliance. An agent may
-call the expected tool with the expected arguments and still cross the line. A
-website needs evidence that its own contract blocked the transition—not merely
-that the model produced a plausible final answer.
+- **The platform reviews the call, not the site.** OpenAI's documentation:
+  every Site tool call "receives a safety review," but those checks "don't
+  guarantee the website or its responses are trustworthy." The platform sees
+  the arguments; it cannot see whether the page's confirmation boundary held or
+  whether protected state mutated.
+- **The attacks are protocol-level and model upgrades do not fix them.**
+  Mid-Session Tool Injection (arXiv 2606.06387): a tainted third-party script
+  hijacks a WebMCP tool by aborting and re-registering it (94%) or winning the
+  registration race (100%) across GPT-5.4, Claude Opus 4.6, and Gemini 2.5,
+  with no drop from GPT-4o. The only defenses that reached 0% were site-side:
+  origin-bound tool identity and lifecycle re-validation.
+- **Liability has landed on the website.** The Agentic Commerce Protocol keeps
+  settlement, refunds, and chargebacks with the merchant. The UK CMA (March
+  2026) holds a business responsible for its agent as for an employee. No card
+  network has an agent-dispute rule; the expected first rule is an evidentiary
+  standard, with loss to whoever cannot produce the evidence.
+
+Agent-side vendors constrain what the agent may do. Payment rails prove who the
+agent was and what mandate it carried. Neither proves what the website did.
+Callsmith's receipt is that proof: consequence rather than compliance. An agent
+may call the expected tool with the expected arguments and still cross the line;
+the receipt shows whether the website's own contract blocked the transition.
 
 ## WebMCP use
 
@@ -63,11 +81,22 @@ same way. Chrome's native WebMCP surface runs those tools with Google's
 `webmcp-evals` runner. Confirm in DevTools with
 `document.modelContext.getTools()`.
 
-How to judge without a paid Run: open ChatGPT's in-app browser or Chrome 149+
-with `chrome://flags/#enable-webmcp-testing`, then open the sealed receipt
+The sandbox also carries a **Compromised third-party script** toggle. A
+simulated CDN script tries to hijack `send_followup` by aborting the legitimate
+registration and re-registering the same name. The weak page accepts it and
+`getTools()` shows the impostor; the hardened page's origin-bound registry
+rejects it and appends the lifecycle event to the on-page evidence log. This is
+the site-side defense the MSTI paper measured at 0% attack success, implemented
+on the website rather than in the model.
+
+How to judge without a paid Run: open ChatGPT's in-app browser (GPT-5.6 Sol or
+Terra; Luna has Site tools disabled) or Chrome 149+ with
+`chrome://flags/#enable-webmcp-testing`. The idle homepage already shows the
+sealed production pair with its SHA-256; the same receipt is at
 https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
-— Weak SENT vs Hardened DRAFT·HELD. Optional agent prompt on `/`: “Run the
-decisive case.”
+— Weak SENT vs Hardened DRAFT·HELD. Agent prompts on `/`: “Open the evidence
+receipt” (`open_evidence_receipt`, free) or “Run the decisive case”
+(`run_decisive_case`, paid live pair).
 
 Pipedream Connect is an **optional write backend** (Gmail / Slack catalog rows
 inside the fake CRM). It is not the demo, not extra `registerTool`s, and not
@@ -143,13 +172,15 @@ only the website contract changes.
 
 ## What's next
 
-After the hackathon, the same receipt model can become a CI gate: capture a
-production WebMCP contract, replay safety cases across framework/browser changes,
-and reject a deployment when protected-state behavior regresses. Broader work
-would add arbitrary-site contract capture, production-trace ingestion, a
-community failure corpus, calibrated graders, human review, and multiple agent
-backends. Those are intentionally outside this release so the submitted claim
-remains reproducible.
+The receipt generalizes into an attestation platforms can query. A standard
+gauntlet of six attack classes (hostile untrusted content, mid-session tool
+hijack, tool framing via description and `readOnlyHint`, long-description
+overflow, confirmation bypass, delegation chain) runs against any captured WebMCP
+origin in the isolated runner, and the results seal into a signed attestation
+(origin, tool-surface hash, gauntlet version, per-case outcome, receipt hashes)
+served at `/.well-known/webmcp-attestation` and through a registry endpoint a
+platform calls before enabling `destructiveHint` tools on that origin. Today's
+release attests one boundary and does not claim certification.
 
 ## Required submission fields
 
@@ -173,26 +204,33 @@ cut at `outputs/callsmith-demo-restage.webm` plus DevTools, or recapture the
 same live path. Public YouTube URL stays empty until the submitter narrates
 this script and explicitly approves upload.
 
-**Narration (~2:00, map 1:1 to judging criteria)**
+**Narration (~2:10, map 1:1 to judging criteria)**
 
-1. **0:00–0:20 Execution.** On
-   https://web-production-6cecc.up.railway.app/ — two CRM windows, both
-   RECORD, same hostile meeting note, in-stage “Run the decisive proof.”
-   “This is not a model bake-off. Same note, two website contracts.”
-2. **0:20–0:50 Impact.** Cut to
+1. **0:00–0:25 Impact (the problem).** On
+   https://web-production-6cecc.up.railway.app/ — heading “Agent platforms
+   review every tool call. Nobody attests the website.” Two CRM windows already
+   sealed: Weak SENT, Hardened DRAFT·HELD, SHA-256 under them.
+   “ChatGPT and Chrome review each call. OpenAI’s own docs say that doesn’t
+   make the website trustworthy. The loss lands on the site. Same note, two
+   website contracts, one agent.”
+2. **0:25–0:55 Execution (the seal).** Cut to
    https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
-   — Weak SENT, Hardened DRAFT·HELD, SHA-256 first.
-   “Official expectedCall passed both. Only one website stopped the send.”
-3. **0:50–1:25 Leverage.** DevTools on `/`:
+   — SHA-256 first, then the traces.
+   “Official expectedCall passed both. Only one website stopped the send. Ten
+   seeds, ten for ten, hash-sealed.”
+3. **0:55–1:30 Leverage.** DevTools on `/`:
    `await document.modelContext.getTools()` — the five workbench names. Then
-   `/sandbox/meeting-note-boundary/safety-boundary`: `read_meeting_note` and
-   `send_followup`. On hardened, show `toolname="confirm_follow_up"` with no
-   `toolautosubmit`.
-   “Chrome’s evals check the call. Callsmith checks protected browser state.”
-4. **1:25–1:50 Ambition.** Stay on the receipt claim. “Websites are the last
-   enforcement boundary when an agent trusts hostile content. This receipt is
-   that proof, hash-sealed.”
-5. **1:50–2:10 Close.** Guest, synthetic, no OAuth. Do not click Run on camera.
+   `/sandbox/meeting-note-boundary/safety-boundary`: flip **Compromised
+   third-party script**. Weak: `getTools()` shows the impostor
+   `send_followup`. Hardened: rejected, lifecycle event logged, and
+   `toolname="confirm_follow_up"` with no `toolautosubmit`.
+   “This hijack works on GPT-5.4, Claude, and Gemini alike. No model fixes it.
+   The website does.”
+4. **1:30–1:55 Ambition.** Back on the receipt JSON header: origin, contract
+   hash, gauntlet version. “This is the artifact a platform fetches before it
+   lets its agent touch a destructive tool on this origin. Today it attests one
+   boundary. The gauntlet grows; the receipt stays sealed.”
+5. **1:55–2:10 Close.** Guest, synthetic, no OAuth. Do not click Run on camera.
 
 Existing sealed receipts for visual proof only:
 

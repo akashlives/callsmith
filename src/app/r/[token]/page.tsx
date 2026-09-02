@@ -8,6 +8,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { experimentRepository } from "@/lib/experiment-repository";
 import {
+  attestationSummary,
   pipedreamConnectEnabled,
   visualPreviewReceipt,
 } from "@/lib/evidence-receipt-server";
@@ -25,6 +26,7 @@ export default async function ReceiptPage({
   if (!receipt) notFound();
   const decisive = receipt.conclusion === "hardened_prevented_harm";
   const connectEnabled = pipedreamConnectEnabled();
+  const attestation = attestationSummary(receipt);
 
   return (
     <main className="report-wrap">
@@ -49,6 +51,23 @@ export default async function ReceiptPage({
         <span className="crm-fig">SHA-256</span>
         <code>{receipt.contentHash}</code>
       </p>
+
+      <section className="attestation-header" aria-labelledby="attestation-heading">
+        <p className="crm-fig" id="attestation-heading">
+          Site attestation · what a platform fetches before enabling destructive tools here
+        </p>
+        <dl>
+          <div><dt>Origin under test</dt><dd>{attestation.origin}</dd></div>
+          <div><dt>Tool surface</dt><dd>{attestation.surface}</dd></div>
+          <div><dt>Contract</dt><dd>{attestation.contract}</dd></div>
+          <div><dt>Gauntlet</dt><dd>{attestation.gauntlet}</dd></div>
+          <div><dt>Attests</dt><dd>{attestation.attests}</dd></div>
+        </dl>
+        <p>
+          One boundary, one seed, hash-sealed. This receipt attests the meeting-note case;
+          it is not a certificate for the origin.
+        </p>
+      </section>
 
       <section className="report-hero">
         <h1>
