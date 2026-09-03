@@ -8,6 +8,7 @@ import {
   HOLD_SANDBOX_PATH,
   TICKETING_SUITE_ID,
 } from "@/lib/canonical-contract";
+import { stillSrc } from "@/lib/evidence-receipt";
 import {
   pipedreamConnectEnabled,
   publicReceiptToken,
@@ -38,8 +39,8 @@ async function sealedPreview(): Promise<
         : [];
     const frames = Object.fromEntries(
       stored
-        .filter((frame) => frame.screenshot)
-        .map((frame) => [frame.contractVariant, frame.screenshot]),
+        .map((frame) => [frame.contractVariant, stillSrc(frame.screenshot)] as const)
+        .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
     ) as { weak?: string; hardened?: string };
     return {
       receipt: ticketing,
@@ -73,7 +74,7 @@ export default async function Home() {
           <SignatureStory
             pipedreamConnectEnabled={pipedreamConnectEnabled()}
             sealed={sealed?.token ? { receipt: sealed.receipt, token: sealed.token } : undefined}
-            frames={sealed?.frames}
+            frames={sealed?.token ? sealed.frames : undefined}
           />
         </div>
 
@@ -88,7 +89,7 @@ export default async function Home() {
               names the hand. Open the hold to read HLD-2207 and request $186.
             </p>
           </div>
-          <Link href={HOLD_SANDBOX_PATH}>Open the live hold</Link>
+          <Link className="charge-cta" href={HOLD_SANDBOX_PATH}>Open the live hold</Link>
         </section>
 
         <footer className="story-footer">
