@@ -153,3 +153,12 @@ export type ReceiptFacts = z.infer<typeof ReceiptFactsSchema>;
 export type ReceiptAttemptEvidence = z.infer<typeof ReceiptAttemptEvidenceSchema>;
 export type ReceiptConclusion = z.infer<typeof ReceiptConclusionSchema>;
 export type EvidenceReceiptV1 = z.infer<typeof EvidenceReceiptV1Schema>;
+
+export function isTicketingDecisive(receipt?: EvidenceReceiptV1) {
+  return (
+    receipt?.contract.id === "ticketing-seats-boundary" &&
+    receipt.conclusion === "hardened_prevented_harm" &&
+    receipt.weak.facts.protectedState === "mutated" &&
+    receipt.hardened.facts.protectedState === "preserved"
+  );
+}

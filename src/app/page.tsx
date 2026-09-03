@@ -5,21 +5,50 @@ import { SignatureStory, type SealedReceiptPreview } from "@/components/signatur
 import { ThemeToggle } from "@/components/theme-toggle";
 import WebMcpBridge from "@/components/webmcp-bridge";
 import {
+  HOLD_SANDBOX_PATH,
+  TICKETING_SUITE_ID,
+} from "@/lib/canonical-contract";
+import {
   pipedreamConnectEnabled,
   publicReceiptToken,
-  visualPreviewReceipt,
 } from "@/lib/evidence-receipt-server";
 import { experimentRepository } from "@/lib/experiment-repository";
 
 export const dynamic = "force-dynamic";
 
-/** Loads the published production receipt, or nothing. Never fabricates a pair. */
-async function sealedPreview(): Promise<SealedReceiptPreview | undefined> {
-  const token = publicReceiptToken();
-  if (!token) return undefined;
-  const receipt =
-    (await experimentRepository.getReceipt(token)) ?? visualPreviewReceipt(token);
-  return receipt ? { receipt, token } : undefined;
+/** Ticketing sealed pair only. Never invent CHARGED from a meeting-note receipt. */
+async function sealedPreview(): Promise<
+  (SealedReceiptPreview & { frames?: { weak?: string; hardened?: string } }) | undefined
+> {
+  try {
+    if (typeof experimentRepository.latestDecisiveReceiptForContract !== "function") {
+      return undefined;
+    }
+    const ticketing =
+      await experimentRepository.latestDecisiveReceiptForContract(TICKETING_SUITE_ID);
+    if (!ticketing || ticketing.conclusion !== "hardened_prevented_harm") {
+      return undefined;
+    }
+    const token = publicReceiptToken();
+    const published = token ? await experimentRepository.getReceipt(token) : undefined;
+    const match = published?.receiptId === ticketing.receiptId ? token : undefined;
+    const stored =
+      typeof experimentRepository.listFrames === "function"
+        ? await experimentRepository.listFrames(ticketing.experimentId)
+        : [];
+    const frames = Object.fromEntries(
+      stored
+        .filter((frame) => frame.screenshot)
+        .map((frame) => [frame.contractVariant, frame.screenshot]),
+    ) as { weak?: string; hardened?: string };
+    return {
+      receipt: ticketing,
+      token: match ?? "",
+      frames,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 export default async function Home() {
@@ -35,7 +64,7 @@ export default async function Home() {
           </a>
           <nav aria-label="Primary navigation">
             <a href="#evidence">Evidence</a>
-            <Link href="/sandbox/meeting-note-boundary/safety-boundary">Sandbox</Link>
+            <Link href={HOLD_SANDBOX_PATH}>Hold</Link>
           </nav>
           <ThemeToggle />
         </header>
@@ -43,38 +72,31 @@ export default async function Home() {
         <div id="top">
           <SignatureStory
             pipedreamConnectEnabled={pipedreamConnectEnabled()}
-            sealed={sealed}
+            sealed={sealed?.token ? { receipt: sealed.receipt, token: sealed.token } : undefined}
+            frames={sealed?.frames}
           />
         </div>
 
         <BenchmarkProof />
 
-        <section className="webmcp-callout" aria-labelledby="webmcp-heading">
+        <section className="webmcp-callout" aria-labelledby="hold-heading">
           <div>
-            <p className="story-eyebrow">Page tools · WebMCP</p>
-            <h2 id="webmcp-heading">Five workbench tools here. CRM tools live on the sandbox.</h2>
+            <p className="story-eyebrow">Live hold</p>
+            <h2 id="hold-heading">The charge is a request. Approve is the apply.</h2>
             <p>
-              This page registers get_contract_template, propose_safety_contract,
-              get_callsmith_status, run_decisive_case, and open_evidence_receipt through
-              document.modelContext.registerTool. The meeting-note tools
-              read_meeting_note and send_followup register on the sandbox page, where a
-              compromised third-party script can try to hijack them. Chrome and ChatGPT
-              review each call; the sealed receipt is what a platform fetches to learn
-              what this website did. Pipedream Connect is an optional write backend,
-              never the demo, and never the guest path.
+              Site tools, clicks, and screenshots hit the same glass. The page
+              names the hand. Open the hold to read HLD-2207 and request $186.
             </p>
           </div>
-          <Link href="/sandbox/meeting-note-boundary/safety-boundary">
-            Inspect the synthetic sandbox
-          </Link>
+          <Link href={HOLD_SANDBOX_PATH}>Open the live hold</Link>
         </section>
 
         <footer className="story-footer">
           <div>
             <strong>Callsmith</strong>
-            <span>Attestation for agent-facing websites.</span>
+            <span>The page names the hand.</span>
           </div>
-          <p>Synthetic data only · No customer systems or credentials</p>
+          <p>Synthetic data only · Test mode or no latch</p>
         </footer>
       </main>
     </>

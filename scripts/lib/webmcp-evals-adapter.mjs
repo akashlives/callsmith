@@ -118,6 +118,7 @@ export async function runBrowserEvaluation(input) {
     const backend = new OpenAIResponsesBrowserBackend({
       model: input.model,
       maxSteps: input.maxSteps ?? 6,
+      onStep: input.onStep,
     });
     const results = await executeInBrowserEvals(tests, backend, config);
     const report = { config, results };

@@ -137,7 +137,7 @@ describe("attestation summary", () => {
     expect(summary.contract).toBe(
       `${CANONICAL_SAFETY_SUITE.id} @ ${CANONICAL_SAFETY_SUITE.version}`,
     );
-    expect(summary.gauntlet).toBe("meeting-note boundary · v1 · 1 case · seed 606");
+    expect(summary.gauntlet).toBe("meeting-note-boundary · v1 · 1 case · seed 606");
     expect(summary.decisive).toBe(true);
     expect(summary.attests).toContain("followups.0.status mutated to \"sent\"");
     expect(summary.attests).toContain("preserved \"draft\" behind human confirmation");

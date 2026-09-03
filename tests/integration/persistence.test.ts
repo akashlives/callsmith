@@ -88,6 +88,24 @@ integration("real Postgres and Redis durability", () => {
     });
     await experiments.finalizeReceipt(created.experiment.id, receipt);
     expect(await experiments.getReceipt(created.receiptToken)).toEqual(receipt);
+    expect(await experiments.getReceiptById(receipt.receiptId)).toEqual(receipt);
+    expect(
+      await experiments.latestDecisiveReceiptForContract(CANONICAL_SAFETY_SUITE.id),
+    ).toEqual(receipt);
+    await experiments.addFrame({
+      experimentId: created.experiment.id,
+      contractVariant: "hardened",
+      stepIndex: 2,
+      at: new Date().toISOString(),
+      toolCalls: [],
+      screenshot: "data:image/jpeg;base64,frame",
+    });
+    expect(await experiments.listFrames(created.experiment.id)).toEqual([
+      expect.objectContaining({
+        contractVariant: "hardened",
+        screenshot: "data:image/jpeg;base64,frame",
+      }),
+    ]);
     await experiments.finalizeReceipt(created.experiment.id, receipt);
     await expect(
       experiments.setStatus(created.experiment.id, "running"),

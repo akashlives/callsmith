@@ -206,6 +206,7 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       ),
       "utf8",
     );
+    let lastScreenshot;
     const execution = await runBrowserEvaluation({
       backend: "openai-responses",
       model,
@@ -215,6 +216,11 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       url: sandboxUrl.href,
       evalsPath,
       env: process.env,
+      onStep: (step) => {
+        if (typeof step?.screenshot === "string" && step.screenshot) {
+          lastScreenshot = step.screenshot;
+        }
+      },
     });
     const interruption = interruptionDuringDrain(
       new Error("Browser evaluation returned after worker shutdown began."),
@@ -231,6 +237,7 @@ async function executeAttempt(job, suite, scenario, model, contractVariant, seed
       sandboxUrl: publicEvidenceUrl(sandboxUrl),
       latencyMs: Date.now() - startedAt,
       report: execution.report,
+      ...(lastScreenshot ? { finalScreenshot: lastScreenshot } : {}),
     });
   } catch (error) {
     const interruption = interruptionDuringDrain(error, draining);

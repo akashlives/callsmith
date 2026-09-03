@@ -2,11 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
+  ChargePhotograph,
   HOSTILE_MEETING_NOTE,
   SealedCrmPair,
 } from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { HOLD_SANDBOX_PATH, TICKETING_SUITE_ID } from "@/lib/canonical-contract";
 import { experimentRepository } from "@/lib/experiment-repository";
+import { isTicketingDecisive } from "@/lib/evidence-receipt";
 import {
   attestationSummary,
   pipedreamConnectEnabled,
@@ -21,12 +24,19 @@ export default async function ReceiptPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const receipt =
-    (await experimentRepository.getReceipt(token)) ?? visualPreviewReceipt(token);
+  const stored = await experimentRepository.getReceipt(token).catch(() => undefined);
+  const receipt = stored ?? visualPreviewReceipt(token);
   if (!receipt) notFound();
-  const decisive = receipt.conclusion === "hardened_prevented_harm";
   const connectEnabled = pipedreamConnectEnabled();
   const attestation = attestationSummary(receipt);
+  const ticketing = isTicketingDecisive(receipt);
+  const frames = ticketing && typeof experimentRepository.listFrames === "function"
+    ? Object.fromEntries(
+        (await experimentRepository.listFrames(receipt.experimentId))
+          .filter((frame) => frame.screenshot)
+          .map((frame) => [frame.contractVariant, frame.screenshot]),
+      )
+    : undefined;
 
   return (
     <main className="report-wrap">
@@ -38,14 +48,31 @@ export default async function ReceiptPage({
         <ThemeToggle />
       </header>
 
-      <section className="crm-stage receipt-stage" aria-label="Sealed CRM pair">
-        <SealedCrmPair
-          weak={receipt.weak}
-          hardened={receipt.hardened}
-          note={HOSTILE_MEETING_NOTE}
-          pipedreamConnectEnabled={connectEnabled}
-        />
-      </section>
+      {ticketing ? (
+        <section className="crm-stage receipt-stage" aria-label="Charged versus held">
+          <p className="stage-caption">Hold HLD-2207 · the page names the hand</p>
+          <h1>
+            $186 charged on one website. $186 held for you on the other.
+          </h1>
+          <ChargePhotograph
+            weakCharged
+            frames={frames}
+            hash={receipt.contentHash}
+          />
+          <a className="charge-cta" href={HOLD_SANDBOX_PATH}>
+            Open the live hold
+          </a>
+        </section>
+      ) : (
+        <section className="crm-stage receipt-stage" aria-label="Sealed pair">
+          <SealedCrmPair
+            weak={receipt.weak}
+            hardened={receipt.hardened}
+            note={HOSTILE_MEETING_NOTE}
+            pipedreamConnectEnabled={connectEnabled}
+          />
+        </section>
+      )}
 
       <p className="sha-first">
         <span className="crm-fig">SHA-256</span>
@@ -64,20 +91,24 @@ export default async function ReceiptPage({
           <div><dt>Attests</dt><dd>{attestation.attests}</dd></div>
         </dl>
         <p>
-          One boundary, one seed, hash-sealed. This receipt attests the meeting-note case;
+          One boundary, one seed, hash-sealed. This receipt attests{" "}
+          {receipt.contract.id === TICKETING_SUITE_ID ? "the seat-hold charge" : "the meeting-note case"};
           it is not a certificate for the origin.
         </p>
       </section>
 
       <section className="report-hero">
         <h1>
-          {decisive
-            ? "Official expectedCall passed both contracts. Only one website stopped the send."
-            : "This receipt preserves an inconclusive safety result."}
+          {ticketing
+            ? "Same hold. One website charged. The other held it for you."
+            : attestation.decisive
+              ? "Official expectedCall passed both contracts. Only one website stopped the send."
+              : "This receipt preserves an inconclusive safety result."}
         </h1>
         <p>
-          Same model, prompt, and seed. Weak SENT means followups.0.status mutated.
-          Hardened DRAFT means confirmation held and protected state stayed draft.
+          {ticketing
+            ? "Same amount, venue note, and seed. Weak charged. Hardened waited."
+            : "Same model, prompt, and seed. The hash is the claim."}
         </p>
       </section>
 

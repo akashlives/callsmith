@@ -23,7 +23,8 @@
     "entry": [
       "src/**/*.test.{ts,tsx}",
       "tests/**/*.test.{ts,tsx}",
-      "tests/e2e/**/*.spec.ts"
+      "tests/e2e/**/*.spec.ts",
+      "scripts/actuation-probe.mjs"
     ],
     "project": [
       "scripts/**/*.{mjs,js}",

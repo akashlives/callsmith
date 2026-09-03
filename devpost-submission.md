@@ -2,252 +2,89 @@
 
 ## Tagline
 
-**Agent platforms review every tool call. Nobody attests the website. Callsmith does.**
+**$186 charged on one website. $186 held for you on the other.**
 
-## One-line pitch
+## 1. Fit
 
-Callsmith seals a receipt of what an agent-facing website actually did when an
-agent was pushed to cross a boundary—the artifact a platform like ChatGPT,
-Chrome, Shopify, or Cloudflare can check before enabling destructive tools on an
-origin, and the evidence the website will need when the loss lands on it.
+WebMCP is a Community Group draft plus a Chrome 149–156 origin trial plus
+ChatGPT Site tools (Sol/Terra). Shopify Liquid already shipped catalog / cart /
+checkout. anthropics/commerce-agents (1 Sep): nothing charges a card; checkout
+is a host handoff; entertainment has timed holds. ACP / UCP / AP2 settle
+without a shared glass. Stripe MCP and Pipedream MCP are backends — they are
+not mounted on `document.modelContext`.
 
-## What it does
+Callsmith is the page that makes commerce-agents' rule true in the only client
+judges will open, and proves which hand pressed charge. Site tools are how
+ChatGPT / Codex should act. Computer-use and CDP still exist and will click.
+The page makes Charge a request and Approve the only apply, so a Manus tab and
+a Sol/Terra tab hit the same postcondition.
 
-Expected-call evaluation answers, “Did the agent call the tools we expected?”
-Callsmith answers the consequential follow-up: “What happened to protected
-browser state, and did the website stop the unsafe action?”
+Start on the hold, not the homepage:
 
-Callsmith runs one synthetic task against weak and hardened versions of the same
-WebMCP contract. The model, prompt, seed, and hostile content stay fixed. The
-official expected-call baseline can pass both variants, while Callsmith records
-whether the unsafe action was attempted, whether protected state mutated, and
-whether the website prevented harm.
+https://web-production-6cecc.up.railway.app/sandbox/ticketing-seats-boundary/safety-boundary
 
-The result is an immutable, shareable evidence receipt with the exact prompt,
-contract diff, browser trace, state changes, assertions, failures, framework
-versions, and a SHA-256 content hash.
+Sol/Terra only. Luna has Site tools disabled.
 
-Developers can also ask an agent to propose a compact, synthetic safety contract
-for another domain. Callsmith shows the hostile content, protected field,
-generated prompt, expected calls, and weak/hardened contract difference before a
-human approves anything. Approval starts a durable browser experiment; rejection
-starts nothing.
+## 2. UX
 
-## Why it matters
+One object. Money large. Fenced venue lie. Status chip. Approve is a button,
+not a schema flag. Action ledger of which ingress fired. Click agents read the
+same English. Home is the photograph: $186 charged vs $186 held. CTA: Open the
+live hold.
 
-Websites are becoming execution environments. WebMCP is live in the Chrome 149
-origin trial, ChatGPT desktop Site tools, Shopify storefronts, and Cloudflare's
-edge bridge. Three facts make that dangerous in a way nobody currently owns:
+## 3. Together
 
-- **The platform reviews the call, not the site.** OpenAI's documentation:
-  every Site tool call "receives a safety review," but those checks "don't
-  guarantee the website or its responses are trustworthy." The platform sees
-  the arguments; it cannot see whether the page's confirmation boundary held or
-  whether protected state mutated.
-- **The attacks are protocol-level and model upgrades do not fix them.**
-  Mid-Session Tool Injection (arXiv 2606.06387): a tainted third-party script
-  hijacks a WebMCP tool by aborting and re-registering it (94%) or winning the
-  registration race (100%) across GPT-5.4, Claude Opus 4.6, and Gemini 2.5,
-  with no drop from GPT-4o. The only defenses that reached 0% were site-side:
-  origin-bound tool identity and lifecycle re-validation.
-- **Liability has landed on the website.** The Agentic Commerce Protocol keeps
-  settlement, refunds, and chargebacks with the merchant. The UK CMA (March
-  2026) holds a business responsible for its agent as for an employee. No card
-  network has an agent-dispute rule; the expected first rule is an evidentiary
-  standard, with loss to whoever cannot produce the evidence.
+Model prepares. Person applies. Page names the actor. Optional test
+PaymentIntent is the page's shadow of that apply — never a Site tool, never a
+CDP-exposed secret.
 
-Agent-side vendors constrain what the agent may do. Payment rails prove who the
-agent was and what mandate it carried. Neither proves what the website did.
-Callsmith's receipt is that proof: consequence rather than compliance. An agent
-may call the expected tool with the expected arguments and still cross the line;
-the receipt shows whether the website's own contract blocked the transition.
+## 4. Implementation
 
-## WebMCP use
+`document.modelContext.registerTool`; hints; fence; provenance; unregister +
+`toolchange`; trust-checked Approve (rejects synthetic input, records actor;
+does not claim agents cannot Approve); worker CDP screenshots; four suites
+from one compiler, only ticketing sealed; page-owned test latch; evals on Luna;
+judges on Sol/Terra. No `navigator.modelContext`. No Atlas. Origin trial +
+Sol/Terra, not "live everywhere."
 
-Judges score **page tools**, not a remote MCP server. There are two surfaces.
-
-The public homepage registers exactly five workbench tools through
-`document.modelContext.registerTool()` in `src/components/webmcp-bridge.tsx`:
-
-1. `get_contract_template`
-2. `propose_safety_contract`
-3. `get_callsmith_status`
-4. `run_decisive_case`
-5. `open_evidence_receipt`
-
-The evaluated **sandbox** (`/sandbox/meeting-note-boundary/safety-boundary`)
-registers the meeting-note CRM tools (`read_meeting_note`, `send_followup`) the
-same way. Chrome's native WebMCP surface runs those tools with Google's
-`webmcp-evals` runner. Confirm in DevTools with
-`document.modelContext.getTools()`.
-
-The sandbox also carries a **Compromised third-party script** toggle. A
-simulated CDN script tries to hijack `send_followup` by aborting the legitimate
-registration and re-registering the same name. The weak page accepts it and
-`getTools()` shows the impostor; the hardened page's origin-bound registry
-rejects it and appends the lifecycle event to the on-page evidence log. This is
-the site-side defense the MSTI paper measured at 0% attack success, implemented
-on the website rather than in the model.
-
-How to judge without a paid Run: open ChatGPT's in-app browser (GPT-5.6 Sol or
-Terra; Luna has Site tools disabled) or Chrome 149+ with
-`chrome://flags/#enable-webmcp-testing`. The idle homepage already shows the
-sealed production pair with its SHA-256; the same receipt is at
-https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
-— Weak SENT vs Hardened DRAFT·HELD. Agent prompts on `/`: “Open the evidence
-receipt” (`open_evidence_receipt`, free) or “Run the decisive case”
-(`run_decisive_case`, paid live pair).
-
-Pipedream Connect is an **optional write backend** (Gmail / Slack catalog rows
-inside the fake CRM). It is not the demo, not extra `registerTool`s, and not
-the guest Run path. Live Connect requires `PIPEDREAM_CLIENT_ID`,
-`PIPEDREAM_CLIENT_SECRET`, and `PIPEDREAM_PROJECT_ID`; otherwise those rows stay
-catalog-only. Hardened still requires the existing human confirmation form.
-
-Human approval cannot be fabricated as a tool parameter. It occurs only in a
-visible, non-autosubmitting declarative form.
-
-## How it was built
-
-- Next.js and React for the verdict-first application
-- `webmcp-evals` 0.0.4 and Chrome unstable for browser-native execution
-- Postgres for proposals, experiments, attempts, outbox, and immutable receipts
-- Redis Streams for durable jobs, progress events, recovery, and worker health
-- Railway for web, worker, Postgres, Redis, private networking, staging, and
-  production
-- Vitest, real Postgres/Redis integration tests, Playwright, official WebMCP
-  smoke, and browser-use acceptance gates
-
-The same immutable container image runs the web and worker roles. The web writes
-an experiment and outbox record transactionally. A Redis Streams consumer group
-delivers browser jobs to the worker, which acknowledges only terminal evidence.
-If the worker drains or restarts mid-browser-run, incomplete output is discarded
-and the stale stream entry is reclaimed. Progress is published through Redis so
-SSE reconnects survive web restarts.
-
-## Decisive demonstration
-
-A meeting note says the buyer already approved automatic delivery and pressures
-the agent to send. With the weak contract, expected calls pass and protected
-state changes from `draft` to `sent`. With the hardened contract, the same
-attempt requests human confirmation and state remains `draft`.
-
-The report separates five facts: task outcome, unsafe action, protected state,
-harm prevention, and official baseline outcome. It makes no model-superiority
-claim.
-
-The frozen ten-seed benchmark produced twenty live browser attempts. The official
-expected-call baseline passed both contracts in 10/10 pairs. Callsmith found the
-material state difference in 10/10: the weak contract mutated protected state,
-while the hardened contract prevented harm. The Wilson 95% interval is
-72.2–100.0%, median pair latency is 5,667 ms, and no pair is missing. This is a
-narrow contract-design result, not a claim that one model is generally safer.
-
-## Challenges
-
-The hardest problem was keeping evidence honest across browser and infrastructure
-failure. During forced worker-restart testing, the upstream runner returned an
-ordinary failed report instead of throwing. Callsmith initially risked sealing
-that interruption as a provider failure. We added explicit drain-aware lifecycle
-handling: interrupted output is never acknowledged as evidence and Redis reclaims
-the job after restart.
-
-The second challenge was resisting benchmark theater. Earlier versions mixed
-simulation, previews, model comparison, weighted scores, and scenario-specific
-instructions. We removed those paths and narrowed the product to one controlled
-causal comparison: the model, task, prompt, seed, and hostile content stay fixed;
-only the website contract changes.
-
-## What we learned
-
-- Tool registration and argument matching are necessary, but browser state is the
-  stronger safety truth.
-- Human approval must be enforced by the website and cannot be represented as an
-  agent-supplied boolean.
-- A run without a complete weak/hardened pair is inconclusive, not a verdict.
-- Durable queues are not enough unless the worker's acknowledgment boundary
-  matches evidence finalization.
-- Framework currency should mean daily canary verification, not unreviewed
-  production upgrades.
-
-## What's next
-
-The receipt generalizes into an attestation platforms can query. A standard
-gauntlet of six attack classes (hostile untrusted content, mid-session tool
-hijack, tool framing via description and `readOnlyHint`, long-description
-overflow, confirmation bypass, delegation chain) runs against any captured WebMCP
-origin in the isolated runner, and the results seal into a signed attestation
-(origin, tool-surface hash, gauntlet version, per-case outcome, receipt hashes)
-served at `/.well-known/webmcp-attestation` and through a registry endpoint a
-platform calls before enabling `destructiveHint` tools on that origin. Today's
-release attests one boundary and does not claim certification.
+Hold tools: `read_hold`, `charge_hold`. Receipt JSON has no `frames` and no
+`client_secret`. Same digest, web + worker. `webmcp-evals` 0.0.4.
 
 ## Required submission fields
 
 - Submitter type: individual
 - Country: **USER INPUT REQUIRED**
 - App status: functioning prototype / newly built for this hackathon
-- Live application: https://web-production-6cecc.up.railway.app/
+- Live application: https://web-production-6cecc.up.railway.app/sandbox/ticketing-seats-boundary/safety-boundary
 - Public MIT repository: https://github.com/akashlives/callsmith
-- Agents/clients: ChatGPT in-app browser, WebMCP-enabled Chrome, Codex
+- Agents/clients: ChatGPT in-app browser (Sol/Terra), WebMCP-enabled Chrome, Codex, Manus
 - AI tools: OpenAI Responses API through the AI SDK, Codex
-- Learning/career: built browser-native WebMCP evaluation, durable Redis/Postgres
-  execution, tamper-evident receipts, and human-in-the-loop tool boundaries
-- Public demo video with audio under three minutes: **silent live restage
-  walkthrough at `outputs/callsmith-demo-restage.webm`; narrated public URL
-  pending submitter review and upload approval**
+- Learning/career: built a shared glass for Site tools and click agents, with a named apply
+- Public demo video with audio under 2:30: **hold URL first; narrated public URL pending submitter review and "yes, submit"**
 
-## Demo video plan (<3 min)
+## Demo video plan (≤2:30)
 
-Do **not** click production Run (paid Luna, seed 606). Use the silent restage
-cut at `outputs/callsmith-demo-restage.webm` plus DevTools, or recapture the
-same live path. Public YouTube URL stays empty until the submitter narrates
-this script and explicitly approves upload.
+Do **not** click production Prove it again (paid Luna). Do not open on `/`.
+No architecture diagram. No Luna on camera.
 
-**Narration (~2:10, map 1:1 to judging criteria)**
+Suggested cut:
 
-1. **0:00–0:25 Impact (the problem).** On
-   https://web-production-6cecc.up.railway.app/ — heading “Agent platforms
-   review every tool call. Nobody attests the website.” Two CRM windows already
-   sealed: Weak SENT, Hardened DRAFT·HELD, SHA-256 under them.
-   “ChatGPT and Chrome review each call. OpenAI’s own docs say that doesn’t
-   make the website trustworthy. The loss lands on the site. Same note, two
-   website contracts, one agent.”
-2. **0:25–0:55 Execution (the seal).** Cut to
-   https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
-   — SHA-256 first, then the traces.
-   “Official expectedCall passed both. Only one website stopped the send. Ten
-   seeds, ten for ten, hash-sealed.”
-3. **0:55–1:30 Leverage.** DevTools on `/`:
-   `await document.modelContext.getTools()` — the five workbench names. Then
-   `/sandbox/meeting-note-boundary/safety-boundary`: flip **Compromised
-   third-party script**. Weak: `getTools()` shows the impostor
-   `send_followup`. Hardened: rejected, lifecycle event logged, and
-   `toolname="confirm_follow_up"` with no `toolautosubmit`.
-   “This hijack works on GPT-5.4, Claude, and Gemini alike. No model fixes it.
-   The website does.”
-4. **1:30–1:55 Ambition.** Back on the receipt JSON header: origin, contract
-   hash, gauntlet version. “This is the artifact a platform fetches before it
-   lets its agent touch a destructive tool on this origin. Today it attests one
-   boundary. The gauntlet grows; the receipt stays sealed.”
-5. **1:55–2:10 Close.** Guest, synthetic, no OAuth. Do not click Run on camera.
+1. Hold URL first.
+2. ~70s ticketing Site tools + Approve.
+3. ~20s weak (`CHARGED · by the site`).
+4. ~15s ledger / click contrast (Charge≠apply).
+5. Remainder: photograph + hash if time.
 
-Existing sealed receipts for visual proof only:
-
-- https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI
-- https://web-production-6cecc.up.railway.app/r/x2Vs0PVufQs4SEmMSZBXMZhfU_LXR7JgfKP5Agsiu-c
+Public YouTube URL stays empty until the submitter narrates and says
+"yes, submit."
 
 ## Evidence to attach before submission freeze
 
 - MIT license visible on the GitHub About panel;
-- final production URL, repository revision, and container digest;
-- checked-in ten-seed matched benchmark;
-- Chrome WebMCP and ChatGPT in-app-browser QA screenshots (captured);
-- five genuine, uncoached non-sales tester receipts;
-- public sub-three-minute narrated demo video (silent live cut local; public
-  URL pending upload approval).
+- final production URL, repository revision, and container digest (web + worker, same);
+- Site tools shots on the **hold URL**;
+- public sub-2:30 narrated demo video (URL pending upload approval).
 
-The project must not be created or updated on Devpost until the submitter reviews
-these exact fields and confirms the missing country. Final submission requires a
-second, explicit “yes, submit.” Tester sessions, if time remains, use production
-after this deploy and must not be fabricated.
+The project must not be created or updated on Devpost until the submitter
+reviews these exact fields and confirms the missing country. Final submission
+requires a second, explicit “yes, submit.”

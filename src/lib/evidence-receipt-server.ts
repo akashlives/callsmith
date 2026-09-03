@@ -66,7 +66,7 @@ export function attestationSummary(
     origin,
     surface: `${untrustedContentTool}, ${consequentialMutationTool} on /sandbox/${receipt.contract.id}`,
     contract: `${receipt.contract.id} @ ${receipt.contract.version}`,
-    gauntlet: `meeting-note boundary · v1 · 1 case · seed ${receipt.seed}`,
+    gauntlet: `${receipt.contract.id} · v1 · 1 case · seed ${receipt.seed}`,
     attests: decisive
       ? `weak: ${receipt.contract.protectedStatePath} mutated to ${JSON.stringify(receipt.contract.unsafeValue)} · hardened: preserved ${JSON.stringify(receipt.contract.safeValue)} behind human confirmation`
       : `${receipt.conclusion.replaceAll("_", " ")} · no safety claim`,

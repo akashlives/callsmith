@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { HOLD_SANDBOX_PATH, TICKETING_SUITE_ID } from "@/lib/canonical-contract";
 import {
   EvidenceReceiptV1Schema,
+  isTicketingDecisive,
   type EvidenceReceiptV1,
   type ReceiptAttemptEvidence,
 } from "@/lib/evidence-receipt";
@@ -30,15 +32,15 @@ export const HOSTILE_MEETING_NOTE =
 const progressSteps = [
   {
     phase: "preparing",
-    label: "Opening two Chrome tabs — weak site and hardened site",
+    label: "Opening two Chrome tabs — weak hold and hardened hold",
   },
   {
     phase: "testing",
-    label: "Same agent is trying to send that follow-up on both websites",
+    label: "Same agent is trying to charge that hold on both websites",
   },
   {
     phase: "comparing",
-    label: "Both tabs finished — hashing the pair, still no SENT or DRAFT on screen",
+    label: "Both tabs finished — hashing the pair, still no charged claim on screen",
   },
 ] as const;
 
@@ -96,44 +98,6 @@ function laneFromEvidence(evidence: ReceiptAttemptEvidence): CrmLaneView {
     gmail: "idle",
     slack: "idle",
     expectedCall,
-  };
-}
-
-function inFlightLane(variant: "weak" | "hardened", phase: ExperiencePhase): CrmLaneView {
-  if (phase === "error") {
-    return {
-      variant,
-      chip: "ERROR",
-      tone: "error",
-      confirmationHeld: false,
-      followupStatus: "error",
-      gmail: "error",
-      slack: "error",
-    };
-  }
-  if (phase === "preparing" || phase === "testing" || phase === "comparing") {
-    return {
-      variant,
-      chip: "RUNNING",
-      tone: "running",
-      confirmationHeld: false,
-      followupStatus: "running",
-      gmail: "running",
-      slack: "running",
-      liveExplain:
-        variant === "weak"
-          ? "No confirm gate. This website can change draft to sent."
-          : "Confirm gate on. This website cannot send without a human click.",
-    };
-  }
-  return {
-    variant,
-    chip: null,
-    tone: "neutral",
-    confirmationHeld: false,
-    followupStatus: "draft",
-    gmail: "idle",
-    slack: "idle",
   };
 }
 
@@ -349,6 +313,79 @@ export function SealedCrmPair({
   );
 }
 
+export type ChargeFrames = {
+  weak?: string;
+  hardened?: string;
+};
+
+function ChargeStill({
+  variant,
+  charged,
+  frame,
+}: {
+  variant: "weak" | "hardened";
+  charged: boolean;
+  frame?: string;
+}) {
+  const chip = charged ? "CHARGED · by the site" : "HELD · awaiting you";
+  return (
+    <article className={`charge-window ${charged ? "is-risk" : "is-safe"}`} data-variant={variant}>
+      <header className="crm-chrome">
+        <span className="crm-dots" aria-hidden="true"><i /><i /><i /></span>
+        <span className="crm-url">
+          {variant === "weak" ? "weak.tickets.callsmith.local" : "hardened.tickets.callsmith.local"}
+        </span>
+        <span className="crm-fig">{variant === "weak" ? "FIG.01" : "FIG.02"}</span>
+      </header>
+      {frame ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={frame} alt={chip} />
+      ) : (
+        <div className="crm-body">
+          <p className="charge-kicker">ACME Tickets · Hold HLD-2207</p>
+          <p className="charge-money">$186</p>
+          <p className={`charge-chip ${charged ? "is-risk" : "is-safe"}`}>{chip}</p>
+          <p className="charge-copy">
+            {charged
+              ? "The site charged the card from the venue note."
+              : "The charge is a request. The page is waiting."}
+          </p>
+        </div>
+      )}
+    </article>
+  );
+}
+
+export function ChargePhotograph({
+  weakCharged,
+  frames,
+  hash,
+  reportHref,
+}: {
+  weakCharged: boolean;
+  frames?: ChargeFrames;
+  hash?: string;
+  reportHref?: string;
+}) {
+  return (
+    <>
+      <div className="charge-pair" aria-label="Charged versus held">
+        <ChargeStill variant="weak" charged={weakCharged} frame={frames?.weak} />
+        <ChargeStill variant="hardened" charged={false} frame={frames?.hardened} />
+      </div>
+      {hash ? (
+        <p className="charge-hash">
+          <span className="crm-fig">SHA-256</span> {hash}
+          {reportHref ? (
+            <a className="report-link" href={reportHref}> Open report</a>
+          ) : null}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+
 async function responseJson<T>(response: Response): Promise<T> {
   const body: unknown = await response.json();
   if (!response.ok) {
@@ -381,12 +418,13 @@ export type SealedReceiptPreview = {
 };
 
 export function SignatureStory({
-  pipedreamConnectEnabled = false,
   sealed,
+  frames,
 }: {
   pipedreamConnectEnabled?: boolean;
-  /** A real, already-sealed production receipt shown before any Run. Never synthesized. */
+  /** A real, already-sealed ticketing receipt. Never synthesized. */
   sealed?: SealedReceiptPreview;
+  frames?: ChargeFrames;
 }) {
   const [phase, setPhase] = useState<ExperiencePhase>("idle");
   const [receipt, setReceipt] = useState<EvidenceReceiptV1>();
@@ -515,7 +553,7 @@ export function SignatureStory({
       const response = await fetch("/api/experiments", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: "{}",
+        body: JSON.stringify({ suiteId: TICKETING_SUITE_ID }),
         signal: controller.signal,
       });
       const created = await responseJson<CreatedExperiment>(response);
@@ -541,57 +579,49 @@ export function SignatureStory({
   }
 
   const decisive = receipt?.conclusion === "hardened_prevented_harm";
-  // Only a decisive, already-sealed pair is worth showing before a Run. Anything
-  // else stays RECORD so the idle page never implies a verdict it does not hold.
   const sealedIdle =
-    phase === "idle" && sealed?.receipt.conclusion === "hardened_prevented_harm"
-      ? sealed
-      : undefined;
+    phase === "idle" && isTicketingDecisive(sealed?.receipt) ? sealed : undefined;
   const shown = receipt ?? sealedIdle?.receipt;
-  const weakLane = shown ? laneFromEvidence(shown.weak) : inFlightLane("weak", phase);
-  const hardenedLane = shown
-    ? laneFromEvidence(shown.hardened)
-    : inFlightLane("hardened", phase);
+  const ticketingShown = isTicketingDecisive(shown);
+  const weakCharged = ticketingShown;
+  const photographHash = ticketingShown ? shown?.contentHash : undefined;
+  const photographHref =
+    ticketingShown && (receiptToken || sealedIdle?.token)
+      ? `/r/${encodeURIComponent(receiptToken ?? sealedIdle?.token ?? "")}`
+      : undefined;
 
   return (
     <>
       <section className="crm-stage" aria-labelledby="story-heading">
-        <p className="stage-caption">
-          Site attestation · meeting-note boundary · not a model bake-off
-        </p>
+        <p className="stage-caption">Hold HLD-2207 · the page names the hand</p>
         <h1 id="story-heading">
-          Agent platforms review every tool call. Nobody attests the website.
+          {weakCharged
+            ? "$186 charged on one website. $186 held for you on the other."
+            : "$186 held for you until a sealed pair exists."}
         </h1>
-        <p className="stage-lede">
+        <p className="charge-lede">
           {isBusy
-            ? "A real Chrome session is running the same agent against both websites. SENT vs DRAFT will not appear until both tabs finish."
-            : sealedIdle
-              ? "Same untrusted meeting note, two website contracts, one agent. The official expected-call check passed both. Only one website stopped the send. This pair is sealed."
-              : "Same untrusted meeting note, two website contracts, one agent. The official expected-call check can pass both. Callsmith records which website actually stopped the send."}
+            ? "The same hold is open on two websites. Charged versus held will not appear until both finish."
+            : weakCharged
+              ? "Same venue note. Same amount. One site charged the card. The other waited."
+              : "Open the live hold. Request the charge. Approve is the apply."}
         </p>
 
-        <CrmPair
-          weak={weakLane}
-          hardened={hardenedLane}
-          note={HOSTILE_MEETING_NOTE}
-          elapsedLabel={isBusy ? formatElapsed(elapsed) : undefined}
-          pipedreamConnectEnabled={pipedreamConnectEnabled}
+        <ChargePhotograph
+          weakCharged={weakCharged}
+          frames={frames}
+          hash={photographHash}
+          reportHref={photographHref}
         />
 
-        {sealedIdle ? (
-          <p className="stage-seal" data-testid="sealed-idle">
-            <span className="crm-fig">Sealed on production · SHA-256</span>
-            <code>{sealedIdle.receipt.contentHash}</code>
-            <a className="report-link" href={`/r/${encodeURIComponent(sealedIdle.token)}`}>
-              Open immutable report
-            </a>
-          </p>
-        ) : null}
+        <a className="charge-cta" href={HOLD_SANDBOX_PATH}>
+          Open the live hold
+        </a>
 
         <div className="stage-controls">
           {phase === "idle" || phase === "revealed" ? (
             <button className="stage-cta" type="button" onClick={() => void startExperiment()}>
-              Run the decisive proof
+              Prove it again
             </button>
           ) : null}
 
@@ -602,7 +632,7 @@ export function SignatureStory({
                 <span className="crm-fig">{formatElapsed(elapsed)}</span>
               </div>
               <p className="run-progress-card__why">
-                Weak may send. Hardened must stop. An incomplete pair is not a
+                Weak may charge. Hardened must wait. An incomplete pair is not a
                 verdict.
               </p>
             </div>
@@ -613,7 +643,7 @@ export function SignatureStory({
               <strong>No safety verdict was issued.</strong>
               <p>{error}</p>
               <button type="button" onClick={() => void startExperiment()}>
-                Retry the decisive proof
+                Retry the pair
               </button>
             </div>
           ) : null}
@@ -634,15 +664,14 @@ export function SignatureStory({
           </p>
           <h2 id="comparison-heading">
             {decisive
-              ? "Official expectedCall passed both contracts. Only one website stopped the send."
+              ? "Same hold. One website charged. The other held it for you."
               : "The result is honest, but not decisive."}
           </h2>
           <p>
             {decisive
-              ? "Same agent, prompt, and seed. Weak mutated followups.0.status to SENT. Hardened held confirmation and kept DRAFT."
-              : "The receipt preserves the observed evidence without claiming a safety win."}
+              ? "Same amount, venue note, and seed. Weak charged. Hardened waited."
+              : "The receipt preserves the observed evidence without claiming a charged pair."}
           </p>
-          <span className="provenance-label">Browser-native WebMCP evidence</span>
 
           <div className="result-actions">
             <a className="secondary-action" href={`/api/receipts/${encodeURIComponent(receiptToken ?? "")}`} download>

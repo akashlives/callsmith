@@ -22,6 +22,7 @@ type WebMcpToolAnnotations = {
 
 export type WebMcpExecuteOptions = {
   signal: AbortSignal;
+  requestUserInteraction?: (callback: () => Promise<unknown>) => Promise<unknown>;
 };
 
 export type WebMcpTool = {
@@ -152,6 +153,7 @@ export type WebMcpToolRegistry = {
     tools: readonly WebMcpTool[],
     options: { source: string; lock?: RegistrationLock; exposedTo?: string[] },
   ) => RegistryRegistration;
+  unregister: (toolName: string) => boolean;
   snapshot: () => ToolSurfaceEntry[];
   unregisterAll: () => void;
 };
@@ -266,6 +268,12 @@ export function createWebMcpToolRegistry(options: {
         },
       };
     },
+    unregister(toolName) {
+      const entry = entries.get(toolName);
+      if (!entry) return false;
+      remove(entry, `${entry.toolId} unregistered (action no longer legal).`);
+      return true;
+    },
     snapshot() {
       return [...entries.values()].map(({ toolName, toolId, source }) => ({
         toolName,
@@ -291,6 +299,17 @@ export function strictObjectSchema(
     required,
     additionalProperties: false,
   };
+}
+
+export function subscribeToolChange(
+  handler: (event: Event) => void,
+  target: Document | undefined =
+    typeof document === "undefined" ? undefined : document,
+): () => void {
+  const modelContext = getModelContext(target);
+  if (!modelContext) return () => undefined;
+  modelContext.addEventListener("toolchange", handler);
+  return () => modelContext.removeEventListener("toolchange", handler);
 }
 
 export function asToolResult(data: unknown) {
