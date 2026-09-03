@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { emitCallsmith, inspectApplyGesture } from "@/lib/input-trust";
 import {
   createWebMcpToolRegistry,
   registerWebMcpTools,
@@ -153,5 +154,54 @@ describe("createWebMcpToolRegistry", () => {
     expect(registration.supported).toBe(false);
     await expect(registration.ready).resolves.toBeUndefined();
     expect(registry.snapshot()).toHaveLength(1);
+  });
+
+  it("unregisters one tool without tearing down the rest", async () => {
+    const { document, registered } = fakeDocument();
+    const events: ToolLifecycleEvent[] = [];
+    const registry = createWebMcpToolRegistry({
+      policy: "origin_bound",
+      document,
+      onEvent: (event) => events.push(event),
+    });
+    await registry.register([tool("read_hold"), tool("charge_hold")], {
+      source: "site",
+    }).ready;
+    expect(registry.unregister("charge_hold")).toBe(true);
+    expect(registered.has("read_hold")).toBe(true);
+    expect(registered.has("charge_hold")).toBe(false);
+    expect(
+      events.some((event) => event.type === "unregistered" && event.toolName === "charge_hold"),
+    ).toBe(true);
+    expect(registry.unregister("missing")).toBe(false);
+  });
+});
+
+describe("inspectApplyGesture", () => {
+  it("rejects script clicks and inactive activation, not a missing activation API", () => {
+    expect(inspectApplyGesture({ isTrusted: false }).allowed).toBe(false);
+    expect(inspectApplyGesture({ isTrusted: false }).reason).toBe("untrusted_input");
+    const previous = globalThis.navigator;
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: { userActivation: { isActive: false } },
+    });
+    expect(inspectApplyGesture({ isTrusted: true })).toMatchObject({
+      allowed: false,
+      reason: "no_user_activation",
+    });
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: {},
+    });
+    expect(inspectApplyGesture({ isTrusted: true }).allowed).toBe(true);
+    Object.defineProperty(globalThis, "navigator", {
+      configurable: true,
+      value: previous,
+    });
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    emitCallsmith("tool", { name: "read_hold" });
+    expect(info).toHaveBeenCalledWith("callsmith:tool", { name: "read_hold" });
+    info.mockRestore();
   });
 });

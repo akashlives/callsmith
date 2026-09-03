@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { listSuites } from "@/lib/suites";
+import { HOLD_SANDBOX_PATH } from "@/lib/canonical-contract";
 
 export default function SandboxIndexPage() {
-  const suite = listSuites()[0];
-  const scenario = suite?.scenarios.at(-1);
-  if (!suite || !scenario) redirect("/");
-  redirect(`/sandbox/${suite.id}/${scenario.id}`);
+  redirect(HOLD_SANDBOX_PATH);
 }

@@ -38,6 +38,7 @@ const WorkerEventSchema = z.discriminatedUnion("type", [
     webMcpRunner: RunnerIdentitySchema,
     modelBackend: z.string().min(1),
     report: z.unknown(),
+    finalScreenshot: z.string().max(3_500_000).optional(),
   }).strict(),
   AttemptBaseSchema.extend({
     type: z.literal("failure"),
@@ -158,6 +159,20 @@ export async function POST(request: Request) {
             error: event.error,
           });
     const inserted = await experimentRepository.addAttempt(experiment.id, attempt);
+    if (event.type === "attempt" && event.finalScreenshot) {
+      try {
+        await experimentRepository.addFrame({
+          experimentId: experiment.id,
+          contractVariant: event.contractVariant,
+          stepIndex: 0,
+          at: new Date().toISOString(),
+          toolCalls: [],
+          screenshot: event.finalScreenshot,
+        });
+      } catch {
+        // Frames sit beside the hash. A missing JPEG must not fail the pair.
+      }
+    }
     await publishExperimentEvent({
       type:
         attempt.status === "completed" ? "attempt_completed" : "attempt_failed",

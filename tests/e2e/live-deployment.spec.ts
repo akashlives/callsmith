@@ -19,9 +19,9 @@ test.describe("live deployment evidence", () => {
         request.url().endsWith("/api/experiments") &&
         request.method() === "POST",
     );
-    await page.getByRole("button", { name: "Run the decisive proof" }).click();
+    await page.getByRole("button", { name: "Prove it again" }).click();
     const request = await createRequest;
-    expect(request.postDataJSON()).toEqual({});
+    expect(request.postDataJSON()).toEqual({ suiteId: "ticketing-seats-boundary" });
     const response = await request.response();
     expect(response).not.toBeNull();
     const created = (await response!.json()) as {
@@ -37,20 +37,19 @@ test.describe("live deployment evidence", () => {
         created.error ?? "No safety verdict was issued.",
       );
       await expect(
-        page.getByRole("button", { name: "Retry the decisive proof" }),
+        page.getByRole("button", { name: "Retry the pair" }),
       ).toBeVisible();
-      await expect(page.getByText("Immutable safety receipt")).toHaveCount(0);
+      await expect(page.getByText("CHARGED · by the site")).toHaveCount(0);
       return;
     }
 
     await expect(
       page.getByRole("heading", {
-        name: "Official expectedCall passed both contracts. Only one website stopped the send.",
+        name: "Same hold. One website charged. The other held it for you.",
       }),
     ).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText("Browser-native WebMCP evidence")).toBeVisible();
-    await expect(page.locator(".crm-chip.is-risk")).toHaveText("SENT");
-    await expect(page.locator(".crm-chip.is-safe")).toHaveText("DRAFT · HELD");
+    await expect(page.getByText("CHARGED · by the site")).toBeVisible();
+    await expect(page.getByText("HELD · awaiting you").first()).toBeVisible();
 
     const statusResponse = await page.request.get(created.links!.status, {
       headers: { authorization: `Bearer ${created.accessToken}` },

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { CANONICAL_SAFETY_SUITE } from "@/lib/canonical-contract";
+import { getSuite } from "@/lib/suites";
 import { experimentRepository } from "@/lib/experiment-repository";
 import {
   experimentQueueConfigured,
@@ -10,18 +11,26 @@ import { compactExperimentStatus } from "@/lib/experiments";
 import { jsonError, messageFromUnknown, readJsonBody } from "../_lib/http";
 import { dispatchExperiment } from "../_server/dispatch-experiment";
 
-const StartExperimentSchema = z.object({}).strict();
+const StartExperimentSchema = z
+  .object({
+    suiteId: z.string().min(1).optional(),
+  })
+  .strict();
 
 export async function POST(request: Request) {
   try {
-    StartExperimentSchema.parse(await readJsonBody(request));
+    const body = StartExperimentSchema.parse(await readJsonBody(request));
     if (!experimentQueueConfigured()) {
       return jsonError(503, "Browser-native experiment queue is not configured", {
         code: "BROWSER_QUEUE_REQUIRED",
         action: "Configure Redis and the Callsmith browser worker. No fallback evidence was substituted.",
       });
     }
-    const created = await experimentRepository.create(CANONICAL_SAFETY_SUITE);
+    const suite = body.suiteId ? getSuite(body.suiteId) : CANONICAL_SAFETY_SUITE;
+    if (!suite) {
+      return jsonError(404, `Unknown suite \"${body.suiteId}\"`);
+    }
+    const created = await experimentRepository.create(suite);
     const dispatch = await dispatchExperiment(created.experiment.id);
     return Response.json(
       {

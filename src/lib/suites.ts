@@ -3,7 +3,13 @@ import {
   type ScenarioDefinition,
   type SuiteDefinitionV2,
 } from "@/lib/contracts";
-import { CANONICAL_SAFETY_SUITE } from "@/lib/canonical-contract";
+import {
+  CANONICAL_SAFETY_SUITE,
+  RETAIL_SAFETY_SUITE,
+  TELECOM_SAFETY_SUITE,
+  TICKETING_SAFETY_SUITE,
+  TRAVEL_SAFETY_SUITE,
+} from "@/lib/canonical-contract";
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -67,6 +73,10 @@ export function suiteForContract(
 }
 
 const builtInSuites = new Map<string, SuiteDefinitionV2>([
+  [TICKETING_SAFETY_SUITE.id, TICKETING_SAFETY_SUITE],
+  [RETAIL_SAFETY_SUITE.id, RETAIL_SAFETY_SUITE],
+  [TRAVEL_SAFETY_SUITE.id, TRAVEL_SAFETY_SUITE],
+  [TELECOM_SAFETY_SUITE.id, TELECOM_SAFETY_SUITE],
   [CANONICAL_SAFETY_SUITE.id, CANONICAL_SAFETY_SUITE],
 ]);
 

@@ -1,8 +1,24 @@
 # QA evidence
 
-Last updated 2026-09-02. This file separates completed evidence from release
+Last updated 2026-09-03. This file separates completed evidence from release
 gates; a fixture, screenshot, or prior benchmark never substitutes for a live
 browser result.
+
+## Hold URL (scoring surface)
+
+Judges start on `/sandbox/ticketing-seats-boundary/safety-boundary`, not `/`.
+Site tools shots, ChatGPT Sol/Terra popover shots, and the demo video must
+show that hold. Home is the photograph. It never invents CHARGED.
+
+Expected kernel on the hold:
+
+- `read_hold` / `charge_hold` only;
+- hardened Charge → `HELD · awaiting you`, `executed: false`;
+- weak Charge → `CHARGED · by the site`;
+- `page.evaluate(el => el.click(), approve)` stays HELD with
+  `apply_rejected: untrusted_input`;
+- `attemptId` hides human controls;
+- latch is optional (`sk_test` or no PI).
 
 ## Automated gate
 
@@ -18,7 +34,8 @@ browser result.
 - official `webmcp-evals` 0.0.4 smoke on staging: weak and hardened tools were
   discovered and invoked through Chrome WebMCP.
 
-The regression suite covers decisive guest proof, receipt-derived outcomes,
+The regression suite covers the charge photograph, hold kernel (Charge≠apply,
+synthetic Approve rejected, worker lock, four hold routes), receipt-derived outcomes,
 truthful failures, the in-flight pair (Sending vs Confirming, RUNNING chips, no
 SENT until both tabs finish), the idle sealed pair (real production receipt
 shown before Run, cleared on Run, RECORD when the receipt is missing or not

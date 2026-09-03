@@ -110,6 +110,18 @@ async function ensureSchema(sql: Sql): Promise<void> {
       )
     `;
     await sql`
+      CREATE TABLE IF NOT EXISTS callsmith_frames_v1 (
+        experiment_id TEXT NOT NULL
+          REFERENCES callsmith_experiments_v1(id) ON DELETE RESTRICT,
+        contract_variant TEXT NOT NULL CHECK (contract_variant IN ('weak', 'hardened')),
+        step_index INTEGER NOT NULL,
+        at TIMESTAMPTZ NOT NULL,
+        tool_calls JSONB NOT NULL,
+        screenshot TEXT,
+        PRIMARY KEY (experiment_id, contract_variant)
+      )
+    `;
+    await sql`
       CREATE OR REPLACE FUNCTION callsmith_reject_receipt_v1_mutation()
       RETURNS trigger AS $$
       BEGIN
@@ -238,6 +250,15 @@ function experimentSeed(suite: SuiteDefinitionV2, options?: CreateExperimentOpti
   return seed;
 }
 
+export type ExperimentFrame = {
+  experimentId: string;
+  contractVariant: "weak" | "hardened";
+  stepIndex: number;
+  at: string;
+  toolCalls: unknown;
+  screenshot?: string;
+};
+
 export interface ExperimentRepository {
   create(
     suite: SuiteDefinitionV2,
@@ -252,6 +273,12 @@ export interface ExperimentRepository {
   setStatus(id: string, status: ExperimentStatus): Promise<ExperimentRecordV1>;
   finalizeReceipt(id: string, receipt: EvidenceReceiptV1): Promise<void>;
   getReceipt(receiptToken: string): Promise<EvidenceReceiptV1 | undefined>;
+  getReceiptById(receiptId: string): Promise<EvidenceReceiptV1 | undefined>;
+  latestDecisiveReceiptForContract(
+    contractId: string,
+  ): Promise<EvidenceReceiptV1 | undefined>;
+  addFrame(frame: ExperimentFrame): Promise<void>;
+  listFrames(experimentId: string): Promise<ExperimentFrame[]>;
 }
 
 interface ExperimentRow {
@@ -527,6 +554,80 @@ export class PostgresExperimentRepository implements ExperimentRepository {
     `;
     return rows[0] ? EvidenceReceiptV1Schema.parse(rows[0].payload) : undefined;
   }
+
+  async getReceiptById(receiptId: string): Promise<EvidenceReceiptV1 | undefined> {
+    await ensureSchema(this.sql);
+    const rows = await this.sql<{ payload: unknown }[]>`
+      SELECT payload FROM callsmith_receipts_v1
+      WHERE id = ${receiptId}
+      LIMIT 1
+    `;
+    return rows[0] ? EvidenceReceiptV1Schema.parse(rows[0].payload) : undefined;
+  }
+
+  async latestDecisiveReceiptForContract(
+    contractId: string,
+  ): Promise<EvidenceReceiptV1 | undefined> {
+    await ensureSchema(this.sql);
+    const rows = await this.sql<{ payload: unknown }[]>`
+      SELECT receipt.payload
+      FROM callsmith_receipts_v1 receipt
+      JOIN callsmith_experiments_v1 experiment
+        ON experiment.id = receipt.experiment_id
+      WHERE experiment.contract_id = ${contractId}
+        AND experiment.evidence_status = 'conclusive'
+      ORDER BY receipt.created_at DESC
+      LIMIT 8
+    `;
+    for (const row of rows) {
+      const receipt = EvidenceReceiptV1Schema.parse(row.payload);
+      if (receipt.conclusion === "hardened_prevented_harm") return receipt;
+    }
+    return undefined;
+  }
+
+  async addFrame(frame: ExperimentFrame): Promise<void> {
+    await ensureSchema(this.sql);
+    await this.sql`
+      INSERT INTO callsmith_frames_v1 (
+        experiment_id, contract_variant, step_index, at, tool_calls, screenshot
+      ) VALUES (
+        ${frame.experimentId}, ${frame.contractVariant}, ${frame.stepIndex},
+        ${frame.at}, ${this.sql.json(JSON.parse(JSON.stringify(frame.toolCalls ?? [])) as never)}, ${frame.screenshot ?? null}
+      )
+      ON CONFLICT (experiment_id, contract_variant) DO UPDATE SET
+        step_index = EXCLUDED.step_index,
+        at = EXCLUDED.at,
+        tool_calls = EXCLUDED.tool_calls,
+        screenshot = EXCLUDED.screenshot
+    `;
+  }
+
+  async listFrames(experimentId: string): Promise<ExperimentFrame[]> {
+    await ensureSchema(this.sql);
+    const rows = await this.sql<{
+      experimentId: string;
+      contractVariant: "weak" | "hardened";
+      stepIndex: number;
+      at: Date | string;
+      toolCalls: unknown;
+      screenshot: string | null;
+    }[]>`
+      SELECT experiment_id AS "experimentId", contract_variant AS "contractVariant",
+        step_index AS "stepIndex", at, tool_calls AS "toolCalls", screenshot
+      FROM callsmith_frames_v1
+      WHERE experiment_id = ${experimentId}
+      ORDER BY contract_variant
+    `;
+    return rows.map((row) => ({
+      experimentId: row.experimentId,
+      contractVariant: row.contractVariant,
+      stepIndex: row.stepIndex,
+      at: iso(row.at),
+      toolCalls: row.toolCalls,
+      ...(row.screenshot ? { screenshot: row.screenshot } : {}),
+    }));
+  }
 }
 
 type MemoryExperiment = {
@@ -536,6 +637,7 @@ type MemoryExperiment = {
   receiptTokenHash: string;
   receipt?: EvidenceReceiptV1;
   dispatched: boolean;
+  frames: ExperimentFrame[];
 };
 
 export class MemoryExperimentRepository implements ExperimentRepository {
@@ -570,6 +672,7 @@ export class MemoryExperimentRepository implements ExperimentRepository {
       ownerTokenHash: hashCapabilityToken(accessToken),
       receiptTokenHash: hashCapabilityToken(receiptToken),
       dispatched: false,
+      frames: [],
     });
     return { experiment: structuredClone(record), accessToken, receiptToken };
   }
@@ -671,6 +774,42 @@ export class MemoryExperimentRepository implements ExperimentRepository {
     }
     return undefined;
   }
+
+  async getReceiptById(receiptId: string) {
+    for (const stored of this.records.values()) {
+      if (stored.receipt?.receiptId === receiptId) {
+        return structuredClone(stored.receipt);
+      }
+    }
+    return undefined;
+  }
+
+  async latestDecisiveReceiptForContract(contractId: string) {
+    const matches = [...this.records.values()]
+      .filter(
+        (stored) =>
+          stored.record.contractId === contractId &&
+          stored.receipt?.conclusion === "hardened_prevented_harm",
+      )
+      .sort((left, right) =>
+        (right.receipt?.finalizedAt ?? "").localeCompare(left.receipt?.finalizedAt ?? ""),
+      );
+    return matches[0]?.receipt ? structuredClone(matches[0].receipt) : undefined;
+  }
+
+  async addFrame(frame: ExperimentFrame) {
+    const stored = this.records.get(frame.experimentId);
+    if (!stored) throw new Error(`Unknown experiment \"${frame.experimentId}\"`);
+    stored.frames = [
+      ...stored.frames.filter((item) => item.contractVariant !== frame.contractVariant),
+      structuredClone(frame),
+    ];
+  }
+
+  async listFrames(experimentId: string) {
+    const stored = this.records.get(experimentId);
+    return stored ? structuredClone(stored.frames) : [];
+  }
 }
 
 export function experimentPersistenceConfigured(): boolean {
@@ -678,7 +817,17 @@ export function experimentPersistenceConfigured(): boolean {
 }
 
 const sql = databaseClient();
+
+function memoryRepository(): MemoryExperimentRepository {
+  const cached = experimentGlobals.__callsmithMemoryExperimentRepository;
+  if (cached && typeof cached.latestDecisiveReceiptForContract === "function") {
+    return cached;
+  }
+  const created = new MemoryExperimentRepository();
+  experimentGlobals.__callsmithMemoryExperimentRepository = created;
+  return created;
+}
+
 export const experimentRepository: ExperimentRepository = sql
   ? new PostgresExperimentRepository(sql)
-  : (experimentGlobals.__callsmithMemoryExperimentRepository ??=
-      new MemoryExperimentRepository());
+  : memoryRepository();

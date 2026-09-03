@@ -11,12 +11,61 @@ import { SYSTEM_PROMPT } from "webmcp-evals/dist/evaluator/prompts.js";
  * OpenAI's Responses API. webmcp-evals@0.0.4 forces Chat Completions, which
  * rejects Luna function tools unless reasoning is disabled.
  */
+async function captureStepFrame(page) {
+  if (typeof page?.screenshot !== "function") return undefined;
+  try {
+    if (typeof page.setViewport === "function") {
+      await page.setViewport({ width: 1280, height: 800 });
+    }
+    const clipTarget =
+      typeof page.$ === "function" ? await page.$("[data-record-app]") : null;
+    const source = clipTarget ?? page;
+    const frame = await source.screenshot({
+      type: "jpeg",
+      quality: 45,
+      encoding: "base64",
+    });
+    return typeof frame === "string" && frame.length > 0 ? frame : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function summarizeToolCalls(step) {
+  return (step?.toolCalls ?? []).map((call) => ({
+    name: call.toolName,
+    args: call.input ?? call.args ?? call.arguments ?? {},
+  }));
+}
+
+function summarizeToolResults(step) {
+  return (step?.toolResults ?? []).map((result) => {
+    const output = result.result ?? result.output;
+    const failed =
+      output && typeof output === "object" && !Array.isArray(output) && output.ok === false;
+    const summary =
+      failed && typeof output.error === "string"
+        ? output.error
+        : failed && typeof output.message === "string"
+          ? output.message
+          : failed
+            ? "blocked"
+            : "ok";
+    return {
+      name: result.toolName,
+      ok: !failed,
+      summary,
+    };
+  });
+}
+
 export class OpenAIResponsesBrowserBackend {
   constructor({
     model,
     maxSteps = 6,
     apiKey = process.env.OPENAI_API_KEY,
     baseURL = process.env.OPENAI_BASE_URL,
+    onStep,
   }) {
     if (!apiKey?.trim()) {
       throw new Error("OPENAI_API_KEY is required by the Responses browser backend.");
@@ -24,6 +73,7 @@ export class OpenAIResponsesBrowserBackend {
     this.modelName = model.replace(/^openai:/, "");
     this.maxSteps = maxSteps;
     this.aiModel = createOpenAI({ apiKey, baseURL })(this.modelName);
+    this.onStep = typeof onStep === "function" ? onStep : undefined;
   }
 
   describe() {
@@ -66,6 +116,23 @@ export class OpenAIResponsesBrowserBackend {
       };
       rebuildTools(currentTools);
 
+      const emitStep = async (stepIndex, step) => {
+        if (!this.onStep) return;
+        try {
+          await this.onStep({
+            stepIndex,
+            toolCalls: summarizeToolCalls(step),
+            toolResults: summarizeToolResults(step),
+            text: typeof step?.text === "string" ? step.text : "",
+            screenshot: await captureStepFrame(registry.page),
+          });
+        } catch {
+          // A missing frame or a down web process must never fail the pair.
+        }
+      };
+
+      await emitStep(0, { toolCalls: [], toolResults: [], text: "" });
+
       const agent = new ToolLoopAgent({
         model: this.aiModel,
         tools: executableTools,
@@ -78,6 +145,7 @@ export class OpenAIResponsesBrowserBackend {
             toolCalls: step.toolCalls,
             toolResults: step.toolResults,
           });
+          void emitStep(stepsHistory.length, step);
         },
         prepareStep: async (options) => {
           currentTools = await registry.getCurrentTools();
