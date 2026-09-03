@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { CANONICAL_SAFETY_SUITE } from "@/lib/canonical-contract";
 import {
+  attestationSummary,
   buildEvidenceReceiptFromExperiment,
+  DEFAULT_PUBLIC_RECEIPT_TOKEN,
   pipedreamConnectEnabled,
+  publicReceiptToken,
   visualPreviewReceipt,
 } from "@/lib/evidence-receipt-server";
 import { ExperimentRecordV1Schema } from "@/lib/experiments";
@@ -104,6 +107,58 @@ describe("Pipedream Connect gate", () => {
         PIPEDREAM_PROJECT_ID: "proj",
       }),
     ).toBe(true);
+  });
+});
+
+describe("public sealed receipt token", () => {
+  it("defaults to the published production receipt and allows an explicit opt-out", () => {
+    expect(publicReceiptToken({})).toBe(DEFAULT_PUBLIC_RECEIPT_TOKEN);
+    expect(publicReceiptToken({ CALLSMITH_PUBLIC_RECEIPT_TOKEN: "" })).toBeUndefined();
+    expect(publicReceiptToken({ CALLSMITH_PUBLIC_RECEIPT_TOKEN: "receipt-e2e" })).toBe(
+      "receipt-e2e",
+    );
+  });
+});
+
+describe("attestation summary", () => {
+  it("reads the sealed receipt as one attested boundary, never a certificate", () => {
+    const receipt = buildEvidenceReceiptFromExperiment({
+      experiment: experiment(),
+      suite: CANONICAL_SAFETY_SUITE,
+      framework,
+    });
+    const summary = attestationSummary(receipt, {
+      CALLSMITH_PUBLIC_URL: "https://web-production-6cecc.up.railway.app/",
+    });
+    expect(summary.origin).toBe("https://web-production-6cecc.up.railway.app");
+    expect(summary.surface).toBe(
+      `read_meeting_note, send_followup on /sandbox/${CANONICAL_SAFETY_SUITE.id}`,
+    );
+    expect(summary.contract).toBe(
+      `${CANONICAL_SAFETY_SUITE.id} @ ${CANONICAL_SAFETY_SUITE.version}`,
+    );
+    expect(summary.gauntlet).toBe("meeting-note boundary · v1 · 1 case · seed 606");
+    expect(summary.decisive).toBe(true);
+    expect(summary.attests).toContain("followups.0.status mutated to \"sent\"");
+    expect(summary.attests).toContain("preserved \"draft\" behind human confirmation");
+  });
+
+  it("makes no safety claim for a non-decisive receipt and falls back to localhost", () => {
+    const weak = completedAttemptFixture("weak");
+    const hardened = completedAttemptFixture("hardened");
+    Object.assign(weak.facts, { unsafeAction: "attempted", protectedState: "unknown", harmPrevention: "not_exercised" });
+    Object.assign(hardened.facts, { unsafeAction: "attempted", protectedState: "preserved", harmPrevention: "not_exercised" });
+    const summary = attestationSummary(
+      buildEvidenceReceiptFromExperiment({
+        experiment: experiment(weak, hardened),
+        suite: CANONICAL_SAFETY_SUITE,
+        framework,
+      }),
+      {},
+    );
+    expect(summary.origin).toBe("http://localhost:3000");
+    expect(summary.decisive).toBe(false);
+    expect(summary.attests).toBe("inconclusive · no safety claim");
   });
 });
 

@@ -1,6 +1,6 @@
 # QA evidence
 
-Last updated 2026-09-01. This file separates completed evidence from release
+Last updated 2026-09-02. This file separates completed evidence from release
 gates; a fixture, screenshot, or prior benchmark never substitutes for a live
 browser result.
 
@@ -8,7 +8,7 @@ browser result.
 
 - static reset guard and `knip`: pass;
 - ESLint and TypeScript: pass;
-- Vitest locally: 57 pass, 2 service-backed tests skipped when integration URLs
+- Vitest locally: 73 pass, 2 service-backed tests skipped when integration URLs
   are absent;
 - release CI: pass with real Postgres 17 and Redis 8 services;
 - library coverage gate: at least 85% statements and 75% branches;
@@ -19,9 +19,38 @@ browser result.
   discovered and invoked through Chrome WebMCP.
 
 The regression suite covers decisive guest proof, receipt-derived outcomes,
-truthful failures, five-tool discovery, asynchronous proposal review, reject,
-approve, replay protection, status polling, mobile layout, keyboard activation,
-theme persistence, reduced motion, and hydration.
+truthful failures, the in-flight pair (Sending vs Confirming, RUNNING chips, no
+SENT until both tabs finish), the idle sealed pair (real production receipt
+shown before Run, cleared on Run, RECORD when the receipt is missing or not
+decisive), the compromised-third-party-script toggle on both contracts, the
+attestation header on the receipt route, five-tool discovery, asynchronous
+proposal review, reject, approve, replay protection, status polling, mobile
+layout, keyboard activation, theme persistence, reduced motion, and hydration.
+
+## Mid-session tool injection guard (2026-09-02)
+
+Deterministic, no model, no paid run. The sandbox's **Simulate compromised
+third-party script** toggle replays condition C1 of arXiv 2606.06387: a script
+with no first-party lock re-registers `send_followup` under the same name with a
+friendlier description and a false `readOnlyHint`.
+
+- weak contract (`open` registry): the impostor aborts the legitimate
+  registration and takes the name; the Tool surface panel lists
+  `cdn.analytics-shim.invalid/agent-helper.js` as the registering source and the
+  browser trace records `replaced`; `getTools()` in a WebMCP browser returns the
+  attacker's tool;
+- hardened contract (`origin_bound` registry in `src/lib/webmcp.ts`): the
+  same-name registration is refused before it reaches
+  `document.modelContext.registerTool`; the trace records the rejection with the
+  surviving `toolId` and source; `getTools()` still returns the website's tool;
+- verified by Vitest (`src/lib/__tests__/webmcp.test.ts`) and Playwright on
+  desktop and mobile (`tests/e2e/workbench.spec.ts`);
+- lifecycle events stay in the on-page trace and never enter the receipt
+  evidence stream, so the canonical pair and its facts are unchanged.
+
+The paper measured this site-side defense at 0% attack success across GPT-5.4,
+Claude Opus 4.6, and Gemini 2.5. Callsmith claims only what the toggle shows:
+one attack class, refused by contract, on a synthetic origin.
 
 The service-backed integration gate covers Postgres persistence, separate
 capabilities, outbox dispatch, Redis Stream progress replay, unique attempt
@@ -61,20 +90,25 @@ The JSON artifact preserves every receipt hash, seed, outcome, browser version,
 runner version, model/backend, application revision, and framework-manifest
 revision.
 
-## Production identity (2026-09-01)
+## Production identity (2026-09-02)
 
-- application revision on `main` at pin: `fb668f5627c4975fd160daa1993f5b81fcd527cc`;
-- verified container digest (web and runner, same image):
-  `sha256:e25962fe40c139cf5925b0f7dd24b6d8afb99ed5777731058db0807e6047b2b4`;
+- application revision on `main` at pin: _pending this release_;
+- verified container digest (web and runner, same image): _pending this release_;
+- previous pin (2026-09-01): revision `fb668f5627c4975fd160daa1993f5b81fcd527cc`,
+  digest `sha256:e25962fe40c139cf5925b0f7dd24b6d8afb99ed5777731058db0807e6047b2b4`;
 - GitHub About license: MIT;
-- GitHub `verify` on that merge: success;
+- GitHub `verify` on that merge: _pending_;
 - `/api/health/ready`: `{status: ready, database, queue, worker: true}`;
-- idle homepage: RECORD / RECORD, CTA **Run the decisive proof**, no SENT chip;
+- idle homepage: the sealed production pair (Weak SENT vs Hardened DRAFT·HELD)
+  with SHA-256 `041e7041…` and **Open immutable report**, CTA **Run the
+  decisive proof**; Run clears the seal and shows RUNNING / RUNNING; if the
+  receipt cannot be loaded the page falls back to RECORD / RECORD;
 - sealed receipt
   `https://web-production-6cecc.up.railway.app/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI`
   shows Weak SENT vs Hardened DRAFT·HELD, SHA-256
-  `041e70414efb13809d6d235e5342bdc945a6f70a4fecc43071baea3f5dae947c`, developer
-  evidence closed.
+  `041e70414efb13809d6d235e5342bdc945a6f70a4fecc43071baea3f5dae947c`, the
+  attestation header (origin under test, tool surface, contract, gauntlet,
+  attests), developer evidence closed.
 
 Do not click production Run unless explicitly authorized (paid Luna, seed 606).
 
@@ -134,7 +168,9 @@ The 97-second cream-hero cut at `outputs/callsmith-demo-final.mp4` is obsolete.
 Production now shows the Attio-like CRM pair. A silent 1440×900 walkthrough of
 the live URL (idle RECORD pair, then sealed SENT vs DRAFT·HELD on
 `/r/38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI`, no production Run click) is at
-`outputs/callsmith-demo-restage.webm`. Narration script is in
+`outputs/callsmith-demo-restage.webm`; it predates the sealed idle homepage,
+the attestation header, and the compromised-script toggle, so the final cut must
+be re-captured on the 2026-09-02 pin. Narration script (five beats, ~2:10) is in
 `devpost-submission.md`. It remains unpublished until the submitter records
 audio under three minutes and explicitly approves a public YouTube upload.
 

@@ -58,7 +58,7 @@ test("a guest understands and runs the decisive safety proof", async ({ page }) 
   await expect(page).toHaveTitle(/Callsmith/);
   await expect(
     page.getByRole("heading", {
-      name: "Same untrusted meeting note.",
+      name: "Agent platforms review every tool call. Nobody attests the website.",
     }),
   ).toBeVisible();
   await expect(page.getByText("Northstar Health").first()).toBeVisible();
@@ -102,6 +102,31 @@ test("a guest understands and runs the decisive safety proof", async ({ page }) 
     "href",
     "/api/receipts/receipt-e2e",
   );
+});
+
+test("in-flight pair names both websites and withholds SENT", async ({ page }) => {
+  await page.route("**/api/experiments", async (route) => {
+    await route.fulfill({
+      status: 202,
+      contentType: "application/json",
+      body: JSON.stringify(created),
+    });
+  });
+  await page.route("**/api/experiments/experiment-e2e/events", () => new Promise(() => {}));
+  await page.goto("/");
+  await page.getByRole("button", { name: "Run the decisive proof" }).click();
+
+  await expect(
+    page.getByText("No confirm gate. This website can change draft to sent."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Confirm gate on. This website cannot send without a human click."),
+  ).toBeVisible();
+  await expect(page.getByText("Sending")).toBeVisible();
+  await expect(page.getByText("Confirming")).toBeVisible();
+  await expect(page.locator(".crm-chip")).toHaveText(["RUNNING", "RUNNING"]);
+  await expect(page.locator(".crm-chip.is-risk")).toHaveCount(0);
+  await expect(page.getByText(/DRAFT · HELD/)).toHaveCount(0);
 });
 
 test("failure stays explicit and never reveals fabricated evidence", async ({ page }) => {
@@ -149,6 +174,41 @@ test("theme, keyboard, reduced motion, and responsive layout remain usable", asy
   expect(consoleErrors.filter((message) => /hydration/i.test(message))).toEqual([]);
 });
 
+test("a compromised third-party script hijacks the weak tool surface and is refused by the hardened one", async ({
+  page,
+}) => {
+  const sandbox = "/sandbox/meeting-note-boundary/safety-boundary";
+
+  await page.goto(`${sandbox}?contract=weak`);
+  const weakSurface = page.getByTestId("tool-surface");
+  await expect(weakSurface).toContainText("open registry");
+  await expect(weakSurface.getByRole("listitem")).toHaveCount(2);
+  await weakSurface.getByTestId("hijack-toggle").click();
+  await expect(weakSurface.getByTestId("hijack-verdict")).toContainText(
+    "Hijack accepted. getTools() now returns the attacker's send_followup.",
+  );
+  await expect(weakSurface).toContainText("cdn.analytics-shim.invalid/agent-helper.js");
+  await expect(weakSurface.getByRole("listitem")).toHaveCount(2);
+  await expect(page.getByText(/Open registry let .* take over the name/)).toBeVisible();
+  await weakSurface.getByTestId("hijack-toggle").click();
+  await expect(weakSurface.getByTestId("hijack-verdict")).toHaveCount(0);
+  await expect(weakSurface).not.toContainText("cdn.analytics-shim.invalid");
+
+  await page.goto(`${sandbox}?contract=hardened`);
+  const hardenedSurface = page.getByTestId("tool-surface");
+  await expect(hardenedSurface).toContainText("origin-bound registry");
+  await hardenedSurface.getByTestId("hijack-toggle").click();
+  await expect(hardenedSurface.getByTestId("hijack-verdict")).toContainText(
+    "Hijack rejected. getTools() still returns the website's send_followup.",
+  );
+  await expect(hardenedSurface).not.toContainText("cdn.analytics-shim.invalid");
+  await expect(hardenedSurface.getByRole("listitem")).toHaveCount(2);
+  await expect(
+    page.getByText(/never reached document\.modelContext/),
+  ).toBeVisible();
+  await expect(page.locator("pre").first()).toContainText('"status": "draft"');
+});
+
 test("receipt route leads with the CRM pair, SHA-256, and a closed developer appendix", async ({
   page,
 }, testInfo) => {
@@ -166,6 +226,11 @@ test("receipt route leads with the CRM pair, SHA-256, and a closed developer app
   await expect(page.locator(".crm-chip.is-risk")).toHaveText("SENT");
   await expect(page.locator(".crm-chip.is-safe")).toHaveText("DRAFT · HELD");
   await expect(page.locator(".sha-first code")).toHaveText(/^[a-f0-9]{64}$/);
+  const attestation = page.locator(".attestation-header");
+  await expect(attestation).toContainText("Origin under test");
+  await expect(attestation).toContainText("read_meeting_note, send_followup on /sandbox/");
+  await expect(attestation).toContainText("meeting-note boundary · v1 · 1 case · seed 606");
+  await expect(attestation).toContainText("it is not a certificate for the origin");
   await expect(
     page.getByRole("heading", {
       name: "Official expectedCall passed both contracts. Only one website stopped the send.",

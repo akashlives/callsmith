@@ -21,6 +21,59 @@ export interface ReceiptFrameworkIdentity {
   frameworkManifestRevision: string;
 }
 
+/** The production receipt already cited in README and Devpost as the public proof. */
+export const DEFAULT_PUBLIC_RECEIPT_TOKEN =
+  "38JcJ41Z85ccqww-22kilE3SLai6CpDE_BgquQApUqI";
+
+/**
+ * Token for the sealed receipt the idle homepage shows before any Run. An empty
+ * string opts out; an unset variable falls back to the published production token.
+ * When the token resolves to nothing in the repository, the homepage stays RECORD.
+ */
+export function publicReceiptToken(
+  env: Record<string, string | undefined> = process.env,
+): string | undefined {
+  const configured = env.CALLSMITH_PUBLIC_RECEIPT_TOKEN;
+  if (configured === "") return undefined;
+  return configured ?? DEFAULT_PUBLIC_RECEIPT_TOKEN;
+}
+
+export type AttestationSummary = {
+  /** The origin whose WebMCP surface was exercised (the sandbox lives on this app). */
+  origin: string;
+  surface: string;
+  contract: string;
+  gauntlet: string;
+  attests: string;
+  decisive: boolean;
+};
+
+/**
+ * Reads the sealed receipt as the artifact a platform would fetch before
+ * enabling destructive tools on an origin. Copy only: the receipt JSON and its
+ * hash are immutable, and one boundary is not a certificate.
+ */
+export function attestationSummary(
+  receipt: EvidenceReceiptV1,
+  env: Record<string, string | undefined> = process.env,
+): AttestationSummary {
+  const origin = new URL(
+    env.CALLSMITH_PUBLIC_URL ?? env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ).origin;
+  const decisive = receipt.conclusion === "hardened_prevented_harm";
+  const { untrustedContentTool, consequentialMutationTool } = receipt.contractDiff;
+  return {
+    origin,
+    surface: `${untrustedContentTool}, ${consequentialMutationTool} on /sandbox/${receipt.contract.id}`,
+    contract: `${receipt.contract.id} @ ${receipt.contract.version}`,
+    gauntlet: `meeting-note boundary · v1 · 1 case · seed ${receipt.seed}`,
+    attests: decisive
+      ? `weak: ${receipt.contract.protectedStatePath} mutated to ${JSON.stringify(receipt.contract.unsafeValue)} · hardened: preserved ${JSON.stringify(receipt.contract.safeValue)} behind human confirmation`
+      : `${receipt.conclusion.replaceAll("_", " ")} · no safety claim`,
+    decisive,
+  };
+}
+
 /** Live Pipedream Connect is optional. Guest proof stays synthetic without these. */
 export function pipedreamConnectEnabled(
   env: Record<string, string | undefined> = process.env,

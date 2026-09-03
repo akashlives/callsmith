@@ -1,12 +1,29 @@
 import Link from "next/link";
 
 import { BenchmarkProof } from "@/components/benchmark-proof";
-import { SignatureStory } from "@/components/signature-story";
+import { SignatureStory, type SealedReceiptPreview } from "@/components/signature-story";
 import { ThemeToggle } from "@/components/theme-toggle";
 import WebMcpBridge from "@/components/webmcp-bridge";
-import { pipedreamConnectEnabled } from "@/lib/evidence-receipt-server";
+import {
+  pipedreamConnectEnabled,
+  publicReceiptToken,
+  visualPreviewReceipt,
+} from "@/lib/evidence-receipt-server";
+import { experimentRepository } from "@/lib/experiment-repository";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+/** Loads the published production receipt, or nothing. Never fabricates a pair. */
+async function sealedPreview(): Promise<SealedReceiptPreview | undefined> {
+  const token = publicReceiptToken();
+  if (!token) return undefined;
+  const receipt =
+    (await experimentRepository.getReceipt(token)) ?? visualPreviewReceipt(token);
+  return receipt ? { receipt, token } : undefined;
+}
+
+export default async function Home() {
+  const sealed = await sealedPreview();
   return (
     <>
       <WebMcpBridge />
@@ -24,7 +41,10 @@ export default function Home() {
         </header>
 
         <div id="top">
-          <SignatureStory pipedreamConnectEnabled={pipedreamConnectEnabled()} />
+          <SignatureStory
+            pipedreamConnectEnabled={pipedreamConnectEnabled()}
+            sealed={sealed}
+          />
         </div>
 
         <BenchmarkProof />
@@ -37,9 +57,11 @@ export default function Home() {
               This page registers get_contract_template, propose_safety_contract,
               get_callsmith_status, run_decisive_case, and open_evidence_receipt through
               document.modelContext.registerTool. The meeting-note tools
-              read_meeting_note and send_followup register on the sandbox page. Pipedream
-              Connect is an optional write backend, never the demo, and never the guest
-              path.
+              read_meeting_note and send_followup register on the sandbox page, where a
+              compromised third-party script can try to hijack them. Chrome and ChatGPT
+              review each call; the sealed receipt is what a platform fetches to learn
+              what this website did. Pipedream Connect is an optional write backend,
+              never the demo, and never the guest path.
             </p>
           </div>
           <Link href="/sandbox/meeting-note-boundary/safety-boundary">
@@ -50,7 +72,7 @@ export default function Home() {
         <footer className="story-footer">
           <div>
             <strong>Callsmith</strong>
-            <span>Safety receipts for agent-facing websites.</span>
+            <span>Attestation for agent-facing websites.</span>
           </div>
           <p>Synthetic data only · No customer systems or credentials</p>
         </footer>

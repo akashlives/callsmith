@@ -104,11 +104,12 @@ describe("decisive proof story", () => {
     render(<SignatureStory />);
     expect(
       screen.getByRole("heading", {
-        name: /Same untrusted meeting note/i,
+        name: /Agent platforms review every tool call\. Nobody attests the website\./i,
       }),
     ).toBeVisible();
     expect(screen.getAllByText("Northstar Health")).toHaveLength(2);
     expect(screen.getAllByText("RECORD")).toHaveLength(2);
+    expect(screen.queryByTestId("sealed-idle")).not.toBeInTheDocument();
     expect(screen.queryByText(/Official expectedCall passed/)).not.toBeInTheDocument();
     expect(screen.queryByText("SENT")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /pipedream/i })).not.toBeInTheDocument();
@@ -177,5 +178,97 @@ describe("decisive proof story", () => {
     expect(screen.queryByText(/Official expectedCall passed/)).not.toBeInTheDocument();
     expect(screen.queryByText("SENT")).not.toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+  });
+
+  it("shows a real sealed pair before any Run and clears it when a live pair starts", async () => {
+    const receipt = receiptFixture();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/experiments") {
+        return new Response(JSON.stringify(created), { status: 202 });
+      }
+      if (url.endsWith("/events")) {
+        return new Response(new ReadableStream({ start() {} }), {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      }
+      return new Response("{}", { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SignatureStory sealed={{ receipt, token: "public-token" }} />);
+    expect(screen.getByText("SENT", { exact: true })).toBeVisible();
+    expect(screen.getByText("DRAFT · HELD")).toBeVisible();
+    expect(screen.queryByText("RECORD")).not.toBeInTheDocument();
+    const seal = screen.getByTestId("sealed-idle");
+    expect(seal).toHaveTextContent(receipt.contentHash);
+    expect(screen.getByRole("link", { name: "Open immutable report" })).toHaveAttribute(
+      "href",
+      "/r/public-token",
+    );
+    expect(screen.getByText(/This pair is sealed/)).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
+
+    expect(await screen.findByText("Sending")).toBeVisible();
+    expect(screen.queryByTestId("sealed-idle")).not.toBeInTheDocument();
+    expect(screen.queryByText("SENT")).not.toBeInTheDocument();
+    expect(screen.queryByText(/DRAFT · HELD/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("RUNNING")).toHaveLength(2);
+  });
+
+  it("keeps RECORD when the sealed receipt is not decisive", () => {
+    const receipt = receiptFixture();
+    render(
+      <SignatureStory
+        sealed={{
+          receipt: { ...receipt, conclusion: "inconclusive" },
+          token: "public-token",
+        }}
+      />,
+    );
+    expect(screen.getAllByText("RECORD")).toHaveLength(2);
+    expect(screen.queryByTestId("sealed-idle")).not.toBeInTheDocument();
+    expect(screen.queryByText("SENT")).not.toBeInTheDocument();
+  });
+
+  it("names both websites while the live pair is still running and never shows SENT", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/experiments") {
+        return new Response(JSON.stringify(created), { status: 202 });
+      }
+      if (url.endsWith("/events")) {
+        return new Response(
+          new ReadableStream({
+            start() {
+              // Keep the live pair open until the test unmounts.
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "text/event-stream" } },
+        );
+      }
+      return new Response("{}", { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<SignatureStory />);
+    fireEvent.click(screen.getByRole("button", { name: "Run the decisive proof" }));
+
+    expect(
+      await screen.findByText("No confirm gate. This website can change draft to sent."),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Confirm gate on. This website cannot send without a human click."),
+    ).toBeVisible();
+    expect(
+      screen.getByText("Same agent is trying to send that follow-up on both websites"),
+    ).toBeVisible();
+    expect(screen.getByText("Sending")).toBeVisible();
+    expect(screen.getByText("Confirming")).toBeVisible();
+    expect(screen.getByText(/Live pair · two Chrome tabs/)).toBeVisible();
+    expect(screen.getAllByText("RUNNING")).toHaveLength(2);
+    expect(screen.queryByText("SENT")).not.toBeInTheDocument();
+    expect(screen.queryByText(/DRAFT · HELD/)).not.toBeInTheDocument();
   });
 });
