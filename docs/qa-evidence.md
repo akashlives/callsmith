@@ -92,13 +92,19 @@ revision.
 
 ## Production identity (2026-09-02)
 
-- application revision on `main` at pin: _pending this release_;
-- verified container digest (web and runner, same image): _pending this release_;
+- application revision on `main` at pin: `77acb65dfedba41fb3931d1eccea2d0ef4e95fdc`
+  (merge of PR #9);
+- verified container digest (web and runner, same image, `release image` run
+  33700248158):
+  `sha256:c7eee6e01202bc62290274bd5672199cb431ba179132df56a30add52d4e5d724`;
 - previous pin (2026-09-01): revision `fb668f5627c4975fd160daa1993f5b81fcd527cc`,
   digest `sha256:e25962fe40c139cf5925b0f7dd24b6d8afb99ed5777731058db0807e6047b2b4`;
 - GitHub About license: MIT;
-- GitHub `verify` on that merge: _pending_;
+- GitHub `verify` on PR #9: success (3m18s);
+- Railway web deployment `5ef1fda0…` and runner deployment `476e9a5d…` on the
+  new digest: SUCCESS at 2026-09-03 00:40 UTC;
 - `/api/health/ready`: `{status: ready, database, queue, worker: true}`;
+  `/api/health` reports `applicationRevision: 77acb65d…`;
 - idle homepage: the sealed production pair (Weak SENT vs Hardened DRAFT·HELD)
   with SHA-256 `041e7041…` and **Open immutable report**, CTA **Run the
   decisive proof**; Run clears the seal and shows RUNNING / RUNNING; if the
@@ -162,6 +168,18 @@ sealed receipt SENT vs DRAFT·HELD, sandbox confirm copy present, health ready.
 human pass in ChatGPT desktop or flag-enabled Chrome. Do not treat this Cursor
 pass as ChatGPT in-app evidence.
 
+**2026-09-02 production smoke on digest `c7eee6e0…` (curl + Cursor browser, no
+Run):** homepage heading "Agent platforms review every tool call. Nobody attests
+the website."; idle pair is the real sealed receipt (Weak SENT, Hardened
+DRAFT·HELD, SHA-256 `041e7041…`, **Open immutable report** link); receipt route
+shows the attestation header with origin `https://web-production-6cecc.up.railway.app`,
+tool surface `read_meeting_note, send_followup on /sandbox/meeting-note-boundary`,
+gauntlet `meeting-note boundary · v1 · 1 case · seed 606`, and the
+not-a-certificate sentence; hardened sandbox renders the **Simulate compromised
+third-party script** toggle with the origin-bound registry label. `getTools()`
+and `open_evidence_receipt` on this digest with GPT-5.6 Sol/Terra remain a human
+gate (below).
+
 ## Demo asset
 
 The 97-second cream-hero cut at `outputs/callsmith-demo-final.mp4` is obsolete.
@@ -205,8 +223,11 @@ Recruitment copy (not yet posted):
 - narrate and publish the restage walkthrough as a public video under three
   minutes (script ready; silent live cut local; YouTube URL needs upload
   approval);
-- re-verify five-tool `getTools()` on production in ChatGPT's in-app browser or
-  Chrome with WebMCP enabled;
+- re-verify five-tool `getTools()` and `open_evidence_receipt` on production
+  digest `c7eee6e0…` in ChatGPT desktop with GPT-5.6 Sol or Terra (Luna has Site
+  tools off) or Chrome with WebMCP enabled; on the sandbox, confirm `getTools()`
+  shows the impostor after the toggle on weak and the legitimate tool on
+  hardened;
 - obtain the submitter country and explicit approval before creating/updating the
   Devpost project, then obtain a separate explicit “yes, submit” before final
   submission.
