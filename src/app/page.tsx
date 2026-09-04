@@ -8,7 +8,7 @@ import {
   HOLD_SANDBOX_PATH,
   TICKETING_SUITE_ID,
 } from "@/lib/canonical-contract";
-import { stillSrc } from "@/lib/evidence-receipt";
+import { stillFrames } from "@/lib/evidence-receipt";
 import {
   pipedreamConnectEnabled,
   publicReceiptToken,
@@ -37,11 +37,7 @@ async function sealedPreview(): Promise<
       typeof experimentRepository.listFrames === "function"
         ? await experimentRepository.listFrames(ticketing.experimentId)
         : [];
-    const frames = Object.fromEntries(
-      stored
-        .map((frame) => [frame.contractVariant, stillSrc(frame.screenshot)] as const)
-        .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
-    ) as { weak?: string; hardened?: string };
+    const frames = stillFrames(stored);
     return {
       receipt: ticketing,
       token: match ?? "",

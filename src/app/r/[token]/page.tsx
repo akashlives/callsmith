@@ -9,7 +9,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HOLD_SANDBOX_PATH, TICKETING_SUITE_ID } from "@/lib/canonical-contract";
 import { experimentRepository } from "@/lib/experiment-repository";
-import { isTicketingDecisive, stillSrc } from "@/lib/evidence-receipt";
+import { isTicketingDecisive, stillFrames } from "@/lib/evidence-receipt";
 import {
   attestationSummary,
   pipedreamConnectEnabled,
@@ -31,11 +31,7 @@ export default async function ReceiptPage({
   const attestation = attestationSummary(receipt);
   const ticketing = isTicketingDecisive(receipt);
   const frames = ticketing && typeof experimentRepository.listFrames === "function"
-    ? Object.fromEntries(
-        (await experimentRepository.listFrames(receipt.experimentId))
-          .map((frame) => [frame.contractVariant, stillSrc(frame.screenshot)] as const)
-          .filter((entry): entry is readonly [string, string] => Boolean(entry[1])),
-      )
+    ? stillFrames(await experimentRepository.listFrames(receipt.experimentId))
     : undefined;
 
   return (
