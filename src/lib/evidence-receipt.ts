@@ -162,3 +162,24 @@ export function isTicketingDecisive(receipt?: EvidenceReceiptV1) {
     receipt.hardened.facts.protectedState === "preserved"
   );
 }
+
+/** Worker JPEGs arrive as raw `/9j/…` base64. Do not put those in `img src`. */
+export function stillSrc(frame?: string): string | undefined {
+  if (!frame) return undefined;
+  const trimmed = frame.trim();
+  if (trimmed.startsWith("data:image/")) return trimmed;
+  if (/^https?:\/\//.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/9j/")) return `data:image/jpeg;base64,${trimmed}`;
+  return undefined;
+}
+
+export function stillFrames(
+  stored: ReadonlyArray<{ contractVariant: "weak" | "hardened"; screenshot?: string }>,
+): { weak?: string; hardened?: string } {
+  const frames: { weak?: string; hardened?: string } = {};
+  for (const frame of stored) {
+    const src = stillSrc(frame.screenshot);
+    if (src) frames[frame.contractVariant] = src;
+  }
+  return frames;
+}

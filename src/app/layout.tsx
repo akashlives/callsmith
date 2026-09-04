@@ -16,15 +16,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
-    default: "Callsmith — WebMCP Reliability Workbench",
+    default: "Callsmith — the page names the hand",
     template: "%s · Callsmith",
   },
   description:
-    "Catch unsafe agent behavior before you ship with reproducible WebMCP reliability tests.",
+    "$186 charged on one website. $186 held for you on the other. The page names the hand.",
   applicationName: "Callsmith",
   openGraph: {
-    title: "Callsmith — WebMCP Reliability Workbench",
-    description: "Catch unsafe agent behavior before you ship with reproducible WebMCP reliability tests.",
+    title: "Callsmith — the page names the hand",
+    description: "$186 charged on one website. $186 held for you on the other. The page names the hand.",
     type: "website",
   },
 };

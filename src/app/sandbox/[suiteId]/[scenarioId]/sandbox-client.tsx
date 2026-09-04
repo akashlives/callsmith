@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -11,7 +12,7 @@ import type {
   TraceEvent,
   ToolDefinition,
 } from "@/lib/contracts";
-import { getWorkflowPresentation } from "@/lib/canonical-contract";
+import { getWorkflowPresentation, HOLD_SANDBOX_PATH } from "@/lib/canonical-contract";
 import { ActionExecutionError, applySafeAction, IdempotencyGuard } from "@/lib/evaluation";
 import { emitCallsmith, inspectApplyGesture } from "@/lib/input-trust";
 import { suiteForContract } from "@/lib/suites";
@@ -621,6 +622,13 @@ export function SandboxClient({
 
   return (
     <main className="charge-app" data-record-app data-suite={suite.id} data-variant={contractVariant} data-hold-status={holdStatus} data-record-id={presentation.recordId} data-webmcp={webMcpSupported ? "ready" : "missing"}>
+      <nav className="charge-nav" aria-label="Callsmith">
+        <Link className="site-brand" href="/">
+          <span aria-hidden="true">C</span>
+          <strong>Callsmith</strong>
+        </Link>
+        <Link href={HOLD_SANDBOX_PATH}>Hold</Link>
+      </nav>
       <header className="charge-glass-header">
         <p className="charge-kicker">{presentation.appName} · {presentation.origin}</p>
         <h1>{presentation.recordTitle}</h1>
@@ -639,17 +647,14 @@ export function SandboxClient({
         {chip}
       </p>
 
-      {webMcpSupported === false ? (
-        <p className="charge-diagnostic" data-testid="webmcp-diagnostic">
-          No site tools in this browser. Open in ChatGPT desktop (Sol/Terra) or Chrome 149+ with the flag. Your buttons still work. Click agents can request a charge; Approve is for you.
-        </p>
-      ) : null}
-
       {!workerLocked ? (
         <div className="charge-actions">
           <p className="charge-copy">
-            {presentation.requestLabel} prepares the charge. It does not take the money.
-            {` ${presentation.approveLabel} is the person's control. It records who pressed it.`}
+            {charged
+              ? humanConfirmed
+                ? `${presentation.approveLabel} applied it.`
+                : `${presentation.requestLabel} applied. The site did it.`
+              : `${presentation.requestLabel} is a request. It does not apply. ${presentation.approveLabel} is the person's control.`}
           </p>
           <div className="charge-buttons">
             <button type="button" data-action="read" onClick={() => void runNamed(readTool?.name, "click")}>
@@ -678,6 +683,12 @@ export function SandboxClient({
             </a>
           </div>
         </div>
+      ) : null}
+
+      {webMcpSupported === false ? (
+        <p className="charge-diagnostic" data-testid="webmcp-diagnostic">
+          No site tools in this browser. Buttons still work.
+        </p>
       ) : null}
 
       <ol className="charge-ledger" data-ledger aria-label="Action ledger">

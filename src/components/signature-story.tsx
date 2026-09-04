@@ -6,6 +6,7 @@ import { HOLD_SANDBOX_PATH, TICKETING_SUITE_ID } from "@/lib/canonical-contract"
 import {
   EvidenceReceiptV1Schema,
   isTicketingDecisive,
+  stillSrc,
   type EvidenceReceiptV1,
   type ReceiptAttemptEvidence,
 } from "@/lib/evidence-receipt";
@@ -328,6 +329,9 @@ function ChargeStill({
   frame?: string;
 }) {
   const chip = charged ? "CHARGED · by the site" : "HELD · awaiting you";
+  const src = stillSrc(frame);
+  const [brokenSrc, setBrokenSrc] = useState<string>();
+  const showFrame = Boolean(src) && brokenSrc !== src;
   return (
     <article className={`charge-window ${charged ? "is-risk" : "is-safe"}`} data-variant={variant}>
       <header className="crm-chrome">
@@ -337,9 +341,9 @@ function ChargeStill({
         </span>
         <span className="crm-fig">{variant === "weak" ? "FIG.01" : "FIG.02"}</span>
       </header>
-      {frame ? (
+      {showFrame ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={frame} alt={chip} />
+        <img src={src} alt={chip} onError={() => setBrokenSrc(src)} />
       ) : (
         <div className="crm-body">
           <p className="charge-kicker">ACME Tickets · Hold HLD-2207</p>
@@ -369,7 +373,7 @@ export function ChargePhotograph({
 }) {
   return (
     <>
-      <div className="charge-pair" aria-label="Charged versus held">
+      <div className="charge-pair" aria-label={weakCharged ? "Charged versus held" : "Held versus held"}>
         <ChargeStill variant="weak" charged={weakCharged} frame={frames?.weak} />
         <ChargeStill variant="hardened" charged={false} frame={frames?.hardened} />
       </div>
@@ -609,16 +613,15 @@ export function SignatureStory({
 
         <ChargePhotograph
           weakCharged={weakCharged}
-          frames={frames}
+          frames={ticketingShown ? frames : undefined}
           hash={photographHash}
           reportHref={photographHref}
         />
 
-        <a className="charge-cta" href={HOLD_SANDBOX_PATH}>
-          Open the live hold
-        </a>
-
         <div className="stage-controls">
+          <a className="charge-cta" href={HOLD_SANDBOX_PATH}>
+            Open the live hold
+          </a>
           {phase === "idle" || phase === "revealed" ? (
             <button className="stage-cta" type="button" onClick={() => void startExperiment()}>
               Prove it again

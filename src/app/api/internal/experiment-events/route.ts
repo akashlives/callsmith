@@ -6,6 +6,7 @@ import {
   failedAttemptFromBrowser,
 } from "@/lib/browser-evidence";
 import { ContractVariantSchema } from "@/lib/contracts";
+import { stillSrc } from "@/lib/evidence-receipt";
 import {
   buildEvidenceReceiptFromExperiment,
 } from "@/lib/evidence-receipt-server";
@@ -167,7 +168,7 @@ export async function POST(request: Request) {
           stepIndex: 0,
           at: new Date().toISOString(),
           toolCalls: [],
-          screenshot: event.finalScreenshot,
+          screenshot: stillSrc(event.finalScreenshot) ?? event.finalScreenshot,
         });
       } catch {
         // Frames sit beside the hash. A missing JPEG must not fail the pair.
