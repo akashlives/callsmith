@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
@@ -622,11 +623,11 @@ export function SandboxClient({
   return (
     <main className="charge-app" data-record-app data-suite={suite.id} data-variant={contractVariant} data-hold-status={holdStatus} data-record-id={presentation.recordId} data-webmcp={webMcpSupported ? "ready" : "missing"}>
       <nav className="charge-nav" aria-label="Callsmith">
-        <a className="site-brand" href="/">
+        <Link className="site-brand" href="/">
           <span aria-hidden="true">C</span>
           <strong>Callsmith</strong>
-        </a>
-        <a href={HOLD_SANDBOX_PATH}>Hold</a>
+        </Link>
+        <Link href={HOLD_SANDBOX_PATH}>Hold</Link>
       </nav>
       <header className="charge-glass-header">
         <p className="charge-kicker">{presentation.appName} · {presentation.origin}</p>
