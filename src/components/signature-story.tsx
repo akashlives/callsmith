@@ -330,11 +330,8 @@ function ChargeStill({
 }) {
   const chip = charged ? "CHARGED · by the site" : "HELD · awaiting you";
   const src = stillSrc(frame);
-  const [broken, setBroken] = useState(false);
-  useEffect(() => {
-    setBroken(false);
-  }, [src]);
-  const showFrame = Boolean(src) && !broken;
+  const [brokenSrc, setBrokenSrc] = useState<string>();
+  const showFrame = Boolean(src) && brokenSrc !== src;
   return (
     <article className={`charge-window ${charged ? "is-risk" : "is-safe"}`} data-variant={variant}>
       <header className="crm-chrome">
@@ -346,7 +343,7 @@ function ChargeStill({
       </header>
       {showFrame ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={chip} onError={() => setBroken(true)} />
+        <img src={src} alt={chip} onError={() => setBrokenSrc(src)} />
       ) : (
         <div className="crm-body">
           <p className="charge-kicker">ACME Tickets · Hold HLD-2207</p>
